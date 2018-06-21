@@ -1,0 +1,6 @@
+include/*
+lib/*
+bin/*
+
+pip*
+pyvenv*
