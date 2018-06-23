@@ -1,6 +1,6 @@
 from requests_html import HTMLSession
 
-class author(object):
+class Author(object):
 	def __init__(self, given, surname):
 		self.given = given
 		self.surname = surname
@@ -8,34 +8,36 @@ class author(object):
 	def name(self):
 		return "{} {}".format(self.given, self.surname)
 
-class article(object):
+class Article(object):
 	# This function expects an "Element" object from requests_html
 	# that contains information about only one article.
-	def __init__(self, html):
-		self.html = html
-		self.find_title()
-		self.find_url()
-		self.find_authors()
+	def __init__(self):
+		pass
+		
+	def process_result_page(self, html):
+		self._find_title(html)
+		self._find_url(html)
+		self._find_authors(html)
 		# NOTE: We don't get abstracts from search result pages
 		# because they're loaded asynchronously and it would be
 		# annoying to load every one separately.
 
-	def find_title(self):
-		x = self.html.find(".highwire-cite-title")
+	def _find_title(self, html):
+		x = html.find(".highwire-cite-title")
 		# this looks weird because the title is wrapped
 		# in 2 <span> tags with identical classes:
 		self.title = x[0].text
 
-	def find_url(self):
-		self.url = self.html.absolute_links.pop() # absolute_links is a set
+	def _find_url(self, html):
+		self.title = html.absolute_links.pop() # absolute_links is a set
 
-	def find_authors(self):
-		entries = self.html.find(".highwire-citation-author")
+	def _find_authors(self, html):
+		entries = html.find(".highwire-citation-author")
 		self.authors = []
 		for entry in entries:
 			first = entry.find(".nlm-given-names")[0].text
 			last = entry.find(".nlm-surname")[0].text
-			self.authors.append(author(first, last))
+			self.authors.append(Author(first, last))
 
 def determine_page_count(html):
 	# takes a biorxiv results page and
@@ -44,7 +46,12 @@ def determine_page_count(html):
 
 def process_page(html):
 	entries = html.find(".highwire-article-citation")
-	return [article(x) for x in entries]
+	articles = []
+	for entry in entries:
+		a = Article()
+		a.process_results_page(entry)
+		articles.append(a)
+	return articles
 
 if __name__ == "__main__":
 	session = HTMLSession()
