@@ -16,6 +16,9 @@ class article(object):
 		self.find_title()
 		self.find_url()
 		self.find_authors()
+		# NOTE: We don't get abstracts from search result pages
+		# because they're loaded asynchronously and it would be
+		# annoying to load every one separately.
 
 	def find_title(self):
 		x = self.html.find(".highwire-cite-title")
@@ -41,10 +44,7 @@ def determine_page_count(html):
 
 def process_page(html):
 	entries = html.find(".highwire-article-citation")
-	articles = []
-	for entry in entries:
-		articles.append(article(entry))
-	return articles
+	return [article(x) for x in entries]
 
 if __name__ == "__main__":
 	session = HTMLSession()
@@ -55,5 +55,4 @@ if __name__ == "__main__":
 		r = session.get("https://www.biorxiv.org/collection/bioinformatics?page={}".format(p))
 		results += process_page(r.html)
 
-	for x in results:
-		print(x.title)
+	for x in results: print(x.title)
