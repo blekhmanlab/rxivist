@@ -6,7 +6,10 @@ class Author(object):
 		self.surname = surname
 
 	def name(self):
-		return "{} {}".format(self.given, self.surname)
+		if surname != "":
+			return "{} {}".format(self.given, self.surname)
+		else:
+			return self.given
 
 class Article(object):
 	# This function expects an "Element" object from requests_html
@@ -14,7 +17,7 @@ class Article(object):
 	def __init__(self):
 		pass
 		
-	def process_result_page(self, html):
+	def process_results_page(self, html):
 		self._find_title(html)
 		self._find_url(html)
 		self._find_authors(html)
@@ -35,8 +38,14 @@ class Article(object):
 		entries = html.find(".highwire-citation-author")
 		self.authors = []
 		for entry in entries:
-			first = entry.find(".nlm-given-names")[0].text
-			last = entry.find(".nlm-surname")[0].text
+			print(entry.text)
+			# Sometimes an author's name is actually the name of a group of collaborators
+			if(len(entry.find(".nlm-collab")) > 0):
+				first = entry.find(".nlm-collab")[0].text
+				last = ""
+			else:
+				first = entry.find(".nlm-given-names")[0].text
+				last = entry.find(".nlm-surname")[0].text
 			self.authors.append(Author(first, last))
 
 def determine_page_count(html):
