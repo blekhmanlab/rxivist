@@ -5,6 +5,8 @@ import psycopg2
 
 import db
 
+TESTING = True		# this is just for testing, so we don't crawl the whole site during development TODO delete
+
 class Author(object):
 	def __init__(self, given, surname):
 		self.given = given
@@ -108,25 +110,35 @@ def pull_out_articles(html):
 		articles.append(a)
 	return articles
 
-def record_articles(articles, connection):
-	# return value is whether we encountered any articles we had already
-	for x in articles:
-		if not x.record(connection): return False
-	return True
+class Spider(object):
+	def __init__(self):
+		self.connection = db.Connection("testdb", "postgres", "mysecretpassword")  # TODO: Make this configurable
+		self.session = HTMLSession()
+	
+	def find_record_new_articles(self, collection="bioinformatics"):
+		# we need to grab the first page to figure out how many pages there are
+		r = self.session.get("https://www.biorxiv.org/collection/{}".format(collection))
+		results = pull_out_articles(r.html)
+		keep_going = self.record_articles(results)
+		if not keep_going: exit(0) # if we already knew about the first entry, we're done
+
+		pagecount = 2 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
+		for p in range(1, pagecount): # iterate through pages
+			r = self.session.get("https://www.biorxiv.org/collection/{}?page={}".format(collection, p))
+			results = pull_out_articles(r.html)
+			keep_going = self.record_articles(results)
+			if not keep_going: break # If we encounter a recognized article, we're done
+
+	def refresh_article_details(self):
+		pass
+
+	def record_articles(self, articles):
+		# return value is whether we encountered any articles we had already
+		for x in articles:
+			if not x.record(self.connection): return False
+		return True
 
 if __name__ == "__main__":
-	TESTING = True		# this is just for testing, so we don't crawl the whole site during development TODO delete
-	connection = db.Connection("testdb", "postgres", "mysecretpassword")  # TODO: Make this configurable
-	session = HTMLSession()
-	# we need to grab the first page to figure out how many pages there are
-	r = session.get("https://www.biorxiv.org/collection/bioinformatics")
-	results = pull_out_articles(r.html)
-	keep_going = record_articles(results, connection)
-	if not keep_going: exit(0)
-
-	pagecount = 2 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
-	for p in range(1, pagecount): # iterate through pages
-		r = session.get("https://www.biorxiv.org/collection/bioinformatics?page={}".format(p))
-		results = pull_out_articles(r.html)
-		keep_going = record_articles(results, connection)
-		if not keep_going: break # If we encounter a recognized article, we're done
+	spider = Spider()
+	spider.find_record_new_articles("bioinformatics")
+	spider.refresh_article_details()
