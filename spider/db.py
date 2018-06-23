@@ -10,8 +10,8 @@ class Connection(object):
 		params = 'host={} dbname={} user={} password={}'.format(host, dbname, user, password)
 		self.db = psycopg2.connect(params)
 		self.cursor = self.db.cursor()
-		self.cursor.execute("CREATE TABLE IF NOT EXISTS articles (url text PRIMARY KEY, title text NOT NULL);")
-		self.db.commit()
+
+		self._ensure_tables_exist()
 
 	def _ensure_database_exists(self, dbname, host, user, password):
 		params = 'host={} dbname=postgres user={} password={}'.format(host, user, password)
@@ -24,6 +24,11 @@ class Connection(object):
 		else:
 			cursor.execute("CREATE DATABASE {};".format(dbname))
 		db.close()
+	
+	def _ensure_tables_exist(self):
+		self.cursor.execute("CREATE TABLE IF NOT EXISTS articles (url text PRIMARY KEY, title text NOT NULL);")
+		self.cursor.execute("CREATE TABLE IF NOT EXISTS authors (id SERIAL, given text NOT NULL, surname text, PRIMARY KEY (given, surname));")
+		self.db.commit()
 	
 	def __del__(self):
 		self.db.close()

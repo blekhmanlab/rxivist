@@ -11,10 +11,23 @@ class Author(object):
 		self.surname = surname
 
 	def name(self):
-		if surname != "":
+		if self.surname != "":
 			return "{} {}".format(self.given, self.surname)
 		else: # if author only has one name
 			return self.given
+	
+	def record(self, connection):
+		with connection.db.cursor() as cursor:
+			cursor.execute("SELECT id FROM authors WHERE given = %s and surname = %s;", (self.given, self.surname))
+			a_id = cursor.fetchone()
+			if a_id is not None:
+				self.id = a_id[0]
+				print("Author {} exists with ID {}".format(self.name(), self.id))
+				return
+			cursor.execute("INSERT INTO authors (given, surname) VALUES (%s, %s) RETURNING id;", (self.given, self.surname))
+			self.id = cursor.fetchone()[0]
+			connection.db.commit()
+			print("Recorded author {} with ID {}".format(self.name(), self.id))
 
 class Article(object):
 	def __init__(self):
@@ -57,11 +70,20 @@ class Article(object):
 				connection.db.commit()
 			except psycopg2.IntegrityError as err:
 				if repr(err).find('duplicate key value violates unique constraint "articles_pkey"', 1):
+					print("Found article already: {}".format(self.title))
 					return False
 				else:
 					raise
-			print("Recorded {}".format(self.title))
+			self._record_authors(connection)
+			print("Recorded article {}".format(self.title))
 		return True
+	
+	def _record_authors(self, connection):
+		for a in self.authors:
+			a.record(connection)
+	
+	def _link_authors(self, connection):
+		pass
 
 def determine_page_count(html):
 	# takes a biorxiv results page and
