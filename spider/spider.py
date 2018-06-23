@@ -1,4 +1,6 @@
 from requests_html import HTMLSession
+import psycopg2
+import re
 
 class Author(object):
 	def __init__(self, given, surname):
@@ -8,7 +10,7 @@ class Author(object):
 	def name(self):
 		if surname != "":
 			return "{} {}".format(self.given, self.surname)
-		else:
+		else: # if author only has one name
 			return self.given
 
 class Article(object):
@@ -32,13 +34,12 @@ class Article(object):
 		self.title = x[0].text
 
 	def _find_url(self, html):
-		self.title = html.absolute_links.pop() # absolute_links is a set
+		self.url = html.absolute_links.pop() # absolute_links is a set
 
 	def _find_authors(self, html):
 		entries = html.find(".highwire-citation-author")
 		self.authors = []
 		for entry in entries:
-			print(entry.text)
 			# Sometimes an author's name is actually the name of a group of collaborators
 			if(len(entry.find(".nlm-collab")) > 0):
 				first = entry.find(".nlm-collab")[0].text
@@ -62,7 +63,22 @@ def process_page(html):
 		articles.append(a)
 	return articles
 
+class DB(object):
+	def __init__(self, host, user, password):
+		params = 'host={} dbname=testdb user={} password={}'.format(host, user, password)
+		self.db = psycopg2.connect(params)
+		self.cursor = self.db.cursor()
+		self.cursor.execute("CREATE TABLE IF NOT EXISTS articles (url text PRIMARY KEY, title text NOT NULL);")
+		self.db.commit()
+	def record_article(self, article):
+		self.cursor.execute("INSERT INTO articles VALUES (%s, %s);", (article.url, article.title))
+		self.db.commit()
+		print("Recorded {}".format(article.title))
+
+
+
 if __name__ == "__main__":
+	db = DB("testdb", "postgres", "mysecretpassword")
 	session = HTMLSession()
 	# we need to grab the first page to figure out how many pages there are
 	r = session.get("https://www.biorxiv.org/collection/bioinformatics")
@@ -71,4 +87,4 @@ if __name__ == "__main__":
 		r = session.get("https://www.biorxiv.org/collection/bioinformatics?page={}".format(p))
 		results += process_page(r.html)
 
-	for x in results: print(x.title)
+	for x in results:	db.record_article(x)
