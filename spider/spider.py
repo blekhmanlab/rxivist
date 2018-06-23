@@ -75,8 +75,9 @@ class Article(object):
 					return False
 				else:
 					raise
+			finally:
+				connection.db.commit() # Needed to end the botched transaction
 			self.id = cursor.fetchone()[0]
-			connection.db.commit()
 
 			author_ids = self._record_authors(connection)
 			self._link_authors(author_ids, connection)
@@ -120,7 +121,7 @@ class Spider(object):
 		r = self.session.get("https://www.biorxiv.org/collection/{}".format(collection))
 		results = pull_out_articles(r.html)
 		keep_going = self.record_articles(results)
-		if not keep_going: exit(0) # if we already knew about the first entry, we're done
+		if not keep_going: return # if we already knew about the first entry, we're done
 
 		pagecount = 2 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
 		for p in range(1, pagecount): # iterate through pages
@@ -130,7 +131,27 @@ class Spider(object):
 			if not keep_going: break # If we encounter a recognized article, we're done
 
 	def refresh_article_details(self):
-		pass
+		with self.connection.db.cursor() as cursor:
+			cursor.execute("SELECT id, url FROM articles WHERE abstract IS NULL;")
+			for article in cursor:
+				url = article[1]
+				article_id = article[0]
+				details = self.get_article_details(url)
+				if details: self.update_article(article_id, details)
+
+	def get_article_details(self, url):
+		resp = self.session.get(url)
+		abstract = resp.html.find("#p-2")
+		if len(abstract) < 1:
+			return False # TODO: this should be an exception
+		return abstract[0].text
+
+	def update_article(self, article_id, abstract):
+		# TODO: seems like this thing should be in the Article class maybe?
+		with self.connection.db.cursor() as cursor:
+			cursor.execute("UPDATE articles SET abstract = %s WHERE id = %s;", (abstract, article_id))
+			self.connection.db.commit()
+			print("Recorded abstract for ID {}: {}".format(article_id, abstract))
 
 	def record_articles(self, articles):
 		# return value is whether we encountered any articles we had already
