@@ -66,24 +66,33 @@ class Article(object):
 	def record(self, connection):
 		with connection.db.cursor() as cursor:
 			try:
-				cursor.execute("INSERT INTO articles VALUES (%s, %s);", (self.url, self.title))
-				connection.db.commit()
+				cursor.execute("INSERT INTO articles (url, title) VALUES (%s, %s) RETURNING id;", (self.url, self.title))
 			except psycopg2.IntegrityError as err:
 				if repr(err).find('duplicate key value violates unique constraint "articles_pkey"', 1):
 					print("Found article already: {}".format(self.title))
 					return False
 				else:
 					raise
-			self._record_authors(connection)
+			self.id = cursor.fetchone()[0]
+			connection.db.commit()
+
+			author_ids = self._record_authors(connection)
+			self._link_authors(author_ids, connection)
 			print("Recorded article {}".format(self.title))
 		return True
 	
 	def _record_authors(self, connection):
+		author_ids = []
 		for a in self.authors:
 			a.record(connection)
+			author_ids.append(a.id)
+		return author_ids
 	
-	def _link_authors(self, connection):
-		pass
+	def _link_authors(self, author_ids, connection):
+		with connection.db.cursor() as cursor:
+			sql = "INSERT INTO article_authors (article, author) VALUES (%s, %s) RETURNING id;"
+			cursor.executemany(sql, [(self.id, x) for x in author_ids])
+			connection.db.commit()
 
 def determine_page_count(html):
 	# takes a biorxiv results page and
