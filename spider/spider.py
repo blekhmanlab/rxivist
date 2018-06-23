@@ -15,8 +15,6 @@ class Author(object):
 			return self.given
 
 class Article(object):
-	# This function expects an "Element" object from requests_html
-	# that contains information about only one article.
 	def __init__(self):
 		pass
 		
@@ -79,22 +77,26 @@ class DB(object):
 	def _ensure_database_exists(self, dbname, host, user, password):
 		params = 'host={} dbname=postgres user={} password={}'.format(host, user, password)
 		db = psycopg2.connect(params)
-		db.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+		db.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT) # for creating DB
 		cursor = db.cursor()
 		cursor.execute("SELECT datname FROM pg_database WHERE datistemplate = false;")
 		for result in cursor:
 			if result[0] == dbname: break
 		else:
 			cursor.execute("CREATE DATABASE {};".format(dbname))
-			db.commit()
 		db.close()
 
 	def record_article(self, article):
-		self.cursor.execute("INSERT INTO articles VALUES (%s, %s);", (article.url, article.title))
-		self.db.commit()
+		try:
+			self.cursor.execute("INSERT INTO articles VALUES (%s, %s);", (article.url, article.title))
+			self.db.commit()
+		except psycopg2.IntegrityError as err:
+			if repr(err).find('duplicate key value violates unique constraint "articles_pkey"', 1):
+				return False
+			else:
+				raise
 		print("Recorded {}".format(article.title))
-
-
+		return True
 
 if __name__ == "__main__":
 	db = DB("testdb", "postgres", "mysecretpassword")  # TODO: Make this configurable
@@ -102,8 +104,10 @@ if __name__ == "__main__":
 	# we need to grab the first page to figure out how many pages there are
 	r = session.get("https://www.biorxiv.org/collection/bioinformatics")
 	results = process_page(r.html)
-	for p in range(1, determine_page_count(r.html)):
+	for p in range(1, determine_page_count(r.html)): # iterate through pages
 		r = session.get("https://www.biorxiv.org/collection/bioinformatics?page={}".format(p))
 		results += process_page(r.html)
 
-	for x in results:	db.record_article(x)
+	for x in results:
+		# keep recording until we hit one that's already been done
+		if not db.record_article(x): break
