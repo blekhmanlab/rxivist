@@ -33,7 +33,7 @@ class Article(object):
 	def __init__(self):
 		pass
 		
-	def process_results_page(self, html):
+	def process_results_entry(self, html):
 		self._find_title(html)
 		self._find_url(html)
 		self._find_authors(html)
@@ -99,25 +99,34 @@ def determine_page_count(html):
 	# finds the highest page number listed
 	return int(html.find(".pager-last")[0].text)
 
-def process_page(html):
+def pull_out_articles(html):
 	entries = html.find(".highwire-article-citation")
 	articles = []
 	for entry in entries:
 		a = Article()
-		a.process_results_page(entry)
+		a.process_results_entry(entry)
 		articles.append(a)
 	return articles
 
+def record_articles(articles, connection):
+	# return value is whether we encountered any articles we had already
+	for x in articles:
+		if not x.record(connection): return False
+	return True
+
 if __name__ == "__main__":
+	TESTING = True		# this is just for testing, so we don't crawl the whole site during development TODO delete
 	connection = db.Connection("testdb", "postgres", "mysecretpassword")  # TODO: Make this configurable
 	session = HTMLSession()
 	# we need to grab the first page to figure out how many pages there are
 	r = session.get("https://www.biorxiv.org/collection/bioinformatics")
-	results = process_page(r.html)
-	for p in range(1, determine_page_count(r.html)): # iterate through pages
-		r = session.get("https://www.biorxiv.org/collection/bioinformatics?page={}".format(p))
-		results += process_page(r.html)
+	results = pull_out_articles(r.html)
+	keep_going = record_articles(results, connection)
+	if not keep_going: exit(0)
 
-	for x in results:
-		# keep recording until we hit one that's already been done
-		if not x.record(connection): break
+	pagecount = 2 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
+	for p in range(1, pagecount): # iterate through pages
+		r = session.get("https://www.biorxiv.org/collection/bioinformatics?page={}".format(p))
+		results = pull_out_articles(r.html)
+		keep_going = record_articles(results, connection)
+		if not keep_going: break # If we encounter a recognized article, we're done
