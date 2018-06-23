@@ -8,11 +8,8 @@ To start the necessary containers:
 
 1. `git clone https://github.com/rabdill/rxivist.git`
 1. `cd rxivist/spider`
-1. `docker run --name testdb -e POSTGRES_PASSWORD=mysecretpassword -d postgres`
-1. `docker run -it --name pytest -v "$(pwd)":/app --link testdb:postgres python bash`
-1. (Within container) `cd /app`
-1. `pip install -r requirements.txt`
-1. `python spider.py`
+1. `./launch_containers.sh`
+1. (Within container) `python spider.py`
 
 To interact with the database, open a new console window and run:
 
@@ -20,7 +17,7 @@ To interact with the database, open a new console window and run:
 docker exec -it testdb psql testdb postgres
 ```
 
-Because the repository is bind-mounted to the container, editing the files locally using your editor of choice will result in the files also changing within the container. **Exiting the container's TTY will cause the container to stop,** and you will have to run steps 4 through 7 again. If you're still inside the container, you can run `python spider.py` as many times as you want.
+Because the repository is bind-mounted to the container, editing the files locally using your editor of choice will result in the files also changing within the container. **Exiting the container's TTY will cause the container to stop,** and you will have to run step 4 again. If you're still inside the container, you can run `python spider.py` as many times as you want. Run `./launch_containers.sh` again if you exit the Python container but want another one; it will use the existing DB container if it's running, or launch another of those as well.
 
 ### On a local machine
 
