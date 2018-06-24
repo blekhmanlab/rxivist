@@ -11,6 +11,18 @@ class Connection(object):
 	def __del__(self):
 		self.db.close()
 
+	def fetch_db_tables(self):
+		tables = []
+		with self.db.cursor() as cursor:
+			try:
+				cursor.execute("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public';")
+				for result in cursor:
+					tables.append(result[0])
+			finally:
+				self.db.commit()
+		return tables
+		
+
 	def fetch_table_data(self, table):
 		headers = []
 		data = []
