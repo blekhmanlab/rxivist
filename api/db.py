@@ -15,10 +15,13 @@ class Connection(object):
 		headers = []
 		data = []
 		with self.db.cursor() as cursor:
-			cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='{}';".format(table))
-			for result in cursor:
-				headers.append(result[0])
-			cursor.execute("SELECT * FROM {};".format(table))
-			for result in cursor: # can't just return the cursor; it's closed when this function returns
-				data.append(result)
+			try:
+				cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='{}';".format(table))
+				for result in cursor:
+					headers.append(result[0])
+				cursor.execute("SELECT * FROM {};".format(table))
+				for result in cursor: # can't just return the cursor; it's closed when this function returns
+					data.append(result)
+			finally:
+				self.db.commit()
 			return headers, data
