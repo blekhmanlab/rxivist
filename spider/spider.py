@@ -1,4 +1,5 @@
 import re
+from collections import defaultdict
 
 from requests_html import HTMLSession
 import psycopg2
@@ -131,27 +132,80 @@ class Spider(object):
 			if not keep_going: break # If we encounter a recognized article, we're done
 
 	def refresh_article_details(self):
+		print("Refreshing article details...")
 		with self.connection.db.cursor() as cursor:
+			# find abstracts for any articles without them
 			cursor.execute("SELECT id, url FROM articles WHERE abstract IS NULL;")
 			for article in cursor:
 				url = article[1]
 				article_id = article[0]
-				details = self.get_article_details(url)
-				if details: self.update_article(article_id, details)
+				abstract = self.get_article_abstract(url)
+				if abstract: self.update_article(article_id, abstract)
 
-	def get_article_details(self, url):
+			# fetch updated stats for everything
+			cursor.execute("SELECT id, url FROM articles;") # TODO: Add "where" clause based on date
+			for article in cursor:
+				url = article[1]
+				article_id = article[0]
+				stat_table = self.get_article_stats(url)
+				self.save_article_stats(article_id, stat_table)
+
+	def get_article_abstract(self, url):
 		resp = self.session.get(url)
 		abstract = resp.html.find("#p-2")
 		if len(abstract) < 1:
 			return False # TODO: this should be an exception
 		return abstract[0].text
+	
+	def get_article_stats(self, url):
+		months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+		months_to_num = dict(zip(months, range(1,13)))
+		resp = self.session.get("{}.article-metrics".format(url))
+		entries = iter(resp.html.find("td"))
+		stats = []
+		for entry in entries:
+			date = entry.text.split(" ")
+			month = months_to_num[date[0]]
+			year = int(date[1])
+			abstract = int(next(entries).text)
+			pdf = int(next(entries).text)
+			stats.append((month, year, abstract, pdf))
+		return stats
+
+	def save_article_stats(self, article_id, stats):
+		with self.connection.db.cursor() as cursor:
+			# we check for which ones are already recorded because
+			# the postgres UPSERT feature is bananas
+			cursor.execute("SELECT month, year FROM article_traffic WHERE article=%s", (article_id,))
+			# associate each year with which months are already recorded
+			done = defaultdict(lambda: [])
+			for record in cursor:
+				print(record[0], record[1])
+				done[record[1]].append(record[0])
+			# make a list that excludes the records we already know about
+			to_record = []
+			for i, record in enumerate(stats):
+				print(record)
+				month = record[0]
+				year = record[1]
+				if year in done.keys() and month in done[year]:
+					print("Found, not recording")
+				else:
+					to_record.append(record)
+			# save the remaining ones in the DB
+			sql = "INSERT INTO article_traffic (article, month, year, abstract, pdf) VALUES (%s, %s, %s, %s, %s);"
+			params = [(article_id, x[0], x[1], x[2], x[3]) for x in to_record]
+			cursor.executemany(sql, params)
+			print("Recorded {} stats for ID {}".format(cursor.rowcount, article_id))
+			self.connection.db.commit()
+			
 
 	def update_article(self, article_id, abstract):
 		# TODO: seems like this thing should be in the Article class maybe?
 		with self.connection.db.cursor() as cursor:
 			cursor.execute("UPDATE articles SET abstract = %s WHERE id = %s;", (abstract, article_id))
 			self.connection.db.commit()
-			print("Recorded abstract for ID {}: {}".format(article_id, abstract))
+			print("Recorded abstract for ID {}".format(article_id, abstract))
 
 	def record_articles(self, articles):
 		# return value is whether we encountered any articles we had already
