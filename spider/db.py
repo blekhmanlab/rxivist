@@ -3,8 +3,8 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 class Connection(object):
 	def __init__(self, host, user, password):
-		dbname = "testdb" # TODO: Make this configurable
-
+		dbname = "rxdb" # TODO: Make this configurable
+		self.db = None
 		self._ensure_database_exists(dbname, host, user, password)
 
 		params = 'host={} dbname={} user={} password={}'.format(host, dbname, user, password)
@@ -33,4 +33,5 @@ class Connection(object):
 		self.db.commit()
 	
 	def __del__(self):
-		self.db.close()
+		if self.db is not None:
+			self.db.close()

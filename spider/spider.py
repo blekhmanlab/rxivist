@@ -114,7 +114,7 @@ def pull_out_articles(html):
 
 class Spider(object):
 	def __init__(self):
-		self.connection = db.Connection("testdb", "postgres", "mysecretpassword")  # TODO: Make this configurable
+		self.connection = db.Connection("rxdb", "postgres", "mysecretpassword")  # TODO: Make this configurable
 		self.session = HTMLSession()
 	
 	def find_record_new_articles(self, collection="bioinformatics"):
