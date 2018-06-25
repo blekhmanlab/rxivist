@@ -34,3 +34,7 @@ If you have [Docker](https://www.docker.com/community-edition) installed locally
 # spin up just the database container, and display the process in the console:
 ./launch db foreground
 ```
+
+### Viewing database information
+
+The API currently provides endpoints for viewing the contents of the database tables. Once the server starts up, navigate to `http://localhost:8123/db` will show you the available tables.

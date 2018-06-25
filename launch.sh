@@ -21,9 +21,9 @@ function launch_db {
 function launch_server {
   echo "Launching API..."
   if [[ $# -lt 1 || $1 != "foreground" ]]; then
-    docker run -d --rm --name rxapi -p 8080:8080 -v "$(pwd)/api":/app --link rxdb:postgres python bash /app/prep.sh
+    docker run -d --rm --name rxapi -p 8123:8080 -v "$(pwd)/api":/app --link rxdb:postgres python bash /app/prep.sh
   else
-    docker run -it --rm --name rxapi -p 8080:8080 -v "$(pwd)/api":/app --link rxdb:postgres python bash /app/prep.sh
+    docker run -it --rm --name rxapi -p 8123:8080 -v "$(pwd)/api":/app --link rxdb:postgres python bash /app/prep.sh
   fi
 }
 

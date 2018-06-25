@@ -15,7 +15,7 @@ To start the necessary containers:
 1. 1. Start the database: `docker run -d --rm --name rxdb -e POSTGRES_PASSWORD=mysecretpassword postgres` (This may already be running if you spun up the spider first.)
 1. `git clone https://github.com/rabdill/rxivist.git`
 1. `cd rxivist/api`
-1. `docker run -it --rm --name rxapi -p 8080:8080 -v "$(pwd)":/app --link rxdb:postgres python bash /app/prep.sh`
+1. `docker run -it --rm --name rxapi -p 8123:8080 -v "$(pwd)":/app --link rxdb:postgres python bash /app/prep.sh`
 
 *Note:* To run the container in the background, replace the `-it` flags in the docker command above with `-d`.
 
