@@ -8,11 +8,15 @@ def hello():
 	return "Hello World!"
 
 # ---- DB convenience endpoint
+@bottle.get('/db')
 @bottle.get('/db/<table>')
 @bottle.view('db')
-def get_articles_table(table):
+def get_articles_table(table=None):
 	table_names = connection.fetch_db_tables()
-	column_names, data = connection.fetch_table_data(table)
+	column_names = []
+	data = []
+	if table is not None:
+		column_names, data = connection.fetch_table_data(table)
 	return bottle.template('db', current=table, tables=table_names, headers=column_names, results=data)
 
 # ---- List all papers
