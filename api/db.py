@@ -1,15 +1,32 @@
+import time
+
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 class Connection(object):
 	def __init__(self, host, user, password):
-		dbname = "testdb" # TODO: Make this configurable
+		self.db = None
+		dbname = "rxdb" # TODO: Make this configurable
 		params = 'host={} dbname={} user={} password={}'.format(host, dbname, user, password)
-		self.db = psycopg2.connect(params)
+		connect = self._attempt_connect(params, 3, 10)
+		print("Connected!")
 		self.cursor = self.db.cursor()
 	
-	def __del__(self):
-		self.db.close()
+	# TODO: This thing is just for demo purposes. If the API starts
+	# but there's no DB, it dies and won't restart. This is probably
+	# not good.
+	def _attempt_connect(self, params, pause, max_tries, attempts=0):
+		attempts += 1
+		print("Connecting. Attempt {} of {}.".format(attempts, max_tries))
+		try:
+			self.db = psycopg2.connect(params)
+		except:
+			if attempts >= max_tries:
+				print("Giving up.")
+				exit(1)
+			print("Connection to DB failed. Retrying in {} seconds.".format(pause))
+			time.sleep(pause)
+			self._attempt_connect(params, pause, max_tries, attempts)
 
 	def fetch_db_tables(self):
 		tables = []
@@ -21,7 +38,6 @@ class Connection(object):
 			finally:
 				self.db.commit()
 		return tables
-		
 
 	def fetch_table_data(self, table):
 		headers = []
@@ -37,3 +53,7 @@ class Connection(object):
 			finally:
 				self.db.commit()
 			return headers, data
+
+	def __del__(self):
+		if self.db is not None:
+			self.db.close()
