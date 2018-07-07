@@ -9,6 +9,16 @@ connection = db.Connection("rxdb", "postgres", "mysecretpassword")  # TODO: Make
 def hello():
   return "Hello World!"
 
+# ---- Homepage
+@bottle.get('/')
+@bottle.view('index')
+def index():
+  if connection is None:
+    bottle.response.status = 421
+    return "Database is initializing."
+  rankings = endpoints.most_popular(connection)["results"]
+  return bottle.template('index', rankings=rankings)
+
 # ---- DB convenience endpoint
 @bottle.get('/db')
 @bottle.get('/db/<table>')
