@@ -24,13 +24,23 @@ def get_articles_table(table=None):
     column_names, data = connection.fetch_table_data(table)
   return bottle.template('db', current=table, tables=table_names, headers=column_names, results=data)
 
-# ---- List all papers
 @bottle.get('/papers')
-def list_papers():
+def get_papers():
   results = endpoints.get_papers(connection)
-  print(results)
-  bottle.response.status = 200
   return results
+
+@bottle.get('/papers/<id>')
+def get_paper_details(id):
+  try:
+    result = endpoints.paper_details(connection, id)
+  except endpoints.NotFoundError as e:
+    bottle.response.status = 404
+    return e.message
+  except ValueError as e:
+    bottle.response.status = 500
+    print(e)
+    return {"error": "Multiple papers located with same internal ID."}
+  return result
 
 # ---- Errors
 @bottle.error(404)
