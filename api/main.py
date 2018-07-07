@@ -1,5 +1,6 @@
 import bottle
 import db
+import endpoints
 
 connection = db.Connection("rxdb", "postgres", "mysecretpassword")  # TODO: Make this configurable
 
@@ -26,8 +27,10 @@ def get_articles_table(table=None):
 # ---- List all papers
 @bottle.get('/papers')
 def list_papers():
-  bottle.response.status = 501
-  return "not implemented"
+  results = endpoints.get_papers(connection)
+  print(results)
+  bottle.response.status = 200
+  return results
 
 # ---- Errors
 @bottle.error(404)

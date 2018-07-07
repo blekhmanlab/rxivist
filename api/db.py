@@ -53,6 +53,14 @@ class Connection(object):
       finally:
         self.db.commit()
       return headers, data
+  
+  def read(self, query):
+    results = []
+    with self.db.cursor() as cursor:
+      cursor.execute(query)
+      for result in cursor:
+        results.append(result)
+    return results
 
   def __del__(self):
     if self.db is not None:
