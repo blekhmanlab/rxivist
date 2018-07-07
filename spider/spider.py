@@ -115,8 +115,9 @@ def pull_out_articles(html):
 class Spider(object):
   def __init__(self):
     self.connection = db.Connection("rxdb", "postgres", "mysecretpassword")  # TODO: Make this configurable
-    self.session = HTMLSession()
-  
+    self.session = HTMLSession(mock_browser=False)
+    self.session.headers['User-Agent'] = "rxivist (in development)"
+
   def find_record_new_articles(self, collection="bioinformatics"):
     # we need to grab the first page to figure out how many pages there are
     r = self.session.get("https://www.biorxiv.org/collection/{}".format(collection))
