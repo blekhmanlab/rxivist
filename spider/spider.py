@@ -1,5 +1,6 @@
 import re
 from collections import defaultdict
+import sys
 
 from requests_html import HTMLSession
 import psycopg2
@@ -199,7 +200,22 @@ class Spider(object):
       cursor.executemany(sql, params)
       print("Recorded {} stats for ID {}".format(cursor.rowcount, article_id))
       self.connection.db.commit()
-      
+
+  def rank_articles(self):
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("TRUNCATE article_ranks_working")
+      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic GROUP BY article ORDER BY downloads DESC")
+      sql = "INSERT INTO article_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
+      params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
+      cursor.executemany(sql, params)
+      self.connection.db.commit()
+
+      # once it's all done, shuffle the tables around so the new results are active
+      cursor.execute("ALTER TABLE article_ranks RENAME TO ranks_temp")
+      cursor.execute("ALTER TABLE article_ranks_working RENAME TO article_ranks")
+      cursor.execute("ALTER TABLE ranks_temp RENAME TO article_ranks_working")
+      self.connection.db.commit()
+
 
   def update_article(self, article_id, abstract):
     # TODO: seems like this thing should be in the Article class maybe?
@@ -216,5 +232,9 @@ class Spider(object):
 
 if __name__ == "__main__":
   spider = Spider()
-  spider.find_record_new_articles("bioinformatics")
-  spider.refresh_article_details()
+  if len(sys.argv) == 1:
+    # do everything if no action is specified
+    spider.find_record_new_articles("bioinformatics")
+    spider.refresh_article_details()
+  elif sys.argv[1] == "rankings":
+    spider.rank_articles()
