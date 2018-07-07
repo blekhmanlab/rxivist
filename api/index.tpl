@@ -18,11 +18,29 @@
       </div>
       <div class="row">
         <div class="col">
-          <ul>
+          <div class="accordion" id="alltime">
             % for result in rankings:
-              <li><strong>{{result["rank"]}}:</strong> <a href="/papers/{{result["id"]}}">{{result["title"]}}</a> &ndash; {{result["downloads"]}} downloads</li>
+              <div class="card">
+                <div class="card-header" id="heading{{result["id"]}}">
+                  <h5 class="mb-0">
+                    <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse{{result["id"]}}" aria-expanded="true" aria-controls="collapse{{result["id"]}}">
+                      <strong>{{result["rank"]}}:</strong> {{result["title"]}} &ndash; {{result["downloads"]}} downloads
+                    </button>
+                  </h5>
+                </div>
+                <div id="collapse{{result["id"]}}" class="collapse" aria-labelledby="heading{{result["id"]}}" data-parent="#alltime">
+                  <div class="card-body">
+                    <p>
+                    % for i, author in enumerate(result["authors"]):
+                      {{author}}{{", " if i < (len(result["authors"]) - 1) else ""}}
+                    % end
+                    <a href="{{result["url"]}}" target="_blank">view paper</a>
+                    <p>{{result["abstract"]}}
+                  </div>
+                </div>
+              </div>
             % end
-          </ul>
+          </div>
         </div>
       </div>
 
