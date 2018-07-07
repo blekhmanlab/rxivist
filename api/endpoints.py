@@ -50,7 +50,7 @@ def most_popular(connection):
       "url": article[3],
       "title": article[4],
       "abstract": article[5],
-      "authors": get_authors(connection, article[0])
+      "authors": get_authors(connection, article[2])
     })
   return results
 
