@@ -11,8 +11,7 @@ A web scraper that crawls the bioRxiv site for data about paper submissions.
 A RESTful interface for requesting our interpreted results based on the data pulled by the spider.
 
 ### Frontend
-**NOT currently available.**
-A web application providing graphical access to the data provided by the API.
+A web application providing graphical access to the data provided by the API. Currently, this is combined with the API and all pages are rendered server-side.
 
 ## Development
 ### Launching the platform locally

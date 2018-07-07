@@ -232,9 +232,9 @@ class Spider(object):
 
 if __name__ == "__main__":
   spider = Spider()
-  if len(sys.argv) == 1:
-    # do everything if no action is specified
+  if len(sys.argv) == 1: # if no action is specified, do everything
     spider.find_record_new_articles("bioinformatics")
     spider.refresh_article_details()
+    spider.rank_articles()
   elif sys.argv[1] == "rankings":
     spider.rank_articles()

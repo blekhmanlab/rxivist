@@ -50,7 +50,7 @@ case "$1" in
     launch_spider $2
     ;;
   api)
-    launch_api $2
+    launch_server $2
     ;;
   db)
     launch_db $2

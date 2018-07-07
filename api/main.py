@@ -5,9 +5,6 @@ import endpoints
 connection = db.Connection("rxdb", "postgres", "mysecretpassword")  # TODO: Make this configurable
 
 # - ROUTES -
-@bottle.get('/hello')
-def hello():
-  return "Hello World!"
 
 # ---- Homepage
 @bottle.get('/')
@@ -44,7 +41,7 @@ def get_popular():
   results = endpoints.most_popular(connection)
   return results
 
-@bottle.get('/papers/<id>')
+@bottle.get('/papers/<id:int>')
 def get_paper_details(id):
   try:
     result = endpoints.paper_details(connection, id)
