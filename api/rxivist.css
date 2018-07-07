@@ -5,3 +5,8 @@
 #header img {
   margin-bottom: 10px;
 }
+
+.btn-link {
+  white-space: normal !important;
+  text-align: left;
+}
