@@ -1,8 +1,9 @@
 import bottle
 import db
 import endpoints
+import config
 
-connection = db.Connection("rxdb", "postgres", "mysecretpassword")  # TODO: Make this configurable
+connection = db.Connection(config.db["host"], config.db["user"], config.db["password"])
 
 # - ROUTES -
 
