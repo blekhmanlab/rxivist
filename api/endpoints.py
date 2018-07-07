@@ -15,7 +15,7 @@ def get_authors(connection, id, full=False):
   for a in author_data:
     if len(a) > 1:
       authors.append("{} {}".format(a[0], a[1]))
-    else:
+    else: # TODO: verify this actually works for one-name authors
       authors.append(a[0])
   return authors
 
@@ -37,6 +37,20 @@ def get_papers(connection):
       "abstract": article[3],
       "authors": get_authors(connection, article[0])
     }
+  return results
+
+def most_popular(connection):
+  results = {"results": []} # can't return a list
+  articles = connection.read("SELECT r.rank, r.downloads, a.id, a.url, a.title FROM articles as a INNER JOIN article_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 50;")
+  for article in articles:
+    results["results"].append({
+      "rank": article[0],
+      "downloads": article[1],
+      "id": article[2],
+      "url": article[3],
+      "title": article[4],
+      "authors": get_authors(connection, article[0])
+    })
   return results
 
 def paper_details(connection, id):

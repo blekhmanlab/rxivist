@@ -29,6 +29,11 @@ def get_papers():
   results = endpoints.get_papers(connection)
   return results
 
+@bottle.get('/popularity/downloads')
+def get_popular():
+  results = endpoints.most_popular(connection)
+  return results
+
 @bottle.get('/papers/<id>')
 def get_paper_details(id):
   try:
@@ -39,7 +44,7 @@ def get_paper_details(id):
   except ValueError as e:
     bottle.response.status = 500
     print(e)
-    return {"error": "Multiple papers located with same internal ID."}
+    return {"error": "Server error."}
   return result
 
 # ---- Errors
