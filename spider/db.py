@@ -14,7 +14,7 @@ class Connection(object):
     self._ensure_tables_exist()
 
   def _ensure_database_exists(self, dbname, host, user, password):
-    params = 'host={} dbname=postgres user={} password={}'.format(host, user, password)
+    params = 'host={} dbname={} user={} password={}'.format(host, dbname, user, password)
     db = psycopg2.connect(params)
     db.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT) # for creating DB
     cursor = db.cursor()

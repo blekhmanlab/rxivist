@@ -6,6 +6,7 @@ from requests_html import HTMLSession
 import psycopg2
 
 import db
+import config
 
 TESTING = True    # this is just for testing, so we don't crawl the whole site during development TODO delete
 
@@ -115,7 +116,7 @@ def pull_out_articles(html):
 
 class Spider(object):
   def __init__(self):
-    self.connection = db.Connection("rxdb", "postgres", "mysecretpassword")  # TODO: Make this configurable
+    self.connection = db.Connection(config.db["host"], config.db["user"], config.db["password"])
     self.session = HTMLSession(mock_browser=False)
     self.session.headers['User-Agent'] = "rxivist (in development)"
 
@@ -126,7 +127,7 @@ class Spider(object):
     keep_going = self.record_articles(results)
     if not keep_going: return # if we already knew about the first entry, we're done
 
-    pagecount = 2 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
+    pagecount = 5 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
     for p in range(1, pagecount): # iterate through pages
       r = self.session.get("https://www.biorxiv.org/collection/{}?page={}".format(collection, p))
       results = pull_out_articles(r.html)
