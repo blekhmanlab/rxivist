@@ -6,18 +6,19 @@
     <title>Rxivist: Popular biology pre-print papers ranked</title>
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:700" rel="stylesheet">
     <link rel="stylesheet" href="/static/rxivist.css">
   </head>
 
   <body>
   <br>
-    <div class="container">
+    <div class="container" id="main">
       <div class="row" id="header">
         <div class="col col-sm-10">
           <img src="/static/rxivist_logo_bad.png">
         </div>
         <div class="col col-sm-2" style="text-align: right;">
-          <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#about">
+          <button type="button" class="btn btn-altcolor" data-toggle="modal" data-target="#about">
             About
           </button>
         </div>
@@ -37,7 +38,7 @@
                     % for i, author in enumerate(result["authors"]):
                       {{author}}{{", " if i < (len(result["authors"]) - 1) else ""}}
                     % end
-                    <a href="{{result["url"]}}" target="_blank" class="btn btn-primary float-right" role="button">view paper</a>
+                    <a href="{{result["url"]}}" target="_blank" class="btn btn-altcolor float-right" role="button">view paper</a>
                     <p>{{result["abstract"]}}
                   </div>
                 </div>
@@ -46,7 +47,6 @@
           </div>
         </div>
       </div>
-
 
       <div class="modal fade" id="about" tabindex="-1" role="dialog" aria-labelledby="aboutLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -72,6 +72,13 @@
       <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
       <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+    </div>
+    <div class="container">
+      <div class="row">
+        <div id="footer" class="col-sm-12">
+          <p class="pull-right"><a href="http://blekhmanlab.org/">Blekhman<span class="footer-altcolor">Lab</span></a>
+        </div>
+      </div>
     </div>
   </body>
 </html>

@@ -9,3 +9,50 @@
 .context {
   cursor: context-menu;
 }
+
+body {
+  background-color: #333333;
+}
+
+#main {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 15px;
+}
+
+#footer {   /* "Blekhman Lab" logo */
+  color: #fff;
+  display: block;
+  text-align: right;
+  font-family: "Open Sans", sans-serif;
+  font-size: 45px;
+  font-weight: 700;
+  height: 60px;
+  letter-spacing: 4px;
+  line-height: 60px;
+  text-rendering: optimizeLegibility;
+  text-transform: uppercase;
+}
+
+#footer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.footer-altcolor {
+  color: #468847;
+}
+
+.btn-altcolor {
+  background-color: #468847;
+  border-color: #468800;
+  color: #fff;
+  text-decoration: none;
+}
+
+.btn-altcolor:hover {
+  background-color: #2e592f;
+  color: #fff;
+  color: #afafaf;
+  text-decoration: none;
+}
