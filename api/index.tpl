@@ -16,7 +16,7 @@
         <div class="col col-sm-10">
           <img src="/static/rxivist_logo_bad.png">
         </div>
-        <div class="col col-sm-2">
+        <div class="col col-sm-2" style="text-align: right;">
           <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#about">
             About
           </button>
@@ -28,12 +28,8 @@
           <div class="accordion" id="alltime">
             % for result in rankings:
               <div class="card">
-                <div class="card-header" id="heading{{result["id"]}}">
-                  <h5 class="mb-0">
-                    <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse{{result["id"]}}" aria-expanded="true" aria-controls="collapse{{result["id"]}}">
-                      <strong>{{result["rank"]}}:</strong> {{result["title"]}} <span class="badge badge-secondary" style="margin-left: 10px;">{{result["downloads"]}} downloads</span>
-                    </button>
-                  </h5>
+                <div class="card-header context" id="heading{{result["id"]}}"  data-toggle="collapse" data-target="#collapse{{result["id"]}}" aria-expanded="true" aria-controls="collapse{{result["id"]}}">
+                  <strong>{{result["rank"]}}:</strong> {{result["title"]}} <span class="badge badge-secondary" style="margin-left: 10px;">{{result["downloads"]}} downloads</span>
                 </div>
                 <div id="collapse{{result["id"]}}" class="collapse" aria-labelledby="heading{{result["id"]}}" data-parent="#alltime">
                   <div class="card-body">
