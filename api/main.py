@@ -65,4 +65,4 @@ def error404(error):
 def callback(path):
   return bottle.static_file(path, root='./')
 
-app = bottle.run(host='0.0.0.0', port=80, server="gunicorn", debug=True, reloader=True) # TODO: Remove debug and reloader options for prod
+bottle.run(host='0.0.0.0', port=80, server="gunicorn", debug=True, reloader=True) # TODO: Remove debug and reloader options for prod
