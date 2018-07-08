@@ -1,0 +1,15 @@
+runtime: python
+env: flex
+runtime_config:
+  python_version: 3
+api_version: '1'
+threadsafe: true
+instance_class: F1
+handlers:
+  - url: '/.*'
+    script: main.app
+automatic_scaling:
+  min_idle_instances: automatic
+  max_idle_instances: automatic
+  min_pending_latency: automatic
+  max_pending_latency: automatic
