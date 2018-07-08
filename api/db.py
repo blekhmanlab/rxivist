@@ -7,7 +7,7 @@ class Connection(object):
   def __init__(self, host, user, password):
     self.db = None
     dbname = "rxdb" # TODO: Make this configurable
-    params = 'host={} dbname={} user={} password={}'.format(host, dbname, user, password)
+    params = 'host={} dbname={} user={} password={} connect_timeout=3'.format(host, dbname, user, password)
     connect = self._attempt_connect(params, 3, 10)
     print("Connected!")
     self.cursor = self.db.cursor()

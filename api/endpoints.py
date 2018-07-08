@@ -41,7 +41,7 @@ def get_papers(connection):
 
 def most_popular(connection):
   results = {"results": []} # can't return a list
-  articles = connection.read("SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract FROM articles as a INNER JOIN article_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 50;")
+  articles = connection.read("SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract FROM articles as a INNER JOIN article_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;")
   for article in articles:
     results["results"].append({
       "rank": article[0],
