@@ -127,7 +127,7 @@ class Spider(object):
     keep_going = self.record_articles(results)
     if not keep_going: return # if we already knew about the first entry, we're done
 
-    pagecount = 5 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
+    pagecount = 50 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
     for p in range(1, pagecount): # iterate through pages
       r = self.session.get("https://www.biorxiv.org/collection/{}?page={}".format(collection, p))
       results = pull_out_articles(r.html)
@@ -203,18 +203,42 @@ class Spider(object):
       self.connection.db.commit()
 
   def rank_articles(self):
+    # pulls together all the separate ranking calls
+    # self._rank_articles_alltime()
+    self._rank_articles_bouncerate()
+
+  def _rank_articles_alltime(self):
+    print("Ranking papers by popularity...")
     with self.connection.db.cursor() as cursor:
-      cursor.execute("TRUNCATE article_ranks_working")
-      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic GROUP BY article ORDER BY downloads DESC")
-      sql = "INSERT INTO article_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
+      cursor.execute("TRUNCATE alltime_rank_working")
+      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic GROUP BY article ORDER BY downloads DESC LIMIT 50")
+      sql = "INSERT INTO alltime_rank_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
       cursor.executemany(sql, params)
       self.connection.db.commit()
 
       # once it's all done, shuffle the tables around so the new results are active
-      cursor.execute("ALTER TABLE article_ranks RENAME TO ranks_temp")
-      cursor.execute("ALTER TABLE article_ranks_working RENAME TO article_ranks")
-      cursor.execute("ALTER TABLE ranks_temp RENAME TO article_ranks_working")
+      cursor.execute("ALTER TABLE alltime_ranks RENAME TO alltime_ranks_temp")
+      cursor.execute("ALTER TABLE alltime_ranks_working RENAME TO alltime_ranks")
+      cursor.execute("ALTER TABLE alltime_ranks_temp RENAME TO alltime_ranks_working")
+      self.connection.db.commit()
+  
+  def _rank_articles_bouncerate(self):
+    # Ranking articles by the proportion of abstract views to downloads
+    print("Ranking papers by bounce rate...")
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("TRUNCATE bounce_ranks_working")
+      # TODO: only calculate ranks for papers with more than some minimum number of downloads
+      cursor.execute("SELECT article, CAST (SUM(pdf) AS FLOAT)/SUM(abstract) AS bounce FROM article_traffic GROUP BY article ORDER BY bounce DESC")
+      sql = "INSERT INTO bounce_ranks_working (article, rank, rate) VALUES (%s, %s, %s);"
+      params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
+      cursor.executemany(sql, params)
+      self.connection.db.commit()
+
+      # once it's all done, shuffle the tables around so the new results are active
+      cursor.execute("ALTER TABLE bounce_ranks RENAME TO bounce_ranks_temp")
+      cursor.execute("ALTER TABLE bounce_ranks_working RENAME TO bounce_ranks")
+      cursor.execute("ALTER TABLE bounce_ranks_temp RENAME TO bounce_ranks_working")
       self.connection.db.commit()
 
 
