@@ -204,7 +204,8 @@ class Spider(object):
 
   def rank_articles(self):
     # pulls together all the separate ranking calls
-    self._rank_articles_alltime()
+    # self._rank_articles_alltime()
+    self._rank_articles_ytd()
     # self._rank_articles_bouncerate()
 
   def _rank_articles_alltime(self):
@@ -241,6 +242,21 @@ class Spider(object):
       cursor.execute("ALTER TABLE bounce_ranks_temp RENAME TO bounce_ranks_working")
       self.connection.db.commit()
 
+  def _rank_articles_ytd(self):
+    print("Ranking papers by popularity, year to date...")
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("TRUNCATE ytd_ranks_working")
+      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 GROUP BY article ORDER BY downloads DESC") # LIMIT 50")
+      sql = "INSERT INTO ytd_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
+      params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
+      cursor.executemany(sql, params)
+      self.connection.db.commit()
+
+      # once it's all done, shuffle the tables around so the new results are active
+      cursor.execute("ALTER TABLE ytd_ranks RENAME TO ytd_ranks_temp")
+      cursor.execute("ALTER TABLE ytd_ranks_working RENAME TO ytd_ranks")
+      cursor.execute("ALTER TABLE ytd_ranks_temp RENAME TO ytd_ranks_working")
+      self.connection.db.commit()
 
   def update_article(self, article_id, abstract):
     # TODO: seems like this thing should be in the Article class maybe?

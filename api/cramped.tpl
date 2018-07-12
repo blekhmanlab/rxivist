@@ -26,25 +26,54 @@
       </div>
       <div class="row">
         <div class="col">
-          <h2>Most popular bioinformatics papers, all-time</h2>
-          <div class="accordion" id="alltime">
-            % for result in rankings_alltime:
-              <div class="card">
-                <div class="card-header context" id="heading{{result["id"]}}"  data-toggle="collapse" data-target="#collapse{{result["id"]}}" aria-expanded="true" aria-controls="collapse{{result["id"]}}">
-                  <strong>{{result["rank"]}}:</strong> {{result["title"]}} <span class="badge badge-secondary" style="margin-left: 10px;">{{result["downloads"]}} downloads</span>
-                </div>
-                <div id="collapse{{result["id"]}}" class="collapse" aria-labelledby="heading{{result["id"]}}" data-parent="#alltime">
-                  <div class="card-body">
-                    <p>
-                    % for i, author in enumerate(result["authors"]):
-                      <a href="/authors/{{author["id"]}}">{{ author["name"] }}</a>{{", " if i < (len(result["authors"]) - 1) else ""}}
-                    % end
-                    <a href="{{result["url"]}}" target="_blank" class="btn btn-altcolor float-right" role="button">view paper</a>
-                    <p>{{result["abstract"]}}
+          <h2>Most popular bioinformatics papers</h2>
+          
+          <div class="row">
+            <div class="col-lg-6 col-sm-12">
+              <h3>All time</h2>
+              <div class="accordion" id="alltime">
+                % for result in rankings_alltime:
+                  <div class="card">
+                    <div class="card-header context" id="heading{{result["id"]}}"  data-toggle="collapse" data-target="#collapse{{result["id"]}}" aria-expanded="true" aria-controls="collapse{{result["id"]}}">
+                      <strong>{{result["rank"]}}:</strong> {{result["title"]}} <span class="badge badge-secondary" style="margin-left: 10px;">{{result["downloads"]}} downloads</span>
+                    </div>
+                    <div id="collapse{{result["id"]}}" class="collapse" aria-labelledby="heading{{result["id"]}}" data-parent="#alltime">
+                      <div class="card-body">
+                        <p>
+                        % for i, author in enumerate(result["authors"]):
+                          <a href="/authors/{{author["id"]}}">{{ author["name"] }}</a>{{", " if i < (len(result["authors"]) - 1) else ""}}
+                        % end
+                        <a href="{{result["url"]}}" target="_blank" class="btn btn-altcolor float-right" role="button">view paper</a>
+                        <p>{{result["abstract"]}}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                % end
               </div>
-            % end
+            </div>
+
+            <div class="col-lg-6 col-sm-12">
+              <h3>Year to date</h2>
+              <div class="accordion" id="ytd">
+                % for result in rankings_ytd:
+                  <div class="card">
+                    <div class="card-header context" id="heading{{result["id"]}}_ytd"  data-toggle="collapse" data-target="#collapse{{result["id"]}}_ytd" aria-expanded="true" aria-controls="collapse{{result["id"]}}_ytd">
+                      <strong>{{result["rank"]}}:</strong> {{result["title"]}} <span class="badge badge-secondary" style="margin-left: 10px;">{{result["downloads"]}} downloads</span>
+                    </div>
+                    <div id="collapse{{result["id"]}}_ytd" class="collapse" aria-labelledby="heading{{result["id"]}}_ytd" data-parent="#alltime">
+                      <div class="card-body">
+                        <p>
+                        % for i, author in enumerate(result["authors"]):
+                          <a href="/authors/{{author["id"]}}">{{ author["name"] }}</a>{{", " if i < (len(result["authors"]) - 1) else ""}}
+                        % end
+                        <a href="{{result["url"]}}" target="_blank" class="btn btn-altcolor float-right" role="button">view paper</a>
+                        <p>{{result["abstract"]}}
+                      </div>
+                    </div>
+                  </div>
+                % end
+              </div>
+            </div>
           </div>
         </div>
       </div>

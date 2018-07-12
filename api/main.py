@@ -14,8 +14,19 @@ def index():
   if connection is None:
     bottle.response.status = 421
     return "Database is initializing."
-  rankings = endpoints.most_popular(connection)["results"]
-  return bottle.template('index', rankings=rankings)
+  alltime = endpoints.most_popular_alltime(connection)["results"]
+  ytd = endpoints.most_popular_ytd(connection)["results"]
+  return bottle.template('index', rankings_alltime=alltime, rankings_ytd=ytd)
+
+@bottle.get('/cramped')
+@bottle.view('cramped')
+def index_cramped():
+  if connection is None:
+    bottle.response.status = 421
+    return "Database is initializing."
+  alltime = endpoints.most_popular_alltime(connection)["results"]
+  ytd = endpoints.most_popular_ytd(connection)["results"]
+  return bottle.template('cramped', rankings_alltime=alltime, rankings_ytd=ytd)
 
 # ---- DB convenience endpoint
 @bottle.get('/db')

@@ -42,9 +42,24 @@ def get_papers(connection):
     }
   return results
 
-def most_popular(connection):
+def most_popular_alltime(connection):
   results = {"results": []} # can't return a list
   articles = connection.read("SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract FROM articles as a INNER JOIN alltime_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;")
+  for article in articles:
+    results["results"].append({
+      "rank": article[0],
+      "downloads": article[1],
+      "id": article[2],
+      "url": article[3],
+      "title": article[4],
+      "abstract": article[5],
+      "authors": get_authors(connection, article[2])
+    })
+  return results
+
+def most_popular_ytd(connection):
+  results = {"results": []} # can't return a list
+  articles = connection.read("SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract FROM articles as a INNER JOIN ytd_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;")
   for article in articles:
     results["results"].append({
       "rank": article[0],
