@@ -16,6 +16,7 @@
       <div class="row" id="header">
         <div class="col col-sm-10">
           <img src="/static/rxivist_logo_bad.png">
+          <div><em>The most popular articles on bioRxiv</em></div>
         </div>
         <div class="col col-sm-2" style="text-align: right;">
           <button type="button" class="btn btn-altcolor" data-toggle="modal" data-target="#about">

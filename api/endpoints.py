@@ -85,3 +85,38 @@ def paper_details(connection, id):
   }
 
   return result
+
+def author_details(connection, id):
+  result = {}
+  author = connection.read("SELECT * FROM authors WHERE id = {};".format(id))
+  if len(author) == 0:
+    raise NotFoundError(id)
+  if len(author) > 1:
+    raise ValueError("Multiple authors found with id {}".format(id))
+  author = author[0]
+
+  result = {
+    "id": author[0],
+    "given": author[1],
+    "surname": author[2],
+    "articles": []
+  }
+
+  articles = connection.read("SELECT alltime_ranks.rank, alltime_ranks.downloads, articles.id, articles.url, articles.title, articles.abstract FROM articles INNER JOIN article_authors ON article_authors.article=articles.id LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article WHERE article_authors.author={}".format(id))
+
+  alltime_count = connection.read("SELECT COUNT(article) FROM alltime_ranks")
+  alltime_count = alltime_count[0][0]
+
+  for article in articles:
+    result["articles"].append({
+      "rank": article[0],
+      "out_of": alltime_count,
+      "downloads": article[1],
+      "id": article[2],
+      "url": article[3],
+      "title": article[4],
+      "abstract": article[5],
+      "authors": get_authors(connection, article[2])
+    })
+
+  return result

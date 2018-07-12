@@ -15,6 +15,7 @@ def index():
     bottle.response.status = 421
     return "Database is initializing."
   rankings = endpoints.most_popular(connection)["results"]
+  print(rankings)
   return bottle.template('index', rankings=rankings)
 
 # ---- DB convenience endpoint
@@ -46,6 +47,24 @@ def get_popular():
 def get_paper_details(id):
   try:
     result = endpoints.paper_details(connection, id)
+  except endpoints.NotFoundError as e:
+    bottle.response.status = 404
+    return e.message
+  except ValueError as e:
+    bottle.response.status = 500
+    print(e)
+    return {"error": "Server error."}
+  return result
+
+@bottle.get('/authors')
+def get_authors():
+  bottle.response.status = 501
+  return
+
+@bottle.get('/authors/<id:int>')
+def get_author_details(id):
+  try:
+    result = endpoints.author_details(connection, id)
   except endpoints.NotFoundError as e:
     bottle.response.status = 404
     return e.message

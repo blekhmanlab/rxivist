@@ -204,15 +204,15 @@ class Spider(object):
 
   def rank_articles(self):
     # pulls together all the separate ranking calls
-    # self._rank_articles_alltime()
-    self._rank_articles_bouncerate()
+    self._rank_articles_alltime()
+    # self._rank_articles_bouncerate()
 
   def _rank_articles_alltime(self):
     print("Ranking papers by popularity...")
     with self.connection.db.cursor() as cursor:
-      cursor.execute("TRUNCATE alltime_rank_working")
-      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic GROUP BY article ORDER BY downloads DESC LIMIT 50")
-      sql = "INSERT INTO alltime_rank_working (article, rank, downloads) VALUES (%s, %s, %s);"
+      cursor.execute("TRUNCATE alltime_ranks_working")
+      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic GROUP BY article ORDER BY downloads DESC") # LIMIT 50")
+      sql = "INSERT INTO alltime_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
       cursor.executemany(sql, params)
       self.connection.db.commit()
