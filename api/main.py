@@ -15,7 +15,6 @@ def index():
     bottle.response.status = 421
     return "Database is initializing."
   rankings = endpoints.most_popular(connection)["results"]
-  print(rankings)
   return bottle.template('index', rankings=rankings)
 
 # ---- DB convenience endpoint

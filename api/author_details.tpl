@@ -15,13 +15,8 @@
     <div class="container" id="main">
       <div class="row" id="header">
         <div class="col col-sm-10">
-          <img src="/static/rxivist_logo_bad.png">
+          <a href="/"><img src="/static/rxivist_logo_bad.png"></a>
           <div><em>The most popular articles on bioRxiv</em></div>
-        </div>
-        <div class="col col-sm-2" style="text-align: right;">
-          <button type="button" class="btn btn-altcolor" data-toggle="modal" data-target="#about">
-            About
-          </button>
         </div>
       </div>
       <div class="row">
@@ -33,7 +28,7 @@
                 <ul>
                   <li>
                     % for i, author in enumerate(result["authors"]):
-                      {{author}}{{", " if i < (len(result["authors"]) - 1) else ""}}
+                      <a href="/authors/{{author["id"]}}">{{author["name"]}}</a>{{", " if i < (len(result["authors"]) - 1) else ""}}
                     % end
                   </li>
                   <li>All-time downloads rank: <strong>{{result["rank"]}}</strong> out of {{result["out_of"]}}</li>

@@ -37,7 +37,7 @@
                   <div class="card-body">
                     <p>
                     % for i, author in enumerate(result["authors"]):
-                      {{author}}{{", " if i < (len(result["authors"]) - 1) else ""}}
+                      <a href="/authors/{{author["id"]}}">{{ author["name"] }}</a>{{", " if i < (len(result["authors"]) - 1) else ""}}
                     % end
                     <a href="{{result["url"]}}" target="_blank" class="btn btn-altcolor float-right" role="button">view paper</a>
                     <p>{{result["abstract"]}}

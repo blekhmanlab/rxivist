@@ -9,14 +9,17 @@ def get_authors(connection, id, full=False):
   # Returns the authors associated with a given article ID. If "full" is
   # true, the response separates given and surnames
   authors = []
-  author_data = connection.read("SELECT authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article={};".format(id))
+  author_data = connection.read("SELECT authors.id, authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article={};".format(id))
   if full: return author_data
 
   for a in author_data:
-    if len(a) > 1:
-      authors.append("{} {}".format(a[0], a[1]))
-    else: # TODO: verify this actually works for one-name authors
-      authors.append(a[0])
+    name = a[1]
+    if len(a) > 2:# TODO: verify this actually works for one-name authors
+      name += " {}".format(a[2])
+    authors.append({
+      "id": a[0],
+      "name": name
+    })
   return authors
 
 def get_traffic(connection, id):
