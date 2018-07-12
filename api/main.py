@@ -33,17 +33,17 @@ def get_articles_table(table=None):
     column_names, data = connection.fetch_table_data(table)
   return bottle.template('db', current=table, tables=table_names, headers=column_names, results=data)
 
-@bottle.get('/papers')
+@bottle.get('/api/papers')
 def get_papers():
   results = endpoints.get_papers(connection)
   return results
 
-@bottle.get('/popularity/downloads')
+@bottle.get('/api/popularity/downloads')
 def get_popular():
   results = endpoints.most_popular(connection)
   return results
 
-@bottle.get('/papers/<id:int>')
+@bottle.get('/api/papers/<id:int>')
 def get_paper_details(id):
   try:
     result = endpoints.paper_details(connection, id)
@@ -56,12 +56,12 @@ def get_paper_details(id):
     return {"error": "Server error."}
   return result
 
-@bottle.get('/authors')
+@bottle.get('/api/authors')
 def get_authors():
   bottle.response.status = 501
   return
 
-@bottle.get('/authors/<id:int>')
+@bottle.get('/api/authors/<id:int>')
 def get_author_details(id):
   try:
     result = endpoints.author_details(connection, id)
@@ -73,6 +73,12 @@ def get_author_details(id):
     print(e)
     return {"error": "Server error."}
   return result
+
+@bottle.get('/authors/<id:int>')
+@bottle.view('author_details')
+def display_author_details(id):
+  author = get_author_details(id)
+  return bottle.template('author_details', data=author)
 
 # ---- Errors
 @bottle.error(404)
