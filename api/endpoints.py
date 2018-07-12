@@ -120,16 +120,18 @@ def author_details(connection, id):
     "articles": []
   }
 
-  articles = connection.read("SELECT alltime_ranks.rank, alltime_ranks.downloads, articles.id, articles.url, articles.title, articles.abstract FROM articles INNER JOIN article_authors ON article_authors.article=articles.id LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article WHERE article_authors.author={}".format(id))
+  articles = connection.read("SELECT alltime_ranks.rank, ytd_ranks.rank, articles.id, articles.url, articles.title, articles.abstract FROM articles INNER JOIN article_authors ON article_authors.article=articles.id LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article WHERE article_authors.author={}".format(id))
 
   alltime_count = connection.read("SELECT COUNT(article) FROM alltime_ranks")
   alltime_count = alltime_count[0][0]
 
   for article in articles:
     result["articles"].append({
-      "rank": article[0],
-      "out_of": alltime_count,
-      "downloads": article[1],
+      "ranks": {
+        "alltime": article[0],
+        "ytd": article[1],
+        "out_of": alltime_count
+      },
       "id": article[2],
       "url": article[3],
       "title": article[4],
