@@ -5,5 +5,5 @@
 # TODO: Bake this into the image?
 cd /app
 pip install -r requirements.txt
-python spider.py rankings
+python spider.py
 bash

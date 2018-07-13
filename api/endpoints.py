@@ -42,6 +42,27 @@ def get_papers(connection):
     }
   return results
 
+def get_papers_textsearch(connection, q):
+  # TODO: Memoize this response
+  results = {}
+  with connection.db.cursor() as cursor:
+    articles = cursor.execute("""
+    SELECT id, url, title, abstract, ts_rank_cd(search_vector, query) as rank
+    FROM articles, to_tsquery(%s) query
+    WHERE query @@ search_vector
+    ORDER BY rank DESC LIMIT 10;
+    """, (q,))
+
+    for article in cursor:
+      results[article[0]] = {
+        "id": article[0],
+        "url": article[1],
+        "title": article[2],
+        "abstract": article[3],
+        "authors": get_authors(connection, article[0])
+      }
+  return results
+
 def most_popular_alltime(connection):
   results = {"results": []} # can't return a list
   articles = connection.read("SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract FROM articles as a INNER JOIN alltime_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;")

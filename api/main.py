@@ -15,8 +15,7 @@ def index():
     bottle.response.status = 421
     return "Database is initializing."
   alltime = endpoints.most_popular_alltime(connection)["results"]
-  ytd = endpoints.most_popular_ytd(connection)["results"]
-  return bottle.template('index', rankings_alltime=alltime, rankings_ytd=ytd)
+  return bottle.template('index', rankings_alltime=alltime)
 
 # ---- DB convenience endpoint
 @bottle.get('/db')
@@ -36,6 +35,12 @@ def get_articles_table(table=None):
 @bottle.get('/api/papers')
 def get_papers():
   results = endpoints.get_papers(connection)
+  return results
+
+@bottle.get('/api/papers/search')
+def get_papers():
+  q = bottle.request.query.q
+  results = endpoints.get_papers_textsearch(connection, q)
   return results
 
 @bottle.get('/api/popularity/downloads')

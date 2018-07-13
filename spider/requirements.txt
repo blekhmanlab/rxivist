@@ -9,6 +9,7 @@ lxml==4.2.1
 parse==1.8.4
 psycopg2-binary==2.7.5
 pyee==5.0.0
+PyPDF2==1.26.0
 pyppeteer==0.0.17
 pyquery==1.4.0
 requests==2.19.1

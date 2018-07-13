@@ -1,9 +1,13 @@
-import re
 from collections import defaultdict
+import io
+import re
 import sys
 
-from requests_html import HTMLSession
 import psycopg2
+import PyPDF2
+import requests
+from requests_html import HTMLSession
+
 
 import db
 import config
@@ -271,11 +275,26 @@ class Spider(object):
       if not x.record(self.connection): return False
     return True
 
+  def calculate_vectors(self):
+    with self.connection.db.cursor() as cursor:
+
+      cursor.execute("""
+      UPDATE articles SET search_vector =
+        setweight(to_tsvector(coalesce(title,'')), 'A')    ||
+        setweight(to_tsvector(coalesce(abstract,'')), 'B')
+        WHERE search_vector IS NULL
+      """
+      ) # TODO: Add author names to this query? We'd need a plaintext version of the author list
+      self.connection.db.commit()
+
 if __name__ == "__main__":
   spider = Spider()
   if len(sys.argv) == 1: # if no action is specified, do everything
     spider.find_record_new_articles("bioinformatics")
     spider.refresh_article_details()
     spider.rank_articles()
+    spider.calculate_vectors()
   elif sys.argv[1] == "rankings":
     spider.rank_articles()
+  elif sys.argv[1] == "tsvectors":
+    spider.calculate_vectors()
