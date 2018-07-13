@@ -276,15 +276,11 @@ class Spider(object):
     return True
 
   def calculate_vectors(self):
+    print("Calculating vectors...")
     with self.connection.db.cursor() as cursor:
-
-      cursor.execute("""
-      UPDATE articles SET search_vector =
-        setweight(to_tsvector(coalesce(title,'')), 'A')    ||
-        setweight(to_tsvector(coalesce(abstract,'')), 'B')
-        WHERE search_vector IS NULL
-      """
-      ) # TODO: Add author names to this query? We'd need a plaintext version of the author list
+      cursor.execute("UPDATE articles SET title_vector = to_tsvector(coalesce(title,'')) WHERE title_vector IS NULL;")
+      cursor.execute("UPDATE articles SET abstract_vector = to_tsvector(coalesce(abstract,'')) WHERE abstract_vector IS NULL;")
+      # TODO: Add author names to this collection? We'd need a plaintext version of the author list
       self.connection.db.commit()
 
 if __name__ == "__main__":

@@ -43,13 +43,13 @@ def get_papers(connection):
   return results
 
 def get_papers_textsearch(connection, q):
-  # TODO: Memoize this response
   results = {}
   with connection.db.cursor() as cursor:
     articles = cursor.execute("""
-    SELECT id, url, title, abstract, ts_rank_cd(search_vector, query) as rank
-    FROM articles, to_tsquery(%s) query
-    WHERE query @@ search_vector
+    SELECT id, url, title, abstract, ts_rank_cd(totalvector, query) as rank
+    FROM articles AS a, to_tsquery(%s) query,
+      coalesce(setweight(title_vector, 'A') || setweight(abstract_vector, 'D')) totalvector
+    WHERE query @@ totalvector
     ORDER BY rank DESC LIMIT 10;
     """, (q,))
 
