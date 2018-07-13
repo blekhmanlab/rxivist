@@ -18,16 +18,6 @@ def index():
   ytd = endpoints.most_popular_ytd(connection)["results"]
   return bottle.template('index', rankings_alltime=alltime, rankings_ytd=ytd)
 
-@bottle.get('/cramped')
-@bottle.view('cramped')
-def index_cramped():
-  if connection is None:
-    bottle.response.status = 421
-    return "Database is initializing."
-  alltime = endpoints.most_popular_alltime(connection)["results"]
-  ytd = endpoints.most_popular_ytd(connection)["results"]
-  return bottle.template('cramped', rankings_alltime=alltime, rankings_ytd=ytd)
-
 # ---- DB convenience endpoint
 @bottle.get('/db')
 @bottle.get('/db/<table>')
@@ -51,6 +41,11 @@ def get_papers():
 @bottle.get('/api/popularity/downloads')
 def get_popular():
   results = endpoints.most_popular(connection)
+  return results
+
+@bottle.get('/api/popularity/downloads/ytd')
+def get_popular():
+  results = endpoints.most_popular_ytd(connection)
   return results
 
 @bottle.get('/api/papers/<id:int>')

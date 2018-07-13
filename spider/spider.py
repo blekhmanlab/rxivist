@@ -118,7 +118,7 @@ class Spider(object):
   def __init__(self):
     self.connection = db.Connection(config.db["host"], config.db["user"], config.db["password"])
     self.session = HTMLSession(mock_browser=False)
-    self.session.headers['User-Agent'] = "rxivist (in development)"
+    self.session.headers['User-Agent'] = "rxivist web crawler (rxivist.org)"
 
   def find_record_new_articles(self, collection="bioinformatics"):
     # we need to grab the first page to figure out how many pages there are
