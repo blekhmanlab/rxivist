@@ -42,31 +42,24 @@ def get_papers(connection):
     })
   return {"results": results}
 
-def get_stats(connection):
-  results = {"paper_count": 0, "author_count": 0}
-  resp = connection.read("SELECT COUNT(id) FROM articles;")
-  if len(resp) != 1 or len(resp[0]) != 1:
-    return results
-  results["paper_count"] = resp[0][0]
-
-  resp = connection.read("SELECT COUNT(id) FROM authors;")
-  if len(resp) != 1 or len(resp[0]) != 1:
-    return results
-  results["author_count"] = resp[0][0]
-  return results
-
-def get_papers_textsearch(connection, q):
+def get_papers_textsearch(connection, q, categories):
   results = []
   with connection.db.cursor() as cursor:
-    articles = cursor.execute("""
+    params = (q,)
+    # TODO: validate that the category filters passed in are actual categories
+    query = """
     SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, ts_rank_cd(totalvector, query) as rank
     FROM articles AS a
     INNER JOIN alltime_ranks AS r ON r.article=a.id,
       to_tsquery(%s) query,
       coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'D')) totalvector
-    WHERE query @@ totalvector
-    ORDER BY r.rank ASC LIMIT 20;
-    """, (q,))
+    WHERE query @@ totalvector """
+    if len(categories) > 0:
+      query += "AND collection=ANY(%s) "
+      params = (q,categories)
+    query += "ORDER BY r.rank ASC LIMIT 20;"
+    print(query)
+    articles = cursor.execute(query, params)
 
     for article in cursor:
       results.append({

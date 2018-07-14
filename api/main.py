@@ -1,5 +1,6 @@
 import bottle
 import db
+import helpers
 import endpoints
 import config
 
@@ -7,7 +8,7 @@ connection = db.Connection(config.db["host"], config.db["user"], config.db["pass
 
 # - ROUTES -
 
-# ---- Homepage
+# ---- Homepage / search results
 @bottle.get('/')
 @bottle.view('index')
 def index():
@@ -16,15 +17,19 @@ def index():
     return "Database is initializing."
 
   q = bottle.request.query.q
+  category_filter = bottle.request.query.getall('category') # multiple params possible
+  category_list = helpers.get_categories(connection)
+  stats = helpers.get_stats(connection)
+
   error = ""
   title = ""
   resp = {"results": []}
-  stats = endpoints.get_stats(connection)
 
-  if(q is not ""): # If the user submitted a search query
+
+  if(q is not "" or len(category_filter) > 0): # If the user submitted a search query
     title = "Most popular papers related to \"{}\"".format(q)
     try:
-      resp = endpoints.get_papers_textsearch(connection, q)
+      resp = endpoints.get_papers_textsearch(connection, q, category_filter)
     except Exception as e:
       print(e)
       connection.db.commit() # required to end the failed transaction, if it exists
@@ -39,7 +44,8 @@ def index():
       connection.db.commit()
       error = "There was a problem fetching the most popular papers."
       bottle.response.status = 500
-  return bottle.template('index', results=resp["results"], query=q, title=title, error=error, stats=stats)
+  return bottle.template('index', results=resp["results"], query=q, category_filter=category_filter, title=title,
+    error=error, stats=stats, category_list=category_list)
 
 # ---- DB convenience endpoint
 @bottle.get('/db')

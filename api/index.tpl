@@ -31,7 +31,7 @@
           <div id="searchform">
             <form action="/" method="get">
               <div class="input-group mb-3 col-sm-7">
-                <input type="text" class="form-control form-control-lg" id="searchtext" name="q" placeholder="Enter search terms here" value="{{query}}">
+                <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here" value="{{query}}">
                 <div class="input-group-append">
                   <button type="submit" class="btn btn-altcolor">Search</button>
                 </div>
@@ -49,6 +49,13 @@
             <div><h3>No results found for "{{query}}"</h3></div>
           % else:
             <h2>{{title}}</h2>
+            % if len(category_filter) > 0:
+              <h3>In categories
+                % for i, cat in enumerate(category_filter):
+                  {{ cat }}{{", " if i < (len(category_filter)-1) else ""}}
+                %end
+              </h3>
+            %end 
             <div class="accordion" id="alltime">
               % for i, result in enumerate(results):
                 <div class="card">
@@ -76,18 +83,35 @@
       <div class="modal fade" id="search" tabindex="-1" role="dialog" aria-labelledby="searchLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
           <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="searchLabel">Advanced search</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-            <div class="modal-body">
-              <p>boop de boop.
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            </div>
+            <form action="/" method="get">
+              <div class="modal-header">
+                <h5 class="modal-title" id="searchLabel">Advanced search</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                  <div id="searchform">
+                    <div class="form-group">
+                      <label for="searchtext">Show papers related to...</label>
+                      <input type="text" class="form-control" id="searchtext" name="q" aria-describedby="searchtextHelp" value="{{query}}">
+                      <small id="searchtextHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
+                    </div>
+                    <div class="form-group">
+                      <label for="categoryselect">from bioRxiv categories...</label>
+                      <select multiple class="form-control" id="categoryselect" name="category" aria-describedby="categoryHelp">
+                        % for cat in category_list:
+                          <option>{{cat}}</option>
+                        %end
+                      </select>
+                      <small id="categoryHelp" class="form-text text-muted">To show papers from all categories, select none or all of the options.</small>
+                    </div>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" class="btn btn-altcolor">Search</button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
