@@ -15,7 +15,7 @@
     <div class="container" id="main">
       <div class="row" id="header">
         <div class="col col-sm-10">
-          <img src="/static/rxivist_logo_bad.png">
+            <a href="/"><img src="/static/rxivist_logo_bad.png"></a>
           <div><em>The most popular articles on bioRxiv</em></div>
         </div>
         <div class="col col-sm-2" style="text-align: right;">
@@ -26,12 +26,39 @@
       </div>
       <div class="row">
         <div class="col">
-          <h2>Most popular bioinformatics papers, all-time</h2>
+          <div id="searchform">
+            <form action="/" method="get">
+              <div class="input-group mb-3 col-sm-7">
+                <input type="text" class="form-control form-control-lg" id="searchtext" name="q" placeholder="Enter search terms here" value="{{query}}">
+                <div class="input-group-append">
+                  <button type="submit" class="btn btn-primary">Button</button>
+                </div>
+              </div>
+
+
+
+
+              <!-- <div class="form-group row">
+                <label for="searchtext" class="col-sm-2 col-form-label col-form-label-lg">Query</label>
+                <div class="col-sm-5">
+                  <input type="text" class="form-control form-control-lg" id="searchtext" name="q" value="{{query}}">
+                </div>
+                <div class="col-sm-1">
+                  <button type="submit" class="btn btn-primary">Search</button>
+                </div>
+              </div> -->
+              
+            </form>
+          </div>
+          <h2>{{title}}</h2>
+          <div class="alert alert-danger" role="alert" style="display: {{"none" if error == "" else "block"}}">
+            {{error}}
+          </div>
           <div class="accordion" id="alltime">
-            % for result in rankings_alltime:
+            % for i, result in enumerate(results):
               <div class="card">
                 <div class="card-header context" id="heading{{result["id"]}}"  data-toggle="collapse" data-target="#collapse{{result["id"]}}" aria-expanded="true" aria-controls="collapse{{result["id"]}}">
-                  <strong>{{result["rank"]}}:</strong> {{result["title"]}} <span class="badge badge-secondary" style="margin-left: 10px;">{{result["downloads"]}} downloads</span>
+                  <strong>{{i+1}}:</strong> {{result["title"]}} <span class="badge badge-secondary" style="margin-left: 10px;">{{result["downloads"]}} downloads</span>
                 </div>
                 <div id="collapse{{result["id"]}}" class="collapse" aria-labelledby="heading{{result["id"]}}" data-parent="#alltime">
                   <div class="card-body">

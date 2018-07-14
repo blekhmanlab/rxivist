@@ -14,8 +14,30 @@ def index():
   if connection is None:
     bottle.response.status = 421
     return "Database is initializing."
-  alltime = endpoints.most_popular_alltime(connection)["results"]
-  return bottle.template('index', rankings_alltime=alltime)
+  q = bottle.request.query.q
+
+  error = ""
+  title = ""
+  resp = {"results": []}
+  if(q is not ""):
+    title = "Most popular papers related to \"{}\"".format(q)
+    try:
+      resp = endpoints.get_papers_textsearch(connection, q)
+    except Exception as e:
+      print(e)
+      connection.db.commit() # required to end the failed transaction, if it exists
+      error = "There was a problem using your search query."
+      bottle.response.status = 500
+  else:
+    title = "Most popular bioinformatics papers, all-time"
+    try:
+      resp = endpoints.most_popular_alltime(connection)
+    except Exception as e:
+      print(e)
+      connection.db.commit()
+      error = "There was a problem fetching the most popular papers."
+      bottle.response.status = 500
+  return bottle.template('index', results=resp["results"], query=q, title=title, error=error)
 
 # ---- DB convenience endpoint
 @bottle.get('/db')
@@ -38,7 +60,7 @@ def get_papers():
   return results
 
 @bottle.get('/api/papers/search')
-def get_papers():
+def get_papers_textsearch():
   q = bottle.request.query.q
   results = endpoints.get_papers_textsearch(connection, q)
   return results
@@ -100,4 +122,5 @@ def error404(error):
 def callback(path):
   return bottle.static_file(path, root='./')
 
-bottle.run(host='0.0.0.0', port=80, server="gunicorn", debug=True, reloader=True) # TODO: Remove debug and reloader options for prod
+bottle.run(host='0.0.0.0', port=80, debug=True, reloader=True)
+# bottle.run(host='0.0.0.0', port=80, server="gunicorn")

@@ -30,38 +30,42 @@ def get_traffic(connection, id):
 
 def get_papers(connection):
   # TODO: Memoize this response
-  results = {}
+  results = []
   articles = connection.read("SELECT * FROM articles;")
   for article in articles:
-    results[article[0]] = {
+    results.append({
       "id": article[0],
       "url": article[1],
       "title": article[2],
       "abstract": article[3],
       "authors": get_authors(connection, article[0])
-    }
-  return results
+    })
+  return {"results": results}
 
 def get_papers_textsearch(connection, q):
-  results = {}
+  results = []
   with connection.db.cursor() as cursor:
     articles = cursor.execute("""
-    SELECT id, url, title, abstract, ts_rank_cd(totalvector, query) as rank
-    FROM articles AS a, to_tsquery(%s) query,
-      coalesce(setweight(title_vector, 'A') || setweight(abstract_vector, 'D')) totalvector
+    SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, ts_rank_cd(totalvector, query) as rank
+    FROM articles AS a
+    INNER JOIN alltime_ranks AS r ON r.article=a.id,
+      to_tsquery(%s) query,
+      coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'D')) totalvector
     WHERE query @@ totalvector
-    ORDER BY rank DESC LIMIT 10;
+    ORDER BY r.rank ASC LIMIT 20;
     """, (q,))
 
     for article in cursor:
-      results[article[0]] = {
-        "id": article[0],
-        "url": article[1],
-        "title": article[2],
-        "abstract": article[3],
-        "authors": get_authors(connection, article[0])
-      }
-  return results
+      results.append({
+        "rank": article[0],
+        "downloads": article[1],
+        "id": article[2],
+        "url": article[3],
+        "title": article[4],
+        "abstract": article[5],
+        "authors": get_authors(connection, article[2])
+      })
+  return {"results": results}
 
 def most_popular_alltime(connection):
   results = {"results": []} # can't return a list
