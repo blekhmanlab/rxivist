@@ -43,22 +43,32 @@ def get_papers(connection):
   return {"results": results}
 
 def get_papers_textsearch(connection, q, categories):
+  # TODO: validate that the category filters passed in are actual categories
   results = []
   with connection.db.cursor() as cursor:
-    params = (q,)
-    # TODO: validate that the category filters passed in are actual categories
-    query = """
-    SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, ts_rank_cd(totalvector, query) as rank
-    FROM articles AS a
-    INNER JOIN alltime_ranks AS r ON r.article=a.id,
-      to_tsquery(%s) query,
-      coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'D')) totalvector
-    WHERE query @@ totalvector """
-    if len(categories) > 0:
-      query += "AND collection=ANY(%s) "
-      params = (q,categories)
-    query += "ORDER BY r.rank ASC LIMIT 20;"
-    print(query)
+    if q != "": # if there's a text search specified
+      params = (q,)
+      query = """
+      SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, ts_rank_cd(totalvector, query) as rank
+      FROM articles AS a
+      INNER JOIN alltime_ranks AS r ON r.article=a.id,
+        to_tsquery(%s) query,
+        coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'D')) totalvector
+      WHERE query @@ totalvector """
+      if len(categories) > 0:
+        query += "AND collection=ANY(%s) "
+        params = (q,categories)
+      query += "ORDER BY r.rank ASC LIMIT 20;"
+      print(query)
+    else: # if it's just category filters
+      params = (categories,)
+      query = """
+        SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract
+        FROM articles as a
+        INNER JOIN alltime_ranks as r ON r.article=a.id
+        WHERE collection=ANY(%s)
+        ORDER BY r.rank LIMIT 20;
+      """
     articles = cursor.execute(query, params)
 
     for article in cursor:

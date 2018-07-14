@@ -22,12 +22,13 @@ def index():
   stats = helpers.get_stats(connection)
 
   error = ""
-  title = ""
+  title = "Most popular bioRxiv papers, all-time"
   resp = {"results": []}
 
 
   if(q is not "" or len(category_filter) > 0): # If the user submitted a search query
-    title = "Most popular papers related to \"{}\"".format(q)
+    if q != "": title = "Most popular papers related to \"{}\"".format(q)
+
     try:
       resp = endpoints.get_papers_textsearch(connection, q, category_filter)
     except Exception as e:
@@ -36,7 +37,6 @@ def index():
       error = "There was a problem using your search query."
       bottle.response.status = 500
   else: # default homepage list:
-    title = "Most popular bioRxiv papers, all-time"
     try:
       resp = endpoints.most_popular_alltime(connection)
     except Exception as e:
