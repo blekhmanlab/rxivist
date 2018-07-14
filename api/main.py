@@ -14,12 +14,13 @@ def index():
   if connection is None:
     bottle.response.status = 421
     return "Database is initializing."
-  q = bottle.request.query.q
 
+  q = bottle.request.query.q
   error = ""
   title = ""
   resp = {"results": []}
-  if(q is not ""):
+
+  if(q is not ""): # If the user submitted a search query
     title = "Most popular papers related to \"{}\"".format(q)
     try:
       resp = endpoints.get_papers_textsearch(connection, q)
@@ -28,7 +29,7 @@ def index():
       connection.db.commit() # required to end the failed transaction, if it exists
       error = "There was a problem using your search query."
       bottle.response.status = 500
-  else:
+  else: # default homepage list:
     title = "Most popular bioinformatics papers, all-time"
     try:
       resp = endpoints.most_popular_alltime(connection)
