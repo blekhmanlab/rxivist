@@ -1,11 +1,8 @@
 from collections import defaultdict
-import io
 import re
 import sys
 
 import psycopg2
-import PyPDF2
-import requests
 from requests_html import HTMLSession
 
 
@@ -42,10 +39,11 @@ class Article(object):
   def __init__(self):
     pass
     
-  def process_results_entry(self, html):
+  def process_results_entry(self, html, collection):
     self._find_title(html)
     self._find_url(html)
     self._find_authors(html)
+    self.collection = collection
     # NOTE: We don't get abstracts from search result pages
     # because they're loaded asynchronously and it would be
     # annoying to load every one separately.
@@ -75,7 +73,7 @@ class Article(object):
   def record(self, connection):
     with connection.db.cursor() as cursor:
       try:
-        cursor.execute("INSERT INTO articles (url, title) VALUES (%s, %s) RETURNING id;", (self.url, self.title))
+        cursor.execute("INSERT INTO articles (url, title, collection) VALUES (%s, %s, %s) RETURNING id;", (self.url, self.title, self.collection))
       except psycopg2.IntegrityError as err:
         if repr(err).find('duplicate key value violates unique constraint "articles_pkey"', 1):
           print("Found article already: {}".format(self.title))
@@ -109,12 +107,12 @@ def determine_page_count(html):
   # finds the highest page number listed
   return int(html.find(".pager-last")[0].text)
 
-def pull_out_articles(html):
+def pull_out_articles(html, collection):
   entries = html.find(".highwire-article-citation")
   articles = []
   for entry in entries:
     a = Article()
-    a.process_results_entry(entry)
+    a.process_results_entry(entry, collection)
     articles.append(a)
   return articles
 
@@ -127,14 +125,14 @@ class Spider(object):
   def find_record_new_articles(self, collection="bioinformatics"):
     # we need to grab the first page to figure out how many pages there are
     r = self.session.get("https://www.biorxiv.org/collection/{}".format(collection))
-    results = pull_out_articles(r.html)
+    results = pull_out_articles(r.html, collection)
     keep_going = self.record_articles(results)
     if not keep_going: return # if we already knew about the first entry, we're done
 
     pagecount = 50 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
     for p in range(1, pagecount): # iterate through pages
       r = self.session.get("https://www.biorxiv.org/collection/{}?page={}".format(collection, p))
-      results = pull_out_articles(r.html)
+      results = pull_out_articles(r.html, collection)
       keep_going = self.record_articles(results)
       if not keep_going: break # If we encounter a recognized article, we're done
 

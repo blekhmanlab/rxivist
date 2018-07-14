@@ -26,7 +26,7 @@ class Connection(object):
     db.close()
   
   def _ensure_tables_exist(self):
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS articles (id SERIAL PRIMARY KEY, url text UNIQUE, title text NOT NULL, abstract text, title_vector tsvector, abstract_vector tsvector, last_crawled DATE NOT NULL DEFAULT CURRENT_DATE);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS articles (id SERIAL PRIMARY KEY, url text UNIQUE, title text NOT NULL, abstract text, collection text, title_vector tsvector, abstract_vector tsvector, last_crawled DATE NOT NULL DEFAULT CURRENT_DATE);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS authors (id SERIAL PRIMARY KEY, given text NOT NULL, surname text, UNIQUE (given, surname));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_authors (id SERIAL PRIMARY KEY, article integer NOT NULL, author integer NOT NULL, UNIQUE (article, author));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_traffic (id SERIAL PRIMARY KEY, article integer NOT NULL, month integer, year integer NOT NULL, abstract integer, pdf integer, UNIQUE (article, month, year));")
@@ -37,7 +37,6 @@ class Connection(object):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS bounce_ranks_working (article integer PRIMARY KEY, rank integer NOT NULL, rate NUMERIC(6,5) NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS ytd_ranks (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS ytd_ranks_working (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
-
     self.db.commit()
   
   def _clear_out(self):

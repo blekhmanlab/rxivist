@@ -60,6 +60,7 @@ class Connection(object):
       cursor.execute(query)
       for result in cursor:
         results.append(result)
+      self.db.commit()
     return results
 
   def __del__(self):

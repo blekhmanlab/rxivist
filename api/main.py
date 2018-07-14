@@ -123,5 +123,5 @@ def error404(error):
 def callback(path):
   return bottle.static_file(path, root='./')
 
-bottle.run(host='0.0.0.0', port=80, debug=True, reloader=True)
-# bottle.run(host='0.0.0.0', port=80, server="gunicorn")
+# bottle.run(host='0.0.0.0', port=80, debug=True, reloader=True)
+bottle.run(host='0.0.0.0', port=80, server="gunicorn")
