@@ -19,6 +19,7 @@ def index():
   error = ""
   title = ""
   resp = {"results": []}
+  stats = endpoints.get_stats(connection)
 
   if(q is not ""): # If the user submitted a search query
     title = "Most popular papers related to \"{}\"".format(q)
@@ -30,7 +31,7 @@ def index():
       error = "There was a problem using your search query."
       bottle.response.status = 500
   else: # default homepage list:
-    title = "Most popular bioinformatics papers, all-time"
+    title = "Most popular bioRxiv papers, all-time"
     try:
       resp = endpoints.most_popular_alltime(connection)
     except Exception as e:
@@ -38,7 +39,7 @@ def index():
       connection.db.commit()
       error = "There was a problem fetching the most popular papers."
       bottle.response.status = 500
-  return bottle.template('index', results=resp["results"], query=q, title=title, error=error)
+  return bottle.template('index', results=resp["results"], query=q, title=title, error=error, stats=stats)
 
 # ---- DB convenience endpoint
 @bottle.get('/db')
@@ -123,5 +124,5 @@ def error404(error):
 def callback(path):
   return bottle.static_file(path, root='./')
 
-# bottle.run(host='0.0.0.0', port=80, debug=True, reloader=True)
-bottle.run(host='0.0.0.0', port=80, server="gunicorn")
+bottle.run(host='0.0.0.0', port=80, debug=True, reloader=True)
+# bottle.run(host='0.0.0.0', port=80, server="gunicorn")

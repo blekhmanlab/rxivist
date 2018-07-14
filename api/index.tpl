@@ -14,14 +14,16 @@
   <br>
     <div class="container" id="main">
       <div class="row" id="header">
-        <div class="col col-sm-10">
+        <div class="col col-md-7 col-sm-12" style="padding-bottom: 15px;">
             <a href="/"><img src="/static/rxivist_logo_bad.png"></a>
           <div><em>Read the trending bioRxiv papers</em></div>
         </div>
-        <div class="col col-sm-2" style="text-align: right;">
-          <a href="#" data-toggle="modal" data-target="#about">
-            About
-          </a>
+        <div class="col col-md-5 col-sm-12">
+          <ul>
+            <li><strong>Rxivist is in development.</strong> If you're here, you're almost definitely lost.
+            <li>Currently indexing <strong>{{stats["paper_count"]}} papers</strong> from <strong>{{stats["author_count"]}} authors</strong>
+            <li><a href="#" data-toggle="modal" data-target="#about">About the project</a>
+          </ul>
         </div>
       </div>
       <div class="row">
@@ -33,7 +35,10 @@
                 <div class="input-group-append">
                   <button type="submit" class="btn btn-altcolor">Search</button>
                 </div>
-              </div>         
+                <div class="col-md-12">
+                  <small class="form-text text-muted"><a href="#" data-toggle="modal" data-target="#search">Advanced search</a></small>
+                </div>
+              </div>
             </form>
           </div>
           
@@ -67,6 +72,27 @@
         </div>
       </div>
 
+      <!-- ADVANCED SEARCH MODAL -->
+      <div class="modal fade" id="search" tabindex="-1" role="dialog" aria-labelledby="searchLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="searchLabel">Advanced search</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <p>boop de boop.
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABOUT -->
       <div class="modal fade" id="about" tabindex="-1" role="dialog" aria-labelledby="aboutLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
           <div class="modal-content">
