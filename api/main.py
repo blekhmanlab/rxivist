@@ -20,30 +20,18 @@ def index():
   category_filter = bottle.request.query.getall('category') # multiple params possible
   category_list = helpers.get_categories(connection)
   stats = helpers.get_stats(connection)
-
   error = ""
-  title = "Most popular bioRxiv papers, all-time"
   resp = {"results": []}
+  title = "Most popular papers related to \"{}\"".format(q) if q != "" else "Most popular bioRxiv papers, all-time"
+  
+  try:
+    resp = helpers.determine_textsearch_query(connection, q, category_filter)
+  except Exception as e:
+    print(e)
+    connection.db.commit() # required to end the failed transaction, if it exists
+    error = "There was a problem with the submitted query."
+    bottle.response.status = 500
 
-
-  if(q is not "" or len(category_filter) > 0): # If the user submitted a search query
-    if q != "": title = "Most popular papers related to \"{}\"".format(q)
-
-    try:
-      resp = endpoints.get_papers_textsearch(connection, q, category_filter)
-    except Exception as e:
-      print(e)
-      connection.db.commit() # required to end the failed transaction, if it exists
-      error = "There was a problem using your search query."
-      bottle.response.status = 500
-  else: # default homepage list:
-    try:
-      resp = endpoints.most_popular_alltime(connection)
-    except Exception as e:
-      print(e)
-      connection.db.commit()
-      error = "There was a problem fetching the most popular papers."
-      bottle.response.status = 500
   return bottle.template('index', results=resp["results"], query=q, category_filter=category_filter, title=title,
     error=error, stats=stats, category_list=category_list)
 
@@ -70,8 +58,15 @@ def get_papers():
 @bottle.get('/api/papers/search')
 def get_papers_textsearch():
   q = bottle.request.query.q
-  results = endpoints.get_papers_textsearch(connection, q)
-  return results
+  category_filter = bottle.request.query.getall('category') # multiple params possible
+  results = []
+  try:
+    results = helpers.determine_textsearch_query(connection, q, category_filter)
+  except Exception as e:
+    print(e)
+    connection.db.commit() # required to end the failed transaction, if it exists
+    bottle.response.status = 500
+  return {"results": results}
 
 @bottle.get('/api/popularity/downloads')
 def get_popular():

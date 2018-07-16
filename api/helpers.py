@@ -1,3 +1,5 @@
+import endpoints
+
 def get_stats(connection):
   results = {"paper_count": 0, "author_count": 0}
   resp = connection.read("SELECT COUNT(id) FROM articles;")
@@ -18,3 +20,9 @@ def get_categories(connection):
     if len(cat) > 0:
       results.append(cat[0])
   return results
+
+def determine_textsearch_query(connection, q, category_filter):
+  if(q is not "" or len(category_filter) > 0): # If the user submitted a search query
+    return endpoints.get_papers_textsearch(connection, q, category_filter)
+  # default homepage list:
+  return endpoints.most_popular_alltime(connection)

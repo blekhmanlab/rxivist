@@ -50,17 +50,19 @@
           % else:
             <h2>{{title}}</h2>
             % if len(category_filter) > 0:
-              <h3>In categories
+              <h4 style="padding-left: 20px;">in categor{{ "ies:" if len(category_filter) > 1 else "y" }}
                 % for i, cat in enumerate(category_filter):
                   {{ cat }}{{", " if i < (len(category_filter)-1) else ""}}
                 %end
-              </h3>
+              </h4>
             %end 
             <div class="accordion" id="alltime">
               % for i, result in enumerate(results):
                 <div class="card">
                   <div class="card-header context" id="heading{{result["id"]}}"  data-toggle="collapse" data-target="#collapse{{result["id"]}}" aria-expanded="true" aria-controls="collapse{{result["id"]}}">
-                    <strong>{{i+1}}:</strong> {{result["title"]}} <span class="badge badge-secondary" style="margin-left: 10px;">{{result["downloads"]}} downloads</span>
+                    <strong>{{i+1}}:</strong> {{result["title"]}}
+                    <br>
+                    <span class="badge badge-secondary" style="margin-left: 10px;">{{result["downloads"]}} downloads</span>
                   </div>
                   <div id="collapse{{result["id"]}}" class="collapse" aria-labelledby="heading{{result["id"]}}" data-parent="#alltime">
                     <div class="card-body">
@@ -94,17 +96,18 @@
                   <div id="searchform">
                     <div class="form-group">
                       <label for="searchtext">Show papers related to...</label>
-                      <input type="text" class="form-control" id="searchtext" name="q" aria-describedby="searchtextHelp" value="{{query}}">
-                      <small id="searchtextHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
+                      <input type="text" class="form-control" id="searchtext" name="q" value="{{query}}">
                     </div>
                     <div class="form-group">
                       <label for="categoryselect">from bioRxiv categories...</label>
-                      <select multiple class="form-control" id="categoryselect" name="category" aria-describedby="categoryHelp">
+                      <select multiple class="form-control" id="categoryselect" name="category">
                         % for cat in category_list:
                           <option>{{cat}}</option>
                         %end
                       </select>
-                      <small id="categoryHelp" class="form-text text-muted">To show papers from all categories, select none or all of the options.</small>
+                      <div class="text-right">
+                          <span class="badge badge-secondary" data-toggle="tooltip" data-placement="top" data-html="true" title="<strong>Category filter</strong><br>Use the Cmd (on Mac) or Ctrl (on Windows) key to toggle multiple choices.<br>To show papers from all categories, select none or all of the options.">?</span>
+                      </div>
                     </div>
                   </div>
               </div>
@@ -141,6 +144,11 @@
       <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
       <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+      <script>
+        $(function () {
+          $('[data-toggle="tooltip"]').tooltip()
+        })
+      </script>
     </div>
     <div class="container">
       <div class="row">
