@@ -16,23 +16,25 @@ def index():
     bottle.response.status = 421
     return "Database is initializing."
 
-  q = bottle.request.query.q
+  query = bottle.request.query.q
   category_filter = bottle.request.query.getall('category') # multiple params possible
-  category_list = helpers.get_categories(connection)
+
+  category_list = endpoints.get_categories(connection)
   stats = helpers.get_stats(connection)
   error = ""
-  resp = {"results": []}
-  title = "Most popular papers related to \"{}\"".format(q) if q != "" else "Most popular bioRxiv papers, all-time"
+  results = {}
+  title = "Most popular papers related to \"{}\"".format(query) if query != "" else "Most popular bioRxiv papers, all-time"
   
   try:
-    resp = helpers.determine_textsearch_query(connection, q, category_filter)
+    results = endpoints.most_popular_alltime(connection, query, category_filter)
   except Exception as e:
     print(e)
-    connection.db.commit() # required to end the failed transaction, if it exists
+    connection.db.commit() # required to end the failed transaction, if it exists (HACK: check if this is needed elsewhere)
     error = "There was a problem with the submitted query."
     bottle.response.status = 500
 
-  return bottle.template('index', results=resp["results"], query=q, category_filter=category_filter, title=title,
+  return bottle.template('index', results=results,
+    query=query, category_filter=category_filter, title=title,
     error=error, stats=stats, category_list=category_list)
 
 # ---- DB convenience endpoint
@@ -48,12 +50,13 @@ def get_articles_table(table=None):
   data = []
   if table is not None:
     column_names, data = connection.fetch_table_data(table)
-  return bottle.template('db', current=table, tables=table_names, headers=column_names, results=data)
+  return bottle.template('db', current=table, tables=table_names,
+    headers=column_names, results=data)
 
 @bottle.get('/api/papers')
 def get_papers():
   results = endpoints.get_papers(connection)
-  return results
+  return {"results": results}
 
 @bottle.get('/api/papers/search')
 def get_papers_textsearch():
@@ -71,12 +74,12 @@ def get_papers_textsearch():
 @bottle.get('/api/popularity/downloads')
 def get_popular():
   results = endpoints.most_popular(connection)
-  return results
+  return {"results": results}
 
 @bottle.get('/api/popularity/downloads/ytd')
 def get_popular():
   results = endpoints.most_popular_ytd(connection)
-  return results
+  return {"results": results}
 
 @bottle.get('/api/papers/<id:int>')
 def get_paper_details(id):
@@ -90,6 +93,11 @@ def get_paper_details(id):
     print(e)
     return {"error": "Server error."}
   return result
+
+@bottle.get('/api/categories')
+def get_categories():
+  categories = endpoints.get_categories(connection)
+  return {"results": categories}
 
 @bottle.get('/api/authors')
 def get_authors():

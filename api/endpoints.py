@@ -1,3 +1,10 @@
+"""Functions linked directly to functionality called from API endpoints.
+
+This module is used to pull logic out of the controllers in main.py.
+Some of these functions maybe called from MULTIPLE controllers, so
+look around before modifying the API of one of them.
+"""
+
 import bottle
 import db
 
@@ -5,16 +12,42 @@ class NotFoundError(Exception):
   def __init__(self, id):
     self.message = "Entity could not be found with id {}".format(id)
 
+def get_categories(connection):
+  """Returns a list of all known bioRxiv categories.
+  
+  bioRxiv separates all papers into categories (or "collections"), such
+  as "bioinformatics", "genomics", etc. This function lists all the ones
+  we've pulled from the site so far. Used to generate the "select categories"
+  selector in the advanced search interface.
+  
+  """
+  results = []
+  categories = connection.read("SELECT DISTINCT collection FROM articles ORDER BY collection;")
+  for cat in categories: 
+    if len(cat) > 0:
+      results.append(cat[0])
+  return results
+
 def get_authors(connection, id, full=False):
-  # Returns the authors associated with a given article ID. If "full" is
-  # true, the response separates given and surnames
+  """Returns a list of authors associated with a single paper.
+
+  Arguments:
+    - connection: a database connection object.
+    - id: the ID given to the article being queried.
+    - full: whether to give the "full" author record,
+            separating given name and surname, or just
+            return a simplified version that's just a
+            string with the person's name.
+
+  """
+
   authors = []
   author_data = connection.read("SELECT authors.id, authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article={};".format(id))
   if full: return author_data
 
   for a in author_data:
     name = a[1]
-    if len(a) > 2:# TODO: verify this actually works for one-name authors
+    if len(a) > 2: # TODO: verify this actually works for one-name authors
       name += " {}".format(a[2])
     authors.append({
       "id": a[0],
@@ -23,13 +56,27 @@ def get_authors(connection, id, full=False):
   return authors
 
 def get_traffic(connection, id):
+  """Returns a tuple indicating a single paper's download statistics.
+
+  Arguments:
+    - connection: a database connection object.
+    - id: the ID given to the article being queried.
+  Returns:
+    - A two-element tuple. The first element is the number of views of
+        the paper's abstract; the second is total PDF downloads.
+
+  """
+
   traffic = connection.read("SELECT SUM(abstract), SUM(pdf) FROM article_traffic WHERE article={};".format(id))
   if len(traffic) == 0:
     raise NotFoundError(id)
   return traffic[0] # array of tuples
 
 def get_papers(connection):
-  # TODO: Memoize this response
+  """Returns a list of all articles in the database.
+
+  """
+  # TODO: Memoize this response, or get rid of it
   results = []
   articles = connection.read("SELECT * FROM articles;")
   for article in articles:
@@ -40,9 +87,20 @@ def get_papers(connection):
       "abstract": article[3],
       "authors": get_authors(connection, article[0])
     })
-  return {"results": results}
+  return results
 
-def get_papers_textsearch(connection, q, categories):
+def most_popular_alltime(connection, q, categories):
+  """Returns a list of the 20 most downloaded papers that meet a given set of constraints.
+
+  Arguments:
+    - connection: a database connection object.
+    - q:  A search string to compare against article abstracts
+          and titles. (Title matches are weighted more heavily.)
+    - categories: A list of bioRxiv categories the results can be in.
+  Returns:
+    - An ordered list of article elements that meet the search criteria.
+
+  """
   # TODO: validate that the category filters passed in are actual categories
   results = []
   with connection.db.cursor() as cursor:
@@ -60,7 +118,7 @@ def get_papers_textsearch(connection, q, categories):
         params = (q,categories)
       query += "ORDER BY r.rank ASC LIMIT 20;"
       print(query)
-    else: # if it's just category filters
+    elif len(categories) > 0: # if it's just category filters
       params = (categories,)
       query = """
         SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract
@@ -69,6 +127,10 @@ def get_papers_textsearch(connection, q, categories):
         WHERE collection=ANY(%s)
         ORDER BY r.rank LIMIT 20;
       """
+    else: # just show all-time ranks
+      params = ()
+      query = "SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract FROM articles as a INNER JOIN alltime_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;"
+
     articles = cursor.execute(query, params)
 
     for article in cursor:
@@ -81,28 +143,16 @@ def get_papers_textsearch(connection, q, categories):
         "abstract": article[5],
         "authors": get_authors(connection, article[2])
       })
-  return {"results": results}
-
-def most_popular_alltime(connection):
-  results = {"results": []} # can't return a list
-  articles = connection.read("SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract FROM articles as a INNER JOIN alltime_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;")
-  for article in articles:
-    results["results"].append({
-      "rank": article[0],
-      "downloads": article[1],
-      "id": article[2],
-      "url": article[3],
-      "title": article[4],
-      "abstract": article[5],
-      "authors": get_authors(connection, article[2])
-    })
   return results
 
 def most_popular_ytd(connection):
-  results = {"results": []} # can't return a list
+  """Returns a list of the papers with the most downloads in the current year.
+
+  """
+  results = []
   articles = connection.read("SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract FROM articles as a INNER JOIN ytd_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;")
   for article in articles:
-    results["results"].append({
+    results.append({
       "rank": article[0],
       "downloads": article[1],
       "id": article[2],
@@ -114,6 +164,14 @@ def most_popular_ytd(connection):
   return results
 
 def paper_details(connection, id):
+  """Returns a dict of information about a single paper.
+
+  Arguments:
+    - connection: a database connection object.
+    - id: the ID given to the article being queried.
+
+  """
+
   result = {}
   article = connection.read("SELECT * FROM articles WHERE id = {};".format(id))
   if len(article) == 0:
@@ -129,7 +187,6 @@ def paper_details(connection, id):
   except NotFoundError:
     abstract = 0
     pdf = 0
-  
 
   result = {
     "id": article[0],
@@ -146,6 +203,15 @@ def paper_details(connection, id):
   return result
 
 def author_details(connection, id):
+  """Returns a dict of information about a single author, including a list of
+      all their papers.
+
+  Arguments:
+    - connection: a database connection object.
+    - id: the ID given to the author being queried.
+
+  """
+
   result = {}
   author = connection.read("SELECT * FROM authors WHERE id = {};".format(id))
   if len(author) == 0:
