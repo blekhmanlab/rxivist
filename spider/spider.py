@@ -122,22 +122,21 @@ class Spider(object):
     self.session = HTMLSession(mock_browser=False)
     self.session.headers['User-Agent'] = "rxivist web crawler (rxivist.org)"
 
-  def find_record_new_articles(self, collection="bioinformatics"):
+  def find_record_new_articles(self, collection):
     # we need to grab the first page to figure out how many pages there are
     r = self.session.get("https://www.biorxiv.org/collection/{}".format(collection))
     results = pull_out_articles(r.html, collection)
     keep_going = self.record_articles(results)
     if not keep_going: return # if we already knew about the first entry, we're done
 
-    pagecount = 50 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
+    pagecount = 10 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
     for p in range(1, pagecount): # iterate through pages
       r = self.session.get("https://www.biorxiv.org/collection/{}?page={}".format(collection, p))
       results = pull_out_articles(r.html, collection)
       keep_going = self.record_articles(results)
       if not keep_going: break # If we encounter a recognized article, we're done
 
-  def refresh_article_details(self):
-    print("Refreshing article details...")
+  def fetch_abstracts(self):
     with self.connection.db.cursor() as cursor:
       # find abstracts for any articles without them
       cursor.execute("SELECT id, url FROM articles WHERE abstract IS NULL;")
@@ -147,8 +146,11 @@ class Spider(object):
         abstract = self.get_article_abstract(url)
         if abstract: self.update_article(article_id, abstract)
 
-      # fetch updated stats for everything
-      cursor.execute("SELECT id, url FROM articles;") # TODO: Add "where" clause based on date
+  def refresh_article_stats(self, collection):
+    print("Refreshing article download stats...")
+    with self.connection.db.cursor() as cursor:
+      # TODO: Add "where" clause based on last_crawled date (also UPDATE that value!)
+      cursor.execute("SELECT id, url FROM articles WHERE collection=%s;", (collection,))
       for article in cursor:
         url = article[1]
         article_id = article[0]
@@ -206,7 +208,7 @@ class Spider(object):
 
   def rank_articles(self):
     # pulls together all the separate ranking calls
-    # self._rank_articles_alltime()
+    self._rank_articles_alltime()
     self._rank_articles_ytd()
     # self._rank_articles_bouncerate()
 
@@ -281,14 +283,20 @@ class Spider(object):
       # TODO: Add author names to this collection? We'd need a plaintext version of the author list
       self.connection.db.commit()
 
+def full_run(spider, collection="bioinformatics"):
+  spider.find_record_new_articles(collection)
+  spider.fetch_abstracts()
+  spider.calculate_vectors()
+  spider.refresh_article_stats(collection)
+  spider.rank_articles()
+
 if __name__ == "__main__":
   spider = Spider()
   if len(sys.argv) == 1: # if no action is specified, do everything
-    spider.find_record_new_articles("bioinformatics")
-    spider.refresh_article_details()
-    spider.rank_articles()
-    spider.calculate_vectors()
+    full_run(spider)
   elif sys.argv[1] == "rankings":
     spider.rank_articles()
   elif sys.argv[1] == "tsvectors":
     spider.calculate_vectors()
+  else:
+    full_run(spider, sys.argv[1])
