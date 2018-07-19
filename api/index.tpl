@@ -63,6 +63,9 @@
                     <strong>{{i+1}}:</strong> {{result["title"]}}
                     <br>
                     <span class="badge badge-secondary" style="margin-left: 10px;">{{result["downloads"]}} downloads</span>
+                    % if len(category_filter) != 1:
+                      <span class="badge badge-secondary" style="margin-left: 10px;">{{result["collection"]}}</span>
+                    % end
                   </div>
                   <div id="collapse{{result["id"]}}" class="collapse" aria-labelledby="heading{{result["id"]}}" data-parent="#alltime">
                     <div class="card-body">

@@ -25,6 +25,7 @@
           <ul>
             % for result in data["articles"]:
               <li><strong>{{result["title"]}}</strong>
+              <span class="badge badge-secondary" style="margin-left: 10px;">{{result["collection"]}}</span>
                 <ul>
                   <li>
                     % for i, author in enumerate(result["authors"]):

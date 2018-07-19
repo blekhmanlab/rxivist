@@ -107,7 +107,7 @@ def most_popular_alltime(connection, q, categories):
     if q != "": # if there's a text search specified
       params = (q,)
       query = """
-      SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, ts_rank_cd(totalvector, query) as rank
+      SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, a.collection, ts_rank_cd(totalvector, query) as rank
       FROM articles AS a
       INNER JOIN alltime_ranks AS r ON r.article=a.id,
         to_tsquery(%s) query,
@@ -117,11 +117,10 @@ def most_popular_alltime(connection, q, categories):
         query += "AND collection=ANY(%s) "
         params = (q,categories)
       query += "ORDER BY r.rank ASC LIMIT 20;"
-      print(query)
     elif len(categories) > 0: # if it's just category filters
       params = (categories,)
       query = """
-        SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract
+        SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, a.collection
         FROM articles as a
         INNER JOIN alltime_ranks as r ON r.article=a.id
         WHERE collection=ANY(%s)
@@ -129,7 +128,7 @@ def most_popular_alltime(connection, q, categories):
       """
     else: # just show all-time ranks
       params = ()
-      query = "SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract FROM articles as a INNER JOIN alltime_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;"
+      query = "SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, a.collection FROM articles as a INNER JOIN alltime_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;"
 
     articles = cursor.execute(query, params)
 
@@ -141,6 +140,7 @@ def most_popular_alltime(connection, q, categories):
         "url": article[3],
         "title": article[4],
         "abstract": article[5],
+        "collection": article[6],
         "authors": get_authors(connection, article[2])
       })
   return results
@@ -150,7 +150,7 @@ def most_popular_ytd(connection):
 
   """
   results = []
-  articles = connection.read("SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract FROM articles as a INNER JOIN ytd_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;")
+  articles = connection.read("SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, a.collection FROM articles as a INNER JOIN ytd_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;")
   for article in articles:
     results.append({
       "rank": article[0],
@@ -159,6 +159,7 @@ def most_popular_ytd(connection):
       "url": article[3],
       "title": article[4],
       "abstract": article[5],
+      "collection": article[6],
       "authors": get_authors(connection, article[2])
     })
   return results
@@ -227,7 +228,7 @@ def author_details(connection, id):
     "articles": []
   }
 
-  articles = connection.read("SELECT alltime_ranks.rank, ytd_ranks.rank, articles.id, articles.url, articles.title, articles.abstract FROM articles INNER JOIN article_authors ON article_authors.article=articles.id LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article WHERE article_authors.author={}".format(id))
+  articles = connection.read("SELECT alltime_ranks.rank, ytd_ranks.rank, articles.id, articles.url, articles.title, articles.abstract, articles.collection FROM articles INNER JOIN article_authors ON article_authors.article=articles.id LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article WHERE article_authors.author={}".format(id))
 
   alltime_count = connection.read("SELECT COUNT(article) FROM alltime_ranks")
   alltime_count = alltime_count[0][0]
@@ -243,6 +244,7 @@ def author_details(connection, id):
       "url": article[3],
       "title": article[4],
       "abstract": article[5],
+      "collection": article[6],
       "authors": get_authors(connection, article[2])
     })
 
