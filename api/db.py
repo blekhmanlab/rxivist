@@ -54,10 +54,13 @@ class Connection(object):
         self.db.commit()
       return headers, data
   
-  def read(self, query):
+  def read(self, query, params=None):
     results = []
     with self.db.cursor() as cursor:
-      cursor.execute(query)
+      if params is not None:
+        cursor.execute(query, params)
+      else:
+        cursor.execute(query)
       for result in cursor:
         results.append(result)
       self.db.commit()

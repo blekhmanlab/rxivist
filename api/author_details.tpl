@@ -32,8 +32,17 @@
                       <a href="/authors/{{author["id"]}}">{{author["name"]}}</a>{{", " if i < (len(result["authors"]) - 1) else ""}}
                     % end
                   </li>
-                  <li>All-time downloads rank: <strong>{{result["ranks"]["alltime"]}}</strong> out of {{result["ranks"]["out_of"]}}</li>
-                  <li>Year-to-date downloads rank: <strong>{{result["ranks"]["ytd"]}}</strong> out of {{result["ranks"]["out_of"]}}</li>
+                  <li><strong>All-time download rankings:</strong>
+                    <ul>
+                      <li>Site-wide: <strong>{{result["ranks"]["alltime"]["rank"]}}</strong> out of {{result["ranks"]["alltime"]["out_of"]}}</li>
+                      <li>In {{result["collection"]}}: <strong>{{result["ranks"]["collection"]["rank"]}}</strong> out of {{result["ranks"]["collection"]["out_of"]}}</li>
+                    </ul>
+                  </li>
+                  <li><strong>Year-to-date downloads rankings</strong>:
+                    <ul>
+                      <li>Site-wide: <strong>{{result["ranks"]["ytd"]["rank"]}}</strong> out of {{result["ranks"]["ytd"]["out_of"]}}</li>
+                    </ul>
+                  </li>
                 </ul>
               </li>
             % end

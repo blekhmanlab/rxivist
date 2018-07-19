@@ -208,7 +208,16 @@ class Spider(object):
 
   def rank_articles(self):
     # pulls together all the separate ranking calls
-    self._rank_articles_alltime()
+    # self._rank_articles_alltime()
+    categories = []
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT DISTINCT collection FROM articles ORDER BY collection;")
+      for cat in cursor: 
+        if len(cat) > 0:
+          categories.append(cat[0])
+    for category in categories:
+      self._rank_articles_categories(category)
+
     self._rank_articles_ytd()
     # self._rank_articles_bouncerate()
 
@@ -219,6 +228,29 @@ class Spider(object):
       cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic GROUP BY article ORDER BY downloads DESC") # LIMIT 50")
       sql = "INSERT INTO alltime_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
+      cursor.executemany(sql, params)
+      self.connection.db.commit()
+
+      # once it's all done, shuffle the tables around so the new results are active
+      cursor.execute("ALTER TABLE alltime_ranks RENAME TO alltime_ranks_temp")
+      cursor.execute("ALTER TABLE alltime_ranks_working RENAME TO alltime_ranks")
+      cursor.execute("ALTER TABLE alltime_ranks_temp RENAME TO alltime_ranks_working")
+      self.connection.db.commit()
+
+  def _rank_articles_categories(self, category):
+    print("Ranking papers by popularity in category {}...".format(category))
+    with self.connection.db.cursor() as cursor:
+      query = """
+        SELECT t.article, SUM(t.pdf) as downloads
+        FROM article_traffic AS t
+        INNER JOIN articles AS a ON t.article=a.id
+        WHERE a.collection=%s
+        GROUP BY t.article
+        ORDER BY downloads DESC
+      """
+      cursor.execute(query, (category,))
+      sql = "UPDATE articles SET collection_rank=%s WHERE id=%s;"
+      params = [(rank, record[0]) for rank, record in enumerate(cursor, start=1)]
       cursor.executemany(sql, params)
       self.connection.db.commit()
 
