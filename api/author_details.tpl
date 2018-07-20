@@ -15,36 +15,35 @@
     <div class="container" id="main">
       <div class="row" id="header">
         <div class="col col-sm-10">
-          <a href="/"><img src="/static/rxivist_logo_bad.png"></a>
+          <a href="/"><img src="/static/rxivist_logo_bad.png" alt="Rxivist logo" title="It's pronounced 'Archivist.'"></a>
           <div><em>The most popular articles on bioRxiv</em></div>
         </div>
       </div>
       <div class="row">
         <div class="col">
-          <h2>Articles by {{data["given"]}} {{data["surname"]}}</h2>
+          <h1>Articles by {{data["given"]}} {{data["surname"]}}</h1>
           <ul>
             % for result in data["articles"]:
-              <li><strong>{{result["title"]}}</strong>
-              <span class="badge badge-secondary" style="margin-left: 10px;">{{result["collection"]}}</span>
-                <ul>
-                  <li>
-                    % for i, author in enumerate(result["authors"]):
-                      <a href="/authors/{{author["id"]}}">{{author["name"]}}</a>{{", " if i < (len(result["authors"]) - 1) else ""}}
-                    % end
-                  </li>
-                  <li><strong>All-time download rankings:</strong>
-                    <ul>
-                      <li>Site-wide: <strong>{{result["ranks"]["alltime"]["rank"]}}</strong> out of {{result["ranks"]["alltime"]["out_of"]}}</li>
-                      <li>In {{result["collection"]}}: <strong>{{result["ranks"]["collection"]["rank"]}}</strong> out of {{result["ranks"]["collection"]["out_of"]}}</li>
-                    </ul>
-                  </li>
-                  <li><strong>Year-to-date downloads rankings</strong>:
-                    <ul>
-                      <li>Site-wide: <strong>{{result["ranks"]["ytd"]["rank"]}}</strong> out of {{result["ranks"]["ytd"]["out_of"]}}</li>
-                    </ul>
-                  </li>
-                </ul>
-              </li>
+              <h2 style="font-size: 1.2em; padding-top: 20px; margin-bottom: 0;">{{result["title"]}}</h2>
+              <a href="/?category={{result["collection"]}}"><span class="badge badge-secondary" style="margin-left: 10px;">{{result["collection"]}}</span></a>
+              <ul>
+                <li>
+                  % for i, author in enumerate(result["authors"]):
+                    <a href="/authors/{{author["id"]}}">{{author["name"]}}</a>{{", " if i < (len(result["authors"]) - 1) else ""}}
+                  % end
+                </li>
+                <li><strong>All-time download rankings:</strong>
+                  <ul>
+                    <li>Site-wide: <strong>{{result["ranks"]["alltime"]["rank"]}}</strong> out of {{result["ranks"]["alltime"]["out_of"]}}</li>
+                    <li>In {{result["collection"]}}: <strong>{{result["ranks"]["collection"]["rank"]}}</strong> out of {{result["ranks"]["collection"]["out_of"]}}</li>
+                  </ul>
+                </li>
+                <li><strong>Year-to-date downloads rankings</strong>:
+                  <ul>
+                    <li>Site-wide: <strong>{{result["ranks"]["ytd"]["rank"]}}</strong> out of {{result["ranks"]["ytd"]["out_of"]}}</li>
+                  </ul>
+                </li>
+              </ul>
             % end
           </div>
         </div>
