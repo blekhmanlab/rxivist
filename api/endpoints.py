@@ -233,7 +233,9 @@ def author_details(connection, id):
   articles = connection.read("SELECT alltime_ranks.rank, ytd_ranks.rank, articles.id, articles.url, articles.title, articles.abstract, articles.collection, articles.collection_rank FROM articles INNER JOIN article_authors ON article_authors.article=articles.id LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article WHERE article_authors.author={}".format(id))
 
   alltime_count = connection.read("SELECT COUNT(article) FROM alltime_ranks")
-  alltime_count = alltime_count[0][0]
+  alltime_count = alltime_count[0][0] 
+  # NOTE: alltime_count will not be a count of all the papers on the site,
+  # it excludes papers that don't have any traffic data.
 
   for article in articles:
     result["articles"].append({

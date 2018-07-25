@@ -47,7 +47,10 @@ class Connection(object):
         cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='{}';".format(table))
         for result in cursor:
           headers.append(result[0])
-        cursor.execute("SELECT * FROM {};".format(table))
+        extra = ""
+        if table == "articles":
+          extra = " ORDER BY last_crawled DESC"
+        cursor.execute("SELECT * FROM {}{} LIMIT 100;".format(table, extra))
         for result in cursor: # can't just return the cursor; it's closed when this function returns
           data.append(result)
       finally:

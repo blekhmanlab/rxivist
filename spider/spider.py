@@ -43,6 +43,7 @@ class Article(object):
     self._find_title(html)
     self._find_url(html)
     self._find_authors(html)
+    self._find_doi(html)
     self.collection = collection
     # NOTE: We don't get abstracts from search result pages
     # because they're loaded asynchronously and it would be
@@ -53,6 +54,17 @@ class Article(object):
     # this looks weird because the title is wrapped
     # in 2 <span> tags with identical classes:
     self.title = x[0].text
+  
+  def _find_doi(self, html):
+    x = html.find(".highwire-cite-metadata-doi")
+    if len(x) == 0:
+      return
+    try:
+      m = re.search('https://doi.org/(.*)', x[0].text)
+    except:
+      return
+    if len(m.groups()) > 0:
+      self.doi = m.group(1)
 
   def _find_url(self, html):
     self.url = html.absolute_links.pop() # absolute_links is a set
@@ -70,16 +82,28 @@ class Article(object):
         last = entry.find(".nlm-surname")[0].text
       self.authors.append(Author(first, last))
 
-  def record(self, connection):
+  def record(self, connection, spider):
     with connection.db.cursor() as cursor:
-      try:
-        cursor.execute("INSERT INTO articles (url, title, collection) VALUES (%s, %s, %s) RETURNING id;", (self.url, self.title, self.collection))
-      except psycopg2.IntegrityError as err:
-        if repr(err).find('duplicate key value violates unique constraint "articles_pkey"', 1):
+      # check to see if we've seen this article before
+      responses = []
+      cursor.execute("SELECT url FROM articles WHERE doi=%s", (self.doi,))
+      for x in cursor: # TODO: Look at using cursor.fetchone() here
+        responses.append(x)
+      if len(responses) > 0:
+        if responses[0] == self.url:
           print("Found article already: {}".format(self.title))
+          connection.db.commit()
           return False
         else:
-          raise
+          cursor.execute("UPDATE articles SET url=%s, title=%s, collection=%s WHERE doi=%s RETURNING id;", (self.url, self.title, self.collection, self.doi))
+          print("Updated revision for article DOI {}: {}".format(self.doi, self.title))
+          # TODO: Update AUTHORS for revisions. This will be annoying.
+          connection.db.commit()
+          return True
+    # If it's brand new:
+    with connection.db.cursor() as cursor:
+      try:
+        cursor.execute("INSERT INTO articles (url, title, doi, collection) VALUES (%s, %s, %s, %s) RETURNING id;", (self.url, self.title, self.doi, self.collection))
       finally:
         connection.db.commit() # Needed to end the botched transaction
       self.id = cursor.fetchone()[0]
@@ -87,6 +111,12 @@ class Article(object):
       author_ids = self._record_authors(connection)
       self._link_authors(author_ids, connection)
       print("Recorded article {}".format(self.title))
+
+      # fetch traffic stats for the new article
+      # TODO: this should be a method for Article, not Spider
+      print("Recording stats for new article:")
+      stat_table = spider.get_article_stats(self.url)
+      spider.save_article_stats(self.id, stat_table)
     return True
   
   def _record_authors(self, connection):
@@ -131,6 +161,7 @@ class Spider(object):
 
     pagecount = 10 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
     for p in range(1, pagecount): # iterate through pages
+      print("\n---\n\nFetching page {} in {}".format(p+1, collection)) # pages are zero-indexed
       r = self.session.get("https://www.biorxiv.org/collection/{}?page={}".format(collection, p))
       results = pull_out_articles(r.html, collection)
       keep_going = self.record_articles(results)
@@ -150,7 +181,7 @@ class Spider(object):
     print("Refreshing article download stats...")
     with self.connection.db.cursor() as cursor:
       # TODO: Add "where" clause based on last_crawled date (also UPDATE that value!)
-      cursor.execute("SELECT id, url FROM articles WHERE collection=%s;", (collection,))
+      cursor.execute("SELECT id, url FROM articles WHERE collection=%s AND last_crawled < now() - interval '1 month';", (collection,))
       for article in cursor:
         url = article[1]
         article_id = article[0]
@@ -203,12 +234,15 @@ class Spider(object):
       sql = "INSERT INTO article_traffic (article, month, year, abstract, pdf) VALUES (%s, %s, %s, %s, %s);"
       params = [(article_id, x[0], x[1], x[2], x[3]) for x in to_record]
       cursor.executemany(sql, params)
-      print("Recorded {} stats for ID {}".format(cursor.rowcount, article_id))
+
+      cursor.execute("UPDATE articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
+
+      print("Recorded {} stats for ID {}".format(len(to_record), article_id))
       self.connection.db.commit()
 
   def rank_articles(self):
     # pulls together all the separate ranking calls
-    # self._rank_articles_alltime()
+    self._rank_articles_alltime()
     categories = []
     with self.connection.db.cursor() as cursor:
       cursor.execute("SELECT DISTINCT collection FROM articles ORDER BY collection;")
@@ -225,7 +259,7 @@ class Spider(object):
     print("Ranking papers by popularity...")
     with self.connection.db.cursor() as cursor:
       cursor.execute("TRUNCATE alltime_ranks_working")
-      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic GROUP BY article ORDER BY downloads DESC") # LIMIT 50")
+      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic GROUP BY article ORDER BY downloads DESC")
       sql = "INSERT INTO alltime_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
       cursor.executemany(sql, params)
@@ -304,7 +338,7 @@ class Spider(object):
   def record_articles(self, articles):
     # return value is whether we encountered any articles we had already
     for x in articles:
-      if not x.record(self.connection): return False
+      if not x.record(self.connection, self): return False # TODO: don't pass the whole damn spider here
     return True
 
   def calculate_vectors(self):
@@ -328,7 +362,10 @@ if __name__ == "__main__":
     full_run(spider)
   elif sys.argv[1] == "rankings":
     spider.rank_articles()
-  elif sys.argv[1] == "tsvectors":
-    spider.calculate_vectors()
+  elif sys.argv[1] == "traffic":
+    if len(sys.argv) > 2:
+      spider.refresh_article_stats(sys.argv[2])
+    else:
+      print("Must specify collection to refresh traffic stats for.")
   else:
     full_run(spider, sys.argv[1])
