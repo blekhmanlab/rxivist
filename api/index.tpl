@@ -66,6 +66,9 @@
                     % if len(category_filter) != 1:
                       <span class="badge badge-secondary" style="margin-left: 10px;">{{result["collection"]}}</span>
                     % end
+                    % if result["date"]["month"] is not None:
+                      <span class="badge badge-secondary" style="margin-left: 10px;">{{result["date"]["monthname"]}} {{result["date"]["year"]}}</span>
+                    % end
                   </div>
                   <div id="collapse{{result["id"]}}" class="collapse" aria-labelledby="heading{{result["id"]}}" data-parent="#alltime">
                     <div class="card-body">

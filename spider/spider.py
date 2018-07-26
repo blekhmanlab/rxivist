@@ -235,10 +235,25 @@ class Spider(object):
       params = [(article_id, x[0], x[1], x[2], x[3]) for x in to_record]
       cursor.executemany(sql, params)
 
-      cursor.execute("UPDATE articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
-
+      # figure out the earliest date
+      try:
+        # TODO: Should this be run every time we get traffic? No, right?
+        cursor.execute("SELECT MIN(year) FROM article_traffic WHERE article=%s", (article_id,))
+        year = cursor.fetchone()
+        recorded = False
+        if year is not None:
+          cursor.execute("SELECT MIN(month) FROM article_traffic WHERE article=%s AND year=%s", (article_id,year))
+          month = cursor.fetchone()
+          if month is not None:
+            cursor.execute("UPDATE articles SET origin_month = %s, origin_year = %s, last_crawled = CURRENT_DATE WHERE id=%s", (month, year, article_id))
+            recorded = True
+        if not recorded:
+          cursor.execute("UPDATE articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
+      except Exception as e:
+        print("ERROR determining age of article: {}".format(e))
+      finally:
+        self.connection.db.commit()
       print("Recorded {} stats for ID {}".format(len(to_record), article_id))
-      self.connection.db.commit()
 
   def rank_articles(self):
     # pulls together all the separate ranking calls
@@ -346,7 +361,6 @@ class Spider(object):
     with self.connection.db.cursor() as cursor:
       cursor.execute("UPDATE articles SET title_vector = to_tsvector(coalesce(title,'')) WHERE title_vector IS NULL;")
       cursor.execute("UPDATE articles SET abstract_vector = to_tsvector(coalesce(abstract,'')) WHERE abstract_vector IS NULL;")
-      # TODO: Add author names to this collection? We'd need a plaintext version of the author list
       self.connection.db.commit()
 
 def full_run(spider, collection="bioinformatics"):
