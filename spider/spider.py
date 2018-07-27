@@ -148,7 +148,7 @@ def pull_out_articles(html, collection):
 
 class Spider(object):
   def __init__(self):
-    self.connection = db.Connection(config.db["host"], config.db["user"], config.db["password"])
+    self.connection = db.Connection(config.db["host"], config.db["db"], config.db["user"], config.db["password"])
     self.session = HTMLSession(mock_browser=False)
     self.session.headers['User-Agent'] = "rxivist web crawler (rxivist.org)"
 
@@ -180,7 +180,6 @@ class Spider(object):
   def refresh_article_stats(self, collection):
     print("Refreshing article download stats...")
     with self.connection.db.cursor() as cursor:
-      # TODO: Add "where" clause based on last_crawled date (also UPDATE that value!)
       cursor.execute("SELECT id, url FROM articles WHERE collection=%s AND last_crawled < now() - interval '1 month';", (collection,))
       for article in cursor:
         url = article[1]
@@ -275,16 +274,19 @@ class Spider(object):
     with self.connection.db.cursor() as cursor:
       cursor.execute("TRUNCATE alltime_ranks_working")
       cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic GROUP BY article ORDER BY downloads DESC")
+      print("Retrieved download data.")
       sql = "INSERT INTO alltime_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
+      print("Recording...")
       cursor.executemany(sql, params)
       self.connection.db.commit()
-
+    with self.connection.db.cursor() as cursor:
+      print("Activating current results.")
       # once it's all done, shuffle the tables around so the new results are active
       cursor.execute("ALTER TABLE alltime_ranks RENAME TO alltime_ranks_temp")
       cursor.execute("ALTER TABLE alltime_ranks_working RENAME TO alltime_ranks")
       cursor.execute("ALTER TABLE alltime_ranks_temp RENAME TO alltime_ranks_working")
-      self.connection.db.commit()
+    self.connection.db.commit()
 
   def _rank_articles_categories(self, category):
     print("Ranking papers by popularity in category {}...".format(category))
@@ -301,12 +303,6 @@ class Spider(object):
       sql = "UPDATE articles SET collection_rank=%s WHERE id=%s;"
       params = [(rank, record[0]) for rank, record in enumerate(cursor, start=1)]
       cursor.executemany(sql, params)
-      self.connection.db.commit()
-
-      # once it's all done, shuffle the tables around so the new results are active
-      cursor.execute("ALTER TABLE alltime_ranks RENAME TO alltime_ranks_temp")
-      cursor.execute("ALTER TABLE alltime_ranks_working RENAME TO alltime_ranks")
-      cursor.execute("ALTER TABLE alltime_ranks_temp RENAME TO alltime_ranks_working")
       self.connection.db.commit()
   
   def _rank_articles_bouncerate(self):
@@ -325,7 +321,7 @@ class Spider(object):
       cursor.execute("ALTER TABLE bounce_ranks RENAME TO bounce_ranks_temp")
       cursor.execute("ALTER TABLE bounce_ranks_working RENAME TO bounce_ranks")
       cursor.execute("ALTER TABLE bounce_ranks_temp RENAME TO bounce_ranks_working")
-      self.connection.db.commit()
+    self.connection.db.commit()
 
   def _rank_articles_ytd(self):
     print("Ranking papers by popularity, year to date...")
@@ -341,7 +337,7 @@ class Spider(object):
       cursor.execute("ALTER TABLE ytd_ranks RENAME TO ytd_ranks_temp")
       cursor.execute("ALTER TABLE ytd_ranks_working RENAME TO ytd_ranks")
       cursor.execute("ALTER TABLE ytd_ranks_temp RENAME TO ytd_ranks_working")
-      self.connection.db.commit()
+    self.connection.db.commit()
 
   def update_article(self, article_id, abstract):
     # TODO: seems like this thing should be in the Article class maybe?

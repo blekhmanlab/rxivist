@@ -4,7 +4,7 @@ import helpers
 import endpoints
 import config
 
-connection = db.Connection(config.db["host"], config.db["user"], config.db["password"])
+connection = db.Connection(config.db["host"], config.db["db"], config.db["user"], config.db["password"])
 
 # - ROUTES -
 
@@ -18,6 +18,10 @@ def index():
 
   query = bottle.request.query.q
   category_filter = bottle.request.query.getall('category') # multiple params possible
+  
+  # Get rid of a category filter that's just one empty parameter:
+  if len(category_filter) == 1 and category_filter[0] == "":
+    category_filter = []
 
   category_list = endpoints.get_categories(connection)
   stats = helpers.get_stats(connection)

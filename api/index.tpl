@@ -30,8 +30,16 @@
         <div class="col">
           <div id="searchform">
             <form action="/" method="get">
-              <div class="input-group mb-3 col-sm-7">
+              <div class="input-group mb-3 col-sm-9">
                 <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here" value="{{query}}">
+                <div class="input-group-append">
+                  <select class="form-control" id="categorydropdown" name="category">
+                    <option value="">all categories</option>
+                    % for cat in category_list:
+                      <option>{{cat}}</option>
+                    %end
+                    </select>
+                </div>
                 <div class="input-group-append">
                   <button type="submit" class="btn btn-altcolor">Search</button>
                 </div>

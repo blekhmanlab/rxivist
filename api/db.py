@@ -4,9 +4,9 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 class Connection(object):
-  def __init__(self, host, user, password):
+  def __init__(self, host, db, user, password):
     self.db = None
-    dbname = "rxdb" # TODO: Make this configurable
+    dbname = db
     params = 'host={} dbname={} user={} password={} connect_timeout=3'.format(host, dbname, user, password)
     connect = self._attempt_connect(params, 3, 10)
     print("Connected!")

@@ -108,7 +108,7 @@ def most_popular_alltime(connection, q, categories):
     if q != "": # if there's a text search specified
       params = (q,)
       query = """
-      SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.collection_rank, a.origin_month, a.origin_year, ts_rank_cd(totalvector, query) as rank
+      SELECT r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year, ts_rank_cd(totalvector, query) as rank
       FROM articles AS a
       INNER JOIN alltime_ranks AS r ON r.article=a.id,
         to_tsquery(%s) query,
@@ -121,7 +121,7 @@ def most_popular_alltime(connection, q, categories):
     elif len(categories) > 0: # if it's just category filters
       params = (categories,)
       query = """
-        SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.collection_rank, a.origin_month, a.origin_year
+        SELECT r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year
         FROM articles as a
         INNER JOIN alltime_ranks as r ON r.article=a.id
         WHERE collection=ANY(%s)
@@ -129,26 +129,23 @@ def most_popular_alltime(connection, q, categories):
       """
     else: # just show all-time ranks
       params = ()
-      query = "SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.collection_rank, a.origin_month, a.origin_year FROM articles as a INNER JOIN alltime_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;"
+      query = "SELECT r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year FROM articles as a INNER JOIN alltime_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;"
 
     articles = cursor.execute(query, params)
-
     for article in cursor:
       results.append({
-        "rank": article[0],
-        "downloads": article[1],
-        "id": article[2],
-        "url": article[3],
-        "title": article[4],
-        "abstract": article[5],
-        "collection": article[6],
-        "collection_rank": article[7],
+        "downloads": article[0],
+        "id": article[1],
+        "url": article[2],
+        "title": article[3],
+        "abstract": article[4],
+        "collection": article[5],
         "date": {
-          "month": article[8],
-          "monthname": helpers.month_name(article[8]),
-          "year": article[9]
+          "month": article[6],
+          "monthname": helpers.month_name(article[6]),
+          "year": article[7]
         },
-        "authors": get_authors(connection, article[2])
+        "authors": get_authors(connection, article[1])
       })
   return results
 

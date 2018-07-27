@@ -26,7 +26,6 @@ def month_name(monthnum):
     11: "Nov",
     12: "Dec"
   }
-  if monthnum >= 1 and monthnum <= 12:
-    return months[monthnum]
-  else:
+  if monthnum is None or monthnum < 1 or monthnum > 12:
     return ""
+  return months[monthnum]
