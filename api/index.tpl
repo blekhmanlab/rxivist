@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Rxivist: Popular biology pre-print papers ranked</title>
 
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:700" rel="stylesheet">
+    <link rel="stylesheet" href="/static/bootstrap.min.css">
     <link rel="stylesheet" href="/static/rxivist.css">
   </head>
 
@@ -42,9 +42,6 @@
                 </div>
                 <div class="input-group-append">
                   <button type="submit" class="btn btn-altcolor">Search</button>
-                </div>
-                <div class="col-md-12">
-                  <small class="form-text text-muted"><a href="#" data-toggle="modal" data-target="#search">Advanced search</a></small>
                 </div>
               </div>
             </form>
@@ -95,44 +92,6 @@
         </div>
       </div>
 
-      <!-- ADVANCED SEARCH MODAL -->
-      <div class="modal fade" id="search" tabindex="-1" role="dialog" aria-labelledby="searchLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-          <div class="modal-content">
-            <form action="/" method="get">
-              <div class="modal-header">
-                <h5 class="modal-title" id="searchLabel">Advanced search</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                  <span aria-hidden="true">&times;</span>
-                </button>
-              </div>
-              <div class="modal-body">
-                  <div id="searchform">
-                    <div class="form-group">
-                      <label for="searchtext">Show papers related to...</label>
-                      <input type="text" class="form-control" id="searchtext" name="q" value="{{query}}">
-                    </div>
-                    <div class="form-group">
-                      <label for="categoryselect">from bioRxiv categories...</label>
-                      <select multiple class="form-control" id="categoryselect" name="category">
-                        % for cat in category_list:
-                          <option>{{cat}}</option>
-                        %end
-                      </select>
-                      <div class="text-right">
-                          <span class="badge badge-secondary" data-toggle="tooltip" data-placement="top" data-html="true" title="<strong>Category filter</strong><br>Use the Cmd (on Mac) or Ctrl (on Windows) key to toggle multiple choices.<br>To show papers from all categories, select none or all of the options.">?</span>
-                      </div>
-                    </div>
-                  </div>
-              </div>
-              <div class="modal-footer">
-                <button type="submit" class="btn btn-altcolor">Search</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
       <!-- ABOUT -->
       <div class="modal fade" id="about" tabindex="-1" role="dialog" aria-labelledby="aboutLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -155,9 +114,9 @@
         </div>
       </div>
 
-      <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-      <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+      <script src="/static/jquery-3.3.1.slim.min.js"></script>
+      <script src="/static/popper.min.js"></script>
+      <script src="/static/bootstrap.min.js"></script>
       <script>
         $(function () {
           $('[data-toggle="tooltip"]').tooltip()

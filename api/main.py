@@ -135,7 +135,7 @@ def error404(error):
 # - SERVER -
 @bottle.route('/static/<path:path>')
 def callback(path):
-  return bottle.static_file(path, root='./')
+  return bottle.static_file(path, root='./static/')
 
 bottle.run(host='0.0.0.0', port=80, debug=True, reloader=True)
 # bottle.run(host='0.0.0.0', port=80, server="gunicorn")
