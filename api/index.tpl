@@ -33,10 +33,14 @@
               <div class="input-group mb-3 col-sm-9">
                 <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here" value="{{query}}">
                 <div class="input-group-append">
-                  <select class="form-control" id="categorydropdown" name="category">
+                  <select class="form-control form-control-lg" id="categorydropdown" name="category">
                     <option value="">all categories</option>
                     % for cat in category_list:
-                      <option>{{cat}}</option>
+                      <option
+                      % if cat in category_filter:
+                        selected
+                      % end
+                      >{{cat}}</option>
                     %end
                     </select>
                 </div>
@@ -103,7 +107,7 @@
               </button>
             </div>
             <div class="modal-body">
-              <p>Rxivist indexes and sorts metadata from <a href="https://www.biorxiv.org/">bioRxiv</a>, a <a href="http://www.sciencemag.org/news/2017/09/are-preprints-future-biology-survival-guide-scientists">preprint</a> server operated by Cold Spring Harbor Laboratory. There is absolutely no official association between bioRxiv and this project.
+              <p>Rxivist indexes and sorts metadata from <a href="https://www.biorxiv.org/">bioRxiv</a>, a <a href="http://www.sciencemag.org/news/2017/09/are-preprints-future-biology-survival-guide-scientists">preprint</a> server operated by Cold Spring Harbor Laboratory. There is no official association between bioRxiv and this project.
               
               <p>Rxivist was developed in 2018 by Rich Abdill, of the <a href="http://blekhmanlab.org">Blekhman Lab</a> at the University of Minnesota. Its source code is <a href="https://github.com/rabdill/rxivist">available on GitHub</a>.
             </div>

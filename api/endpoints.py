@@ -29,67 +29,6 @@ def get_categories(connection):
       results.append(cat[0])
   return results
 
-def get_authors(connection, id, full=False):
-  """Returns a list of authors associated with a single paper.
-
-  Arguments:
-    - connection: a database connection object.
-    - id: the ID given to the article being queried.
-    - full: whether to give the "full" author record,
-            separating given name and surname, or just
-            return a simplified version that's just a
-            string with the person's name.
-
-  """
-
-  authors = []
-  author_data = connection.read("SELECT authors.id, authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article={};".format(id))
-  if full: return author_data
-
-  for a in author_data:
-    name = a[1]
-    if len(a) > 2: # TODO: verify this actually works for one-name authors
-      name += " {}".format(a[2])
-    authors.append({
-      "id": a[0],
-      "name": name
-    })
-  return authors
-
-def get_traffic(connection, id):
-  """Returns a tuple indicating a single paper's download statistics.
-
-  Arguments:
-    - connection: a database connection object.
-    - id: the ID given to the article being queried.
-  Returns:
-    - A two-element tuple. The first element is the number of views of
-        the paper's abstract; the second is total PDF downloads.
-
-  """
-
-  traffic = connection.read("SELECT SUM(abstract), SUM(pdf) FROM article_traffic WHERE article={};".format(id))
-  if len(traffic) == 0:
-    raise NotFoundError(id)
-  return traffic[0] # array of tuples
-
-def get_papers(connection):
-  """Returns a list of all articles in the database.
-
-  """
-  # TODO: Update this object with all the new fields that have been added
-  results = []
-  articles = connection.read("SELECT * FROM articles;")
-  for article in articles:
-    results.append({
-      "id": article[0],
-      "url": article[1],
-      "title": article[2],
-      "abstract": article[3],
-      "authors": get_authors(connection, article[0])
-    })
-  return results
-
 def most_popular_alltime(connection, q, categories):
   """Returns a list of the 20 most downloaded papers that meet a given set of constraints.
 
@@ -145,73 +84,9 @@ def most_popular_alltime(connection, q, categories):
           "monthname": helpers.month_name(article[6]),
           "year": article[7]
         },
-        "authors": get_authors(connection, article[1])
+        "authors": helpers.get_authors(connection, article[1])
       })
   return results
-
-def most_popular_ytd(connection):
-  """Returns a list of the papers with the most downloads in the current year.
-
-  """
-  results = []
-  articles = connection.read("SELECT r.rank, r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.collection_rank, a.origin_month, a.origin_year FROM articles as a INNER JOIN ytd_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;")
-  for article in articles:
-    results.append({
-      "rank": article[0],
-      "downloads": article[1],
-      "id": article[2],
-      "url": article[3],
-      "title": article[4],
-      "abstract": article[5],
-      "collection": article[6],
-      "collection_rank": article[7],
-      "date": {
-        "month": article[8],
-        "monthname": helpers.month_name(article[8]),
-        "year": article[9]
-      },
-      "authors": get_authors(connection, article[2])
-    })
-  return results
-
-def paper_details(connection, id):
-  """Returns a dict of information about a single paper.
-
-  Arguments:
-    - connection: a database connection object.
-    - id: the ID given to the article being queried.
-
-  """
-
-  result = {}
-  article = connection.read("SELECT * FROM articles WHERE id = {};".format(id))
-  if len(article) == 0:
-    raise NotFoundError(id)
-  if len(article) > 1:
-    raise ValueError("Multiple articles found with id {}".format(id))
-  article = article[0]
-
-  try:
-    abstract, pdf = get_traffic(connection, id)
-    abstract = abstract if abstract is not None else 0
-    pdf = pdf if pdf is not None else 0
-  except NotFoundError:
-    abstract = 0
-    pdf = 0
-  # TODO: add new fields
-  result = {
-    "id": article[0],
-    "url": article[1],
-    "title": article[2],
-    "abstract": article[3],
-    "authors": get_authors(connection, article[0], True),
-    "downloads": {
-      "abstract": abstract,
-      "pdf": pdf
-    }
-  }
-
-  return result
 
 def author_details(connection, id):
   """Returns a dict of information about a single author, including a list of
@@ -270,7 +145,7 @@ def author_details(connection, id):
         "monthname": helpers.month_name(article[8]),
         "year": article[9]
       },
-      "authors": get_authors(connection, article[2])
+      "authors": helpers.get_authors(connection, article[2])
     })
   
   # once we're done processing the results of the last query, go back
