@@ -33,22 +33,6 @@ class DateEntry(object):
     self.year = year
     self.monthname = helpers.month_name(month)
 
-class SearchResultArticle(object):
-  # An article as displayed on the main results page
-  def __init__(self, sql_entry, connection):
-    self.downloads = sql_entry[0]
-    self.id = sql_entry[1]
-    self.url = sql_entry[2]
-    self.title = sql_entry[3]
-    self.abstract = sql_entry[4]
-    self.collection = sql_entry[5]
-    self.date = DateEntry(sql_entry[6], sql_entry[7])
-    self.get_authors(connection)
-  
-  def get_authors(self, connection):
-    author_data = connection.read("SELECT authors.id, authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article={};".format(self.id))
-    self.authors = [Author(a[0], a[1], a[2]) for a in author_data]
-
 class RankEntry(object):
   def __init__(self, rank, out_of=0):
     self.rank = rank
@@ -61,7 +45,27 @@ class ArticleRanks(object):
     self.ytd = RankEntry(ytd, alltime_count)
     self.collection = RankEntry(collection)
 
-class ArticleDetails(object):
+class Article:
+  def __init(self):
+    pass
+
+  def get_authors(self, connection):
+    author_data = connection.read("SELECT authors.id, authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s;", (self.id,))
+    self.authors = [Author(a[0], a[1], a[2]) for a in author_data]
+
+class SearchResultArticle(Article):
+  # An article as displayed on the main results page
+  def __init__(self, sql_entry, connection):
+    self.downloads = sql_entry[0]
+    self.id = sql_entry[1]
+    self.url = sql_entry[2]
+    self.title = sql_entry[3]
+    self.abstract = sql_entry[4]
+    self.collection = sql_entry[5]
+    self.date = DateEntry(sql_entry[6], sql_entry[7])
+    self.get_authors(connection)
+
+class ArticleDetails(Article):
   # detailed article info displayed on, i.e. author pages
   def __init__(self, sql_entry, alltime_count, connection):
     self.downloads = sql_entry[0]
@@ -73,7 +77,3 @@ class ArticleDetails(object):
     self.collection = sql_entry[7]
     self.date = DateEntry(sql_entry[9], sql_entry[10])
     self.get_authors(connection)
-  
-  def get_authors(self, connection):
-    author_data = connection.read("SELECT authors.id, authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article={};".format(self.id))
-    self.authors = [Author(a[0], a[1], a[2]) for a in author_data]
