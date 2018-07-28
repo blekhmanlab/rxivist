@@ -55,7 +55,7 @@ def display_author_details(id):
     bottle.response.status = 500
     print(e)
     return {"error": "Server error."}
-  return bottle.template('author_details', data=author)
+  return bottle.template('author_details', author=author)
 
 # ---- DB convenience endpoint
 @bottle.get('/db')

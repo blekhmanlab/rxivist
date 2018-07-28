@@ -21,7 +21,7 @@
         <div class="col col-md-5 col-sm-12">
           <ul>
             <li><strong>Rxivist is in development.</strong> If you're here, you're almost definitely lost.
-            <li>Currently indexing <strong>{{stats["paper_count"]}} papers</strong> from <strong>{{stats["author_count"]}} authors</strong>
+            <li>Currently indexing <strong>{{stats.paper_count}} papers</strong> from <strong>{{stats.author_count}} authors</strong>
             <li><a href="#" data-toggle="modal" data-target="#about">About the project</a>
           </ul>
         </div>
@@ -68,25 +68,25 @@
             <div class="accordion" id="alltime">
               % for i, result in enumerate(results):
                 <div class="card">
-                  <div class="card-header context" id="heading{{result["id"]}}"  data-toggle="collapse" data-target="#collapse{{result["id"]}}" aria-expanded="true" aria-controls="collapse{{result["id"]}}">
-                    <strong>{{i+1}}:</strong> {{result["title"]}}
+                  <div class="card-header context" id="heading{{result.id}}"  data-toggle="collapse" data-target="#collapse{{result.id}}" aria-expanded="true" aria-controls="collapse{{result.id}}">
+                    <strong>{{i+1}}:</strong> {{result.title}}
                     <br>
-                    <span class="badge badge-secondary" style="margin-left: 10px;">{{result["downloads"]}} downloads</span>
+                    <span class="badge badge-secondary" style="margin-left: 10px;">{{result.downloads}} downloads</span>
                     % if len(category_filter) != 1:
-                      <span class="badge badge-secondary" style="margin-left: 10px;">{{result["collection"]}}</span>
+                      <span class="badge badge-secondary" style="margin-left: 10px;">{{result.collection}}</span>
                     % end
-                    % if result["date"]["month"] is not None:
-                      <span class="badge badge-secondary" style="margin-left: 10px;">{{result["date"]["monthname"]}} {{result["date"]["year"]}}</span>
+                    % if result.date.month is not None:
+                      <span class="badge badge-secondary" style="margin-left: 10px;">{{result.date.monthname}} {{result.date.year}}</span>
                     % end
                   </div>
-                  <div id="collapse{{result["id"]}}" class="collapse" aria-labelledby="heading{{result["id"]}}" data-parent="#alltime">
+                  <div id="collapse{{result.id}}" class="collapse" aria-labelledby="heading{{result.id}}" data-parent="#alltime">
                     <div class="card-body">
                       <p>
-                      % for i, author in enumerate(result["authors"]):
-                        <a href="/authors/{{author["id"]}}">{{ author["name"] }}</a>{{", " if i < (len(result["authors"]) - 1) else ""}}
+                      % for i, author in enumerate(result.authors):
+                        <a href="/authors/{{author.id}}">{{ author.full }}</a>{{", " if i < (len(result.authors) - 1) else ""}}
                       % end
-                      <a href="{{result["url"]}}" target="_blank" class="btn btn-altcolor float-right" role="button">view paper</a>
-                      <p>{{result["abstract"]}}
+                      <a href="{{result.url}}" target="_blank" class="btn btn-altcolor float-right" role="button">view paper</a>
+                      <p>{{result.abstract}}
                     </div>
                   </div>
                 </div>

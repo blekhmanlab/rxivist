@@ -1,17 +1,34 @@
+class SiteStats(object):
+  def __init__(self, authors=0, papers=0):
+    self.author_count = authors
+    self.paper_count = papers
+
 def get_stats(connection):
-  results = {"paper_count": 0, "author_count": 0}
+  result = SiteStats()
   resp = connection.read("SELECT COUNT(id) FROM articles;")
   if len(resp) != 1 or len(resp[0]) != 1:
-    return results
-  results["paper_count"] = resp[0][0]
+    return result
+  result.paper_count = resp[0][0]
 
   resp = connection.read("SELECT COUNT(id) FROM authors;")
   if len(resp) != 1 or len(resp[0]) != 1:
-    return results
-  results["author_count"] = resp[0][0]
-  return results
+    return result
+  result.author_count = resp[0][0]
+  return result
 
-def get_authors(connection, id, full=False):
+class Author(object):
+  def __init__(self, id, first, last):
+    self.id = id
+    self.given = first
+    self.surname = last
+    if self.surname != "": # TODO: verify this actually works for one-name authors
+      self.full = "{} {}".format(self.given, self.surname)
+    else:
+      self.full = self.given
+    
+    self.articles = []
+
+def get_authors(connection, id):
   """Returns a list of authors associated with a single paper.
 
   Arguments:
@@ -24,19 +41,8 @@ def get_authors(connection, id, full=False):
 
   """
 
-  authors = []
   author_data = connection.read("SELECT authors.id, authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article={};".format(id))
-  if full: return author_data
-
-  for a in author_data:
-    name = a[1]
-    if len(a) > 2: # TODO: verify this actually works for one-name authors
-      name += " {}".format(a[2])
-    authors.append({
-      "id": a[0],
-      "name": name
-    })
-  return authors
+  return [Author(a[0], a[1], a[2]) for a in author_data]
 
 def get_traffic(connection, id):
   """Returns a tuple indicating a single paper's download statistics.
