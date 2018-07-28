@@ -3,6 +3,7 @@ import db
 import helpers
 import endpoints
 import config
+import models
 
 connection = db.Connection(config.db["host"], config.db["db"], config.db["user"], config.db["password"])
 
@@ -24,7 +25,7 @@ def index():
     category_filter = []
 
   category_list = endpoints.get_categories(connection) # list of all article categories
-  stats = helpers.get_stats(connection) # site-wide metrics (paper count, etc)
+  stats = models.SiteStats(connection) # site-wide metrics (paper count, etc)
   error = ""
   results = {}
 

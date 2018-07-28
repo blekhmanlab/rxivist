@@ -8,54 +8,11 @@ look around before modifying the API of one of them.
 import bottle
 import db
 import helpers
+import models
 
 class NotFoundError(Exception):
   def __init__(self, id):
     self.message = "Entity could not be found with id {}".format(id)
-
-class DateEntry(object):
-  # Used to store paper publication date info
-  def __init__(self, month, year):
-    self.month = month
-    self.year = year
-    self.monthname = helpers.month_name(month)
-
-class SearchResultArticle(object):
-  # An article as displayed on the main results page
-  def __init__(self, sql_entry, connection):
-    self.downloads = sql_entry[0]
-    self.id = sql_entry[1]
-    self.url = sql_entry[2]
-    self.title = sql_entry[3]
-    self.abstract = sql_entry[4]
-    self.collection = sql_entry[5]
-    self.date = DateEntry(sql_entry[6], sql_entry[7])
-    self.authors = helpers.get_authors(connection, self.id)
-
-class RankEntry(object):
-  def __init__(self, rank, out_of=0):
-    self.rank = rank
-    self.out_of = out_of
-
-class ArticleRanks(object):
-  # Stores information about an individual article's rankings
-  def __init__(self, alltime_count, alltime, ytd, collection):
-    self.alltime = RankEntry(alltime, alltime_count)
-    self.ytd = RankEntry(ytd, alltime_count)
-    self.collection = RankEntry(collection)
-
-class ArticleDetails(object):
-  # detailed article info displayed on, i.e. author pages
-  def __init__(self, sql_entry, alltime_count, connection):
-    self.downloads = sql_entry[0]
-    self.ranks = ArticleRanks(alltime_count, sql_entry[1], sql_entry[2], sql_entry[8])
-    self.id = sql_entry[3]
-    self.url = sql_entry[4]
-    self.title = sql_entry[5]
-    self.abstract = sql_entry[6]
-    self.collection = sql_entry[7]
-    self.date = DateEntry(sql_entry[9], sql_entry[10])
-    self.authors = helpers.get_authors(connection, self.id)
 
 def get_categories(connection):
   """Returns a list of all known bioRxiv categories.
@@ -94,7 +51,7 @@ def most_popular_alltime(connection, q, categories):
     INNER JOIN alltime_ranks AS r ON r.article=a.id,
       to_tsquery(%s) query,
       coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'D')) totalvector
-    WHERE query @@ totalveactor """
+    WHERE query @@ totalvector """
     if len(categories) > 0:
       query += "AND collection=ANY(%s) "
       params = (q,categories)
@@ -113,7 +70,7 @@ def most_popular_alltime(connection, q, categories):
     query = "SELECT r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year FROM articles as a INNER JOIN alltime_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;"
   with connection.db.cursor() as cursor:
     cursor.execute(query, params)
-    results = [SearchResultArticle(a, connection) for a in cursor]
+    results = [models.SearchResultArticle(a, connection) for a in cursor]
   return results
 
 def author_details(connection, id):
@@ -132,7 +89,7 @@ def author_details(connection, id):
   if len(authorq) > 1:
     raise ValueError("Multiple authors found with id {}".format(id))
   authorq = authorq[0]
-  result = helpers.Author(authorq[0], authorq[1], authorq[2])
+  result = models.Author(authorq[0], authorq[1], authorq[2])
 
   articles = connection.read("SELECT alltime_ranks.downloads, alltime_ranks.rank, ytd_ranks.rank, articles.id, articles.url, articles.title, articles.abstract, articles.collection, articles.collection_rank, articles.origin_month, articles.origin_year FROM articles INNER JOIN article_authors ON article_authors.article=articles.id LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article WHERE article_authors.author={}".format(id))
 
@@ -141,7 +98,7 @@ def author_details(connection, id):
   # NOTE: alltime_count will not be a count of all the papers on the site,
   # it excludes papers that don't have any traffic data.
 
-  result.articles = [ArticleDetails(a, alltime_count, connection) for a in articles]
+  result.articles = [models.ArticleDetails(a, alltime_count, connection) for a in articles]
   
   # once we're done processing the results of the last query, go back
   # and query for some extra info about each article
