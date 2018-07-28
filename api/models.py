@@ -19,7 +19,7 @@ class Author(object):
     self.id = id
     self.given = first
     self.surname = last
-    if self.surname != "": # TODO: verify this actually works for one-name authors
+    if self.surname != "":
       self.full = "{} {}".format(self.given, self.surname)
     else:
       self.full = self.given

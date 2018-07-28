@@ -11,7 +11,7 @@ connection = db.Connection(config.db["host"], config.db["db"], config.db["user"]
 
 # ---- Homepage / search results
 @bottle.get('/')
-@bottle.view('index')
+@bottle.view('views/index')
 def index():
   if connection is None:
     bottle.response.status = 421
@@ -45,7 +45,7 @@ def index():
 
 # ---- Author details page
 @bottle.get('/authors/<id:int>')
-@bottle.view('author_details')
+@bottle.view('views/author_details')
 def display_author_details(id):
   try:
     author = endpoints.author_details(connection, id)
@@ -61,7 +61,7 @@ def display_author_details(id):
 # ---- DB convenience endpoint
 @bottle.get('/db')
 @bottle.get('/db/<table>')
-@bottle.view('db')
+@bottle.view('views/db')
 def get_articles_table(table=None):
   if connection is None:
     bottle.response.status = 421
