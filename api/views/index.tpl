@@ -22,18 +22,22 @@
             <form action="/" method="get">
               <div class="input-group mb-3 col-sm-9">
                 <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here" value="{{query}}">
-                <div class="input-group-append">
-                  <select class="form-control form-control-lg" id="categorydropdown" name="category">
-                    <option value="">all categories</option>
-                    % for cat in category_list:
-                      <option
-                      % if cat in category_filter:
-                        selected
-                      % end
-                      >{{cat}}</option>
-                    %end
-                    </select>
-                </div>
+              </div>
+              <div class="input-group mb-3 col-md-6">
+                <select class="form-control form-control-lg col-sm-6" id="category" name="category">
+                  <option value="">all categories</option>
+                  % for cat in category_list:
+                    <option
+                    % if cat in category_filter:
+                      selected
+                    % end
+                    >{{cat}}</option>
+                  %end
+                </select>
+                <select class="form-control form-control-lg col-sm-6" id="timeframe" name="timeframe">
+                  <option value="alltime">all time</option>
+                  <option value="ytd">year to date</option>
+                </select>
                 <div class="input-group-append">
                   <button type="submit" class="btn btn-altcolor">Search</button>
                 </div>
@@ -85,44 +89,15 @@
           % end
         </div>
       </div>
-
-      <!-- ABOUT -->
-      <div class="modal fade" id="about" tabindex="-1" role="dialog" aria-labelledby="aboutLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="aboutLabel">About</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-            <div class="modal-body">
-              <p>Rxivist indexes and sorts metadata from <a href="https://www.biorxiv.org/">bioRxiv</a>, a <a href="http://www.sciencemag.org/news/2017/09/are-preprints-future-biology-survival-guide-scientists">preprint</a> server operated by Cold Spring Harbor Laboratory. There is no official association between bioRxiv and this project.
-              
-              <p>Rxivist was developed in 2018 by Rich Abdill, of the <a href="http://blekhmanlab.org">Blekhman Lab</a> at the University of Minnesota. Its source code is <a href="https://github.com/rabdill/rxivist">available on GitHub</a>.
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <script src="/static/jquery-3.3.1.slim.min.js"></script>
-      <script src="/static/popper.min.js"></script>
-      <script src="/static/bootstrap.min.js"></script>
-      <script>
-        $(function () {
-          $('[data-toggle="tooltip"]').tooltip()
-        })
-      </script>
     </div>
-    <div class="container">
-      <div class="row">
-        <div id="footer" class="col-sm-12">
-          <p class="pull-right"><a href="http://blekhmanlab.org/">Blekhman<span class="footer-altcolor">Lab</span></a>
-        </div>
-      </div>
-    </div>
+
+    %include("components/footer")
+    %include("components/about_modal")
+  
+    <script>
+      $(function () {
+        $('[data-toggle="tooltip"]').tooltip()
+      })
+    </script>
   </body>
 </html>

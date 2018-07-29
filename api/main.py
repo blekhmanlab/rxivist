@@ -18,6 +18,7 @@ def index():
     return "Database is initializing."
 
   query = bottle.request.query.q
+  timeframe = bottle.request.query.timeframe
   category_filter = bottle.request.query.getall('category') # multiple params possible
   
   # Get rid of a category filter that's just one empty parameter:
@@ -33,7 +34,7 @@ def index():
   title += ", all-time"
 
   try:
-    results = endpoints.most_popular_alltime(connection, query, category_filter)
+    results = endpoints.most_popular(connection, query, category_filter, timeframe)
   except Exception as e:
     print(e)
     error = "There was a problem with the submitted query."
