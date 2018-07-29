@@ -13,12 +13,9 @@
   <body>
   <br>
     <div class="container" id="main">
-      <div class="row" id="header">
-        <div class="col col-sm-10">
-          <a href="/"><img src="/static/rxivist_logo_bad.png" alt="Rxivist logo" title="It's pronounced 'Archivist.'"></a>
-          <div><em>The most popular articles on bioRxiv</em></div>
-        </div>
-      </div>
+
+      %include("components/header")
+
       <div class="row">
         <div class="col">
           <h1>Articles by {{author.full}}</h1>
