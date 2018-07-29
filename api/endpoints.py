@@ -30,7 +30,7 @@ def get_categories(connection):
       results.append(cat[0])
   return results
 
-def most_popular_alltime(connection, q, categories):
+def most_popular(connection, q, categories, timeframe):
   """Returns a list of the 20 most downloaded papers that meet a given set of constraints.
 
   Arguments:
@@ -42,32 +42,39 @@ def most_popular_alltime(connection, q, categories):
     - An ordered list of article elements that meet the search criteria.
 
   """
+  if timeframe != "ytd": # make sure it's a timeframe we recognize
+    timeframe = "alltime"
+  
   # TODO: validate that the category filters passed in are actual categories
+  
+  query = "SELECT r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year"
+  params = ()
   if q != "": # if there's a text search specified
     params = (q,)
-    query = """
-    SELECT r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year, ts_rank_cd(totalvector, query) as rank
+    query += ", ts_rank_cd(totalvector, query) as rank"
+  query += """
     FROM articles AS a
-    INNER JOIN alltime_ranks AS r ON r.article=a.id,
-      to_tsquery(%s) query,
-      coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'D')) totalvector
-    WHERE query @@ totalvector """
-    if len(categories) > 0:
-      query += "AND collection=ANY(%s) "
-      params = (q,categories)
-    query += "ORDER BY r.rank ASC LIMIT 20;"
-  elif len(categories) > 0: # if it's just category filters
-    params = (categories,)
-    query = """
-      SELECT r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year
-      FROM articles as a
-      INNER JOIN alltime_ranks as r ON r.article=a.id
-      WHERE collection=ANY(%s)
-      ORDER BY r.rank LIMIT 20;
+    INNER JOIN alltime_ranks AS r ON r.article=a.id
+  """
+
+  if q != "":
+    query += """, to_tsquery(%s) query,
+    coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'D')) totalvector
     """
-  else: # just show all-time ranks
-    params = ()
-    query = "SELECT r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year FROM articles as a INNER JOIN alltime_ranks as r ON r.article=a.id ORDER BY r.rank LIMIT 20;"
+  if q != "" or len(categories) > 0:
+    query += "WHERE "
+  if q != "":
+    query += "query @@ totalvector "
+    if len(categories) > 0:
+      query += "AND "
+  
+  if len(categories) > 0:
+    query += "collection=ANY(%s)"
+    if q != "":
+      params = (q,categories)
+    else:
+      params = (categories,)
+  query += "ORDER BY r.rank ASC LIMIT 20;"
   with connection.db.cursor() as cursor:
     cursor.execute(query, params)
     results = [models.SearchResultArticle(a, connection) for a in cursor]
