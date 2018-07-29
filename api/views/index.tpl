@@ -1,17 +1,10 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    %include("components/metadata.tpl")
     <title>Rxivist: Popular biology pre-print papers ranked</title>
-
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:700" rel="stylesheet">
-    <link rel="stylesheet" href="/static/bootstrap.min.css">
-    <link rel="stylesheet" href="/static/rxivist.css">
   </head>
-
   <body>
-  <br>
     <div class="container" id="main">
 
       %include("components/header", stats=stats) # TODO: Figure out how this works
@@ -21,10 +14,10 @@
           <div id="searchform">
             <form action="/" method="get">
               <div class="input-group mb-3 col-sm-9">
-                <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here" value="{{query}}">
+                <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here (optional)" value="{{query}}">
               </div>
               <div class="input-group mb-3 col-md-6">
-                <select class="form-control form-control-lg col-sm-6" id="category" name="category">
+                <select class="form-control col-sm-6" id="category" name="category">
                   <option value="">all categories</option>
                   % for cat in category_list:
                     <option
@@ -34,7 +27,7 @@
                     >{{cat}}</option>
                   %end
                 </select>
-                <select class="form-control form-control-lg col-sm-6" id="timeframe" name="timeframe">
+                <select class="form-control  col-sm-6" id="timeframe" name="timeframe">
                   <option value="alltime" 
                   %if timeframe == "alltime":
                     selected
@@ -56,17 +49,19 @@
           <div class="alert alert-danger" role="alert" style="display: {{"none" if error == "" else "block"}}">
             {{error}}
           </div>
-          % if len(results) == 0:
+          %if len(results) == 0:
             <div><h3>No results found for "{{query}}"</h3></div>
-          % else:
+          %else:
             <h2>{{title}}</h2>
-            % if len(category_filter) > 0:
-              <h4 style="padding-left: 20px;">in categor{{ "ies:" if len(category_filter) > 1 else "y" }}
-                % for i, cat in enumerate(category_filter):
-                  {{ cat }}{{", " if i < (len(category_filter)-1) else ""}}
-                %end
-              </h4>
-            %end 
+          %end
+          %if len(category_filter) > 0:
+            <h4 style="padding-left: 20px;">in categor{{ "ies:" if len(category_filter) > 1 else "y" }}
+              % for i, cat in enumerate(category_filter):
+                {{ cat }}{{", " if i < (len(category_filter)-1) else ""}}
+              %end
+            </h4>
+          %end 
+          % if len(results) > 0:
             <div class="accordion" id="alltime">
               % for i, result in enumerate(results):
                 <div class="card">

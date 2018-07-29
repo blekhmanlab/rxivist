@@ -3,7 +3,7 @@
 }
 
 #header img {
-  margin-bottom: 10px;
+  margin-bottom: -5px;
 }
 
 .context {
@@ -18,6 +18,7 @@ body {
   background-color: #fff;
   border-radius: 10px;
   padding: 15px;
+  margin-top: 10px;
 }
 
 #footer {   /* "Blekhman Lab" logo */

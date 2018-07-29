@@ -85,8 +85,9 @@ def get_articles_table(table=None):
 
 # ---- Errors
 @bottle.error(404)
+@bottle.view('error')
 def error404(error):
-  return 'Not all those who wander are lost. But you are.'
+  return bottle.template("error")
 
 # - SERVER -
 @bottle.route('/static/<path:path>')

@@ -20,6 +20,7 @@ class Connection(object):
     print("Connecting. Attempt {} of {}.".format(attempts, max_tries))
     try:
       self.db = psycopg2.connect(params)
+      self.db.set_session(autocommit=True)
     except:
       if attempts >= max_tries:
         print("Giving up.")
