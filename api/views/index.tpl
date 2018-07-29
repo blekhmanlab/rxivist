@@ -35,8 +35,16 @@
                   %end
                 </select>
                 <select class="form-control form-control-lg col-sm-6" id="timeframe" name="timeframe">
-                  <option value="alltime">all time</option>
-                  <option value="ytd">year to date</option>
+                  <option value="alltime" 
+                  %if timeframe == "alltime":
+                    selected
+                  %end
+                  >all time</option>
+                  <option value="ytd"
+                  %if timeframe == "ytd":
+                    selected
+                  %end
+                  >year to date</option>
                 </select>
                 <div class="input-group-append">
                   <button type="submit" class="btn btn-altcolor">Search</button>

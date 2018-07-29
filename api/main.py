@@ -21,6 +21,10 @@ def index():
   timeframe = bottle.request.query.timeframe
   category_filter = bottle.request.query.getall('category') # multiple params possible
   
+  # make sure it's a timeframe we recognize
+  if timeframe != "ytd":
+    timeframe = "alltime"
+
   # Get rid of a category filter that's just one empty parameter:
   if len(category_filter) == 1 and category_filter[0] == "":
     category_filter = []
@@ -30,8 +34,11 @@ def index():
   error = ""
   results = {}
 
-  title = "Most popular papers related to \"{}\"".format(query) if query != "" else "Most popular bioRxiv papers"
-  title += ", all-time"
+  title = "Most popular papers related to \"{},\" ".format(query) if query != "" else "Most popular bioRxiv papers, "
+  if timeframe == "alltime":
+    title += "all time"
+  elif timeframe == "ytd":
+    title += "year to date"
 
   try:
     results = endpoints.most_popular(connection, query, category_filter, timeframe)
@@ -42,7 +49,8 @@ def index():
 
   return bottle.template('index', results=results,
     query=query, category_filter=category_filter, title=title,
-    error=error, stats=stats, category_list=category_list)
+    error=error, stats=stats, category_list=category_list,
+    timeframe=timeframe)
 
 # ---- Author details page
 @bottle.get('/authors/<id:int>')

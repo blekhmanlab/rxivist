@@ -42,8 +42,6 @@ def most_popular(connection, q, categories, timeframe):
     - An ordered list of article elements that meet the search criteria.
 
   """
-  if timeframe != "ytd": # make sure it's a timeframe we recognize
-    timeframe = "alltime"
   
   # TODO: validate that the category filters passed in are actual categories
   
@@ -52,21 +50,23 @@ def most_popular(connection, q, categories, timeframe):
   if q != "": # if there's a text search specified
     params = (q,)
     query += ", ts_rank_cd(totalvector, query) as rank"
-  query += """
-    FROM articles AS a
-    INNER JOIN alltime_ranks AS r ON r.article=a.id
-  """
+  query += " FROM articles AS a INNER JOIN "
+  if timeframe == "alltime":
+    query += "alltime_ranks"
+  elif timeframe == "ytd":
+    query += "ytd_ranks"
+  query += " AS r ON r.article=a.id"
 
   if q != "":
     query += """, to_tsquery(%s) query,
     coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'D')) totalvector
     """
   if q != "" or len(categories) > 0:
-    query += "WHERE "
+    query += " WHERE "
   if q != "":
     query += "query @@ totalvector "
     if len(categories) > 0:
-      query += "AND "
+      query += " AND "
   
   if len(categories) > 0:
     query += "collection=ANY(%s)"
@@ -74,7 +74,7 @@ def most_popular(connection, q, categories, timeframe):
       params = (q,categories)
     else:
       params = (categories,)
-  query += "ORDER BY r.rank ASC LIMIT 20;"
+  query += " ORDER BY r.rank ASC LIMIT 20;"
   with connection.db.cursor() as cursor:
     cursor.execute(query, params)
     results = [models.SearchResultArticle(a, connection) for a in cursor]
