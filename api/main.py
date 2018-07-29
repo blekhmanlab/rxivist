@@ -67,6 +67,25 @@ def display_author_details(id):
     return {"error": "Server error."}
   return bottle.template('author_details', author=author)
 
+# ---- Paper details page
+@bottle.get('/papers/<id:int>')
+@bottle.view('paper_details')
+def display_paper_details(id):
+  print("\n\n\nIN HERE\n\n\n")
+  try:
+    paper = endpoints.paper_details(connection, id)
+  except endpoints.NotFoundError as e:
+    bottle.response.status = 404
+    return e.message
+  except ValueError as e:
+    bottle.response.status = 500
+    print(e)
+    return {"error": "Server error."}
+  print("GOT PAPER:")
+  print(paper)
+  print("-----\n\n\n")
+  return bottle.template('paper_details', paper=paper)
+
 # ---- DB convenience endpoint
 @bottle.get('/db')
 @bottle.get('/db/<table>')

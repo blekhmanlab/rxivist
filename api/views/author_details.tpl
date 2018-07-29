@@ -19,6 +19,10 @@
               <h2 style="font-size: 1.2em; padding-top: 20px; margin-bottom: 0;">{{result.title}}</h2>
               <a href="/?category={{result.collection}}"><span class="badge badge-secondary" style="margin-left: 10px;">{{result.collection}}</span></a>
               <ul>
+                <div class="float-right">
+                  <a href="/papers/{{result.id}}" class="btn btn-altcolor " role="button">more details</a>
+                  <a href="{{result.url}}" target="_blank" class="btn btn-altcolor " role="button">view paper</a>
+                </div>
                 <li>
                   % for i, coauthor in enumerate(result.authors):
                     <a href="/authors/{{coauthor.id}}">{{coauthor.full}}</a>{{", " if i < (len(result.authors) - 1) else ""}}
