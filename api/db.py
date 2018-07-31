@@ -11,7 +11,7 @@ class Connection(object):
     connect = self._attempt_connect(params, 3, 10)
     print("Connected!")
     self.cursor = self.db.cursor()
-  
+
   # TODO: This thing is just for demo purposes. If the API starts
   # but there's no DB, it dies and won't restart. This is probably
   # not good.
@@ -57,7 +57,7 @@ class Connection(object):
       finally:
         self.db.commit()
       return headers, data
-  
+
   def read(self, query, params=None):
     results = []
     with self.db.cursor() as cursor:

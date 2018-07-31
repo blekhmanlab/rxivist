@@ -137,12 +137,7 @@ def paper_details(connection, id):
   paperq = connection.read("SELECT alltime_ranks.downloads, alltime_ranks.rank, ytd_ranks.rank, articles.id, articles.url, articles.title, articles.abstract, articles.collection, articles.collection_rank, articles.origin_month, articles.origin_year FROM articles INNER JOIN article_authors ON article_authors.article=articles.id LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article WHERE articles.id=%s", (id,))
   if len(paperq) == 0:
     raise NotFoundError(id)
-  if len(paperq) > 1:
-    print("\n\n\n\nWE GOT\n\n")
-    for x in range(0, 10):
-      for a in paperq:
-        print(a[x])
-
+  # if len(paperq) > 1:
     # raise ValueError("Multiple papers found with id {}".format(id))
   paperq = paperq[0]
   # TODO: Figure out which join clause in the query makes a bunch of

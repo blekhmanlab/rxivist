@@ -9,7 +9,7 @@
       </div>
       <div class="modal-body">
         <p>Rxivist indexes and sorts metadata from <a href="https://www.biorxiv.org/">bioRxiv</a>, a <a href="http://www.sciencemag.org/news/2017/09/are-preprints-future-biology-survival-guide-scientists">preprint</a> server operated by Cold Spring Harbor Laboratory. There is no official association between bioRxiv and this project.
-        
+
         <p>Rxivist was developed in 2018 by Rich Abdill, of the <a href="http://blekhmanlab.org">Blekhman Lab</a> at the University of Minnesota. Its source code is <a href="https://github.com/rabdill/rxivist">available on GitHub</a> under the terms of the *tk license. Its main components are:
         <ul>
           <li><a href="https://python.org">Python 3</a>, the <a href="https://bottlepy.org/">Bottle</a> web framework and the <a href="https://html.python-requests.org/">Requests-HTML</a> module (for web crawling)

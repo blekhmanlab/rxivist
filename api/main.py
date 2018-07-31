@@ -20,7 +20,7 @@ def index():
   query = bottle.request.query.q
   timeframe = bottle.request.query.timeframe
   category_filter = bottle.request.query.getall('category') # multiple params possible
-  
+
   # make sure it's a timeframe we recognize
   if timeframe != "ytd":
     timeframe = "alltime"
@@ -71,7 +71,6 @@ def display_author_details(id):
 @bottle.get('/papers/<id:int>')
 @bottle.view('paper_details')
 def display_paper_details(id):
-  print("\n\n\nIN HERE\n\n\n")
   try:
     paper = endpoints.paper_details(connection, id)
   except endpoints.NotFoundError as e:
@@ -81,9 +80,6 @@ def display_paper_details(id):
     bottle.response.status = 500
     print(e)
     return {"error": "Server error."}
-  print("GOT PAPER:")
-  print(paper)
-  print("-----\n\n\n")
   return bottle.template('paper_details', paper=paper)
 
 # ---- DB convenience endpoint

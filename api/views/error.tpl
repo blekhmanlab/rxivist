@@ -20,7 +20,7 @@
 
     %include("components/footer")
     %include("components/about_modal")
-  
+
     <script>
       $(function () {
         $('[data-toggle="tooltip"]').tooltip()

@@ -28,7 +28,7 @@
                   %end
                 </select>
                 <select class="form-control  col-sm-6" id="timeframe" name="timeframe">
-                  <option value="alltime" 
+                  <option value="alltime"
                   %if timeframe == "alltime":
                     selected
                   %end
@@ -45,7 +45,7 @@
               </div>
             </form>
           </div>
-          
+
           <div class="alert alert-danger" role="alert" style="display: {{"none" if error == "" else "block"}}">
             {{error}}
           </div>
@@ -60,7 +60,7 @@
                 {{ cat }}{{", " if i < (len(category_filter)-1) else ""}}
               %end
             </h4>
-          %end 
+          %end
           % if len(results) > 0:
             <div class="accordion" id="alltime">
               % for i, result in enumerate(results):
@@ -86,7 +86,7 @@
                       % for i, author in enumerate(result.authors):
                         <a href="/authors/{{author.id}}">{{ author.full }}</a>{{", " if i < (len(result.authors) - 1) else ""}}
                       % end
-                      
+
                       <p>{{result.abstract}}
                     </div>
                   </div>
@@ -100,7 +100,7 @@
 
     %include("components/footer")
     %include("components/about_modal")
-  
+
     <script>
       $(function () {
         $('[data-toggle="tooltip"]').tooltip()
