@@ -32,10 +32,18 @@
               <a href="{{result.url}}" target="_blank"><span class="badge btn-altcolor">view paper</span></a>
               <ul>
                 <li>
-                  % for i, coauthor in enumerate(result.authors):
-                    <a href="/authors/{{coauthor.id}}">{{coauthor.full}}</a>{{", " if i < (len(result.authors) - 1) else ""}}
-                  % end
+                  %if len(result.authors) == 1:
+                    No coauthors
+                  %elif len(result.authors) == 2:
+                    1 coauthor
+                  %else:
+                    {{ len(result.authors)-1 }} coauthors
+                  %end
                 </li>
+                <li>{{result.downloads}} downloads
+                  %if result.date.monthname != "":
+                    since {{result.date.monthname}} {{result.date.year}}
+                  %end
                 <li><strong>All-time download rankings:</strong>
                   <ul>
                     <li>Site-wide: <strong>{{result.ranks.alltime.rank}}</strong> out of {{result.ranks.alltime.out_of}}</li>

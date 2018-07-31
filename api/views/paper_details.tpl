@@ -18,11 +18,15 @@
             <a href="/?category={{paper.collection}}" class="btn btn-secondary " role="button">{{paper.collection}}</a>
             <a href="{{paper.url}}" target="_blank" class="btn btn-altcolor " role="button">view paper</a>
           </div>
-          <p>By 
+          <p>By
           % for i, coauthor in enumerate(paper.authors):
             <a href="/authors/{{coauthor.id}}">{{coauthor.full}}</a>{{", " if i < (len(paper.authors) - 1) else ""}}
           % end
           <ul>
+            <li>{{paper.downloads}} downloads
+                    %if paper.date.monthname != "":
+                      since {{paper.date.monthname}} {{paper.date.year}}
+                    %end
             <li><strong>All-time download rankings:</strong>
               <ul>
                 <li>Site-wide: <strong>{{paper.ranks.alltime.rank}}</strong> out of {{paper.ranks.alltime.out_of}}</li>
