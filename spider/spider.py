@@ -354,18 +354,36 @@ class Spider(object):
       ORDER BY downloads DESC
       """) # TODO: Incorporate ties into rankings
       print("Retrieved download data.")
-      sql = "INSERT INTO author_ranks_working (author, rank, downloads) VALUES (%s, %s, %s);"
-      params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
+      ranks = []
+      rankNum = 0
+      for record in cursor:
+        rankNum = rankNum + 1
+        tie = False
+        rank = rankNum # changes if it's a tie
+
+        # if the author has the same download count as the
+        # previous author in the list, record a tie:
+        if len(ranks) > 0:
+          if record[1] == ranks[len(ranks) - 1]["downloads"]:
+            ranks[len(ranks) - 1]["tie"] = True
+            tie = True
+            rank = ranks[len(ranks) - 1]["rank"]
+        ranks.append({
+          "id": record[0],
+          "downloads": record[1],
+          "rank": rank,
+          "tie": tie
+        })
+      sql = "INSERT INTO author_ranks_working (author, rank, downloads, tie) VALUES (%s, %s, %s, %s);"
+      params = [(record["id"], record["rank"], record["downloads"], record["tie"]) for record in ranks]
       print("Recording...")
       cursor.executemany(sql, params)
-      self.connection.db.commit()
-    with self.connection.db.cursor() as cursor:
+
       print("Activating current results.")
       # once it's all done, shuffle the tables around so the new results are active
       cursor.execute("ALTER TABLE author_ranks RENAME TO author_ranks_temp")
       cursor.execute("ALTER TABLE author_ranks_working RENAME TO author_ranks")
       cursor.execute("ALTER TABLE author_ranks_temp RENAME TO author_ranks_working")
-    self.connection.db.commit()
 
   def update_article(self, article_id, abstract):
     # TODO: seems like this thing should be in the Article class maybe?

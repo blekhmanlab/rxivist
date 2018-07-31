@@ -98,13 +98,13 @@ def author_details(connection, id):
   authorq = authorq[0]
   result = models.Author(authorq[0], authorq[1], authorq[2])
 
-  downloadsq = connection.read("SELECT rank, downloads FROM author_ranks WHERE author = %s;", (id,))
+  downloadsq = connection.read("SELECT rank, downloads, tie FROM author_ranks WHERE author = %s;", (id,))
   if len(downloadsq) == 1:
     author_count = connection.read("SELECT COUNT(author) FROM author_ranks;")
     author_count = author_count[0][0]
 
     result.downloads = downloadsq[0][1]
-    result.rank = models.RankEntry(downloadsq[0][0], author_count)
+    result.rank = models.RankEntry(downloadsq[0][0], author_count, downloadsq[0][2])
   articles = connection.read("SELECT alltime_ranks.downloads, alltime_ranks.rank, ytd_ranks.rank, articles.id, articles.url, articles.title, articles.abstract, articles.collection, articles.collection_rank, articles.origin_month, articles.origin_year FROM articles INNER JOIN article_authors ON article_authors.article=articles.id LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article WHERE article_authors.author=%s", (id,))
 
   alltime_count = connection.read("SELECT COUNT(article) FROM alltime_ranks")

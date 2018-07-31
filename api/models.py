@@ -35,9 +35,10 @@ class DateEntry(object):
     self.monthname = helpers.month_name(month)
 
 class RankEntry(object):
-  def __init__(self, rank=0, out_of=0):
+  def __init__(self, rank=0, out_of=0, tie=False):
     self.rank = rank
     self.out_of = out_of
+    self.tie = tie
 
 class ArticleRanks(object):
   # Stores information about an individual article's rankings

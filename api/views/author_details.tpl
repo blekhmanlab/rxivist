@@ -16,7 +16,11 @@
           <h1>Author: {{author.full}}</h1>
           <div>
             <ul>
-              <li>All-time downloads: {{author.downloads}} (rank: <strong>{{author.rank.rank}}</strong> out of {{author.rank.out_of}})
+              <li>All-time downloads: {{author.downloads}} (rank: <strong>{{author.rank.rank}}</strong>
+              %if author.rank.tie:
+                (tie)
+              %end
+              out of {{author.rank.out_of}})
             </ul>
           </div>
           <h2>Articles</h2>
