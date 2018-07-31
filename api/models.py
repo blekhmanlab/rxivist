@@ -17,14 +17,15 @@ class SiteStats(object):
 class Author(object):
   def __init__(self, id, first, last):
     self.id = id
+    self.articles = []
     self.given = first
     self.surname = last
     if self.surname != "":
       self.full = "{} {}".format(self.given, self.surname)
     else:
       self.full = self.given
-    
-    self.articles = []
+    self.downloads = 0
+    self.rank = RankEntry()
 
 class DateEntry(object):
   # Used to store paper publication date info
@@ -34,7 +35,7 @@ class DateEntry(object):
     self.monthname = helpers.month_name(month)
 
 class RankEntry(object):
-  def __init__(self, rank, out_of=0):
+  def __init__(self, rank=0, out_of=0):
     self.rank = rank
     self.out_of = out_of
 

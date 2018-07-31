@@ -25,21 +25,24 @@ class Connection(object):
     else:
       cursor.execute("CREATE DATABASE {};".format(dbname))
     db.close()
-  
+
   def _ensure_tables_exist(self):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS articles (id SERIAL PRIMARY KEY, url text UNIQUE, title text NOT NULL, abstract text, doi text UNIQUE, origin_month integer, origin_year integer, collection text, collection_rank integer, title_vector tsvector, abstract_vector tsvector, last_crawled DATE NOT NULL DEFAULT CURRENT_DATE);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS authors (id SERIAL PRIMARY KEY, given text NOT NULL, surname text, UNIQUE (given, surname));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_authors (id SERIAL PRIMARY KEY, article integer NOT NULL, author integer NOT NULL, UNIQUE (article, author));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_traffic (id SERIAL PRIMARY KEY, article integer NOT NULL, month integer, year integer NOT NULL, abstract integer, pdf integer, UNIQUE (article, month, year));")
-    
+
     self.cursor.execute("CREATE TABLE IF NOT EXISTS alltime_ranks (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS alltime_ranks_working (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS bounce_ranks (article integer PRIMARY KEY, rank integer NOT NULL, rate NUMERIC(6,5) NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS bounce_ranks_working (article integer PRIMARY KEY, rank integer NOT NULL, rate NUMERIC(6,5) NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS ytd_ranks (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS ytd_ranks_working (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks (author integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_working (author integer PRIMARY KEY, rank integer NOT NULL, downloads integer);")
+
     self.db.commit()
-  
+
   def _clear_out(self):
     # NOTE: DON'T DO THIS UNLESS YOU REALLY WANT ALL YOUR STUFF GONE
     for table in ["articles", "authors", "article_authors",

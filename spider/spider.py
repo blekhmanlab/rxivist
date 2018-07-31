@@ -327,7 +327,7 @@ class Spider(object):
     print("Ranking papers by popularity, year to date...")
     with self.connection.db.cursor() as cursor:
       cursor.execute("TRUNCATE ytd_ranks_working")
-      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 GROUP BY article ORDER BY downloads DESC") # LIMIT 50")
+      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 GROUP BY article ORDER BY downloads DESC")
       sql = "INSERT INTO ytd_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
       cursor.executemany(sql, params)
@@ -337,6 +337,33 @@ class Spider(object):
       cursor.execute("ALTER TABLE ytd_ranks RENAME TO ytd_ranks_temp")
       cursor.execute("ALTER TABLE ytd_ranks_working RENAME TO ytd_ranks")
       cursor.execute("ALTER TABLE ytd_ranks_temp RENAME TO ytd_ranks_working")
+    self.connection.db.commit()
+
+
+  def _rank_authors_alltime(self):
+    print("Ranking authors by popularity...")
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("TRUNCATE author_ranks_working")
+      cursor.execute("""
+      SELECT article_authors.author, SUM(alltime_ranks.downloads) as downloads
+      FROM article_authors
+      LEFT JOIN alltime_ranks ON article_authors.article=alltime_ranks.article
+      WHERE downloads > 0
+      GROUP BY article_authors.author
+      ORDER BY downloads DESC
+      """) # TODO: Incorporate ties into rankings
+      print("Retrieved download data.")
+      sql = "INSERT INTO author_ranks_working (author, rank, downloads) VALUES (%s, %s, %s);"
+      params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
+      print("Recording...")
+      cursor.executemany(sql, params)
+      self.connection.db.commit()
+    with self.connection.db.cursor() as cursor:
+      print("Activating current results.")
+      # once it's all done, shuffle the tables around so the new results are active
+      cursor.execute("ALTER TABLE author_ranks RENAME TO author_ranks_temp")
+      cursor.execute("ALTER TABLE author_ranks_working RENAME TO author_ranks")
+      cursor.execute("ALTER TABLE author_ranks_temp RENAME TO author_ranks_working")
     self.connection.db.commit()
 
   def update_article(self, article_id, abstract):
