@@ -51,7 +51,7 @@ class Connection(object):
       self.cursor.execute("TRUNCATE TABLE {};".format(table))
     self.db.commit()
     # Other NOTE: This won't reset the ID numbers in each table
-  
+
   def __del__(self):
     if self.db is not None:
       self.db.close()

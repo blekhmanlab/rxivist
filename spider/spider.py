@@ -21,7 +21,7 @@ class Author(object):
       return "{} {}".format(self.given, self.surname)
     else: # if author only has one name
       return self.given
-  
+
   def record(self, connection):
     with connection.db.cursor() as cursor:
       cursor.execute("SELECT id FROM authors WHERE given = %s and surname = %s;", (self.given, self.surname))
@@ -38,7 +38,7 @@ class Author(object):
 class Article(object):
   def __init__(self):
     pass
-    
+
   def process_results_entry(self, html, collection):
     self._find_title(html)
     self._find_url(html)
@@ -54,7 +54,7 @@ class Article(object):
     # this looks weird because the title is wrapped
     # in 2 <span> tags with identical classes:
     self.title = x[0].text
-  
+
   def _find_doi(self, html):
     x = html.find(".highwire-cite-metadata-doi")
     if len(x) == 0:
@@ -118,14 +118,14 @@ class Article(object):
       stat_table = spider.get_article_stats(self.url)
       spider.save_article_stats(self.id, stat_table)
     return True
-  
+
   def _record_authors(self, connection):
     author_ids = []
     for a in self.authors:
       a.record(connection)
       author_ids.append(a.id)
     return author_ids
-  
+
   def _link_authors(self, author_ids, connection):
     with connection.db.cursor() as cursor:
       sql = "INSERT INTO article_authors (article, author) VALUES (%s, %s) RETURNING id;"
@@ -193,7 +193,7 @@ class Spider(object):
     if len(abstract) < 1:
       return False # TODO: this should be an exception
     return abstract[0].text
-  
+
   def get_article_stats(self, url):
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     months_to_num = dict(zip(months, range(1,13)))
@@ -254,19 +254,20 @@ class Spider(object):
         self.connection.db.commit()
       print("Recorded {} stats for ID {}".format(len(to_record), article_id))
 
-  def rank_articles(self):
+  def process_rankings(self):
     # pulls together all the separate ranking calls
     self._rank_articles_alltime()
     categories = []
     with self.connection.db.cursor() as cursor:
       cursor.execute("SELECT DISTINCT collection FROM articles ORDER BY collection;")
-      for cat in cursor: 
+      for cat in cursor:
         if len(cat) > 0:
           categories.append(cat[0])
     for category in categories:
       self._rank_articles_categories(category)
 
     self._rank_articles_ytd()
+    self._rank_authors_alltime()
     # self._rank_articles_bouncerate()
 
   def _rank_articles_alltime(self):
@@ -304,7 +305,7 @@ class Spider(object):
       params = [(rank, record[0]) for rank, record in enumerate(cursor, start=1)]
       cursor.executemany(sql, params)
       self.connection.db.commit()
-  
+
   def _rank_articles_bouncerate(self):
     # Ranking articles by the proportion of abstract views to downloads
     print("Ranking papers by bounce rate...")
@@ -391,14 +392,14 @@ def full_run(spider, collection="bioinformatics"):
   spider.fetch_abstracts()
   spider.calculate_vectors()
   spider.refresh_article_stats(collection)
-  spider.rank_articles()
+  spider.process_rankings()
 
 if __name__ == "__main__":
   spider = Spider()
   if len(sys.argv) == 1: # if no action is specified, do everything
     full_run(spider)
   elif sys.argv[1] == "rankings":
-    spider.rank_articles()
+    spider.process_rankings()
   elif sys.argv[1] == "traffic":
     if len(sys.argv) > 2:
       spider.refresh_article_stats(sys.argv[2])
