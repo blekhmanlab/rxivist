@@ -35,12 +35,12 @@ def index():
   results = {}
 
   title = "Most popular papers related to \"{},\" ".format(query) if query != "" else "Most popular bioRxiv papers, "
-  if timeframe == "alltime":
-    title += "all time"
-  elif timeframe == "ytd":
-    title += "year to date"
-  elif timeframe == "lastmonth":
-    title += "since beginning of last month"
+  printable_times = {
+    "alltime": "all time",
+    "ytd": "year to date",
+    "lastmonth": "since beginning of last month"
+  }
+  title += printable_times[timeframe]
 
   try:
     results = endpoints.most_popular(connection, query, category_filter, timeframe)

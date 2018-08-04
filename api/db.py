@@ -3,6 +3,20 @@ import time
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
+def queries(): # TODO: This doesn't need to be a function
+  return {
+    "article_ranks": """
+      SELECT alltime_ranks.downloads, alltime_ranks.rank, ytd_ranks.rank, month_ranks.rank,
+        articles.id, articles.url, articles.title, articles.abstract, articles.collection,
+        articles.collection_rank, articles.origin_month, articles.origin_year
+      FROM articles
+      INNER JOIN article_authors ON article_authors.article=articles.id
+      LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article
+      LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article
+      LEFT JOIN month_ranks ON articles.id=month_ranks.article
+    """
+  }
+
 class Connection(object):
   def __init__(self, host, db, user, password):
     self.db = None

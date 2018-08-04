@@ -51,12 +51,12 @@ def most_popular(connection, q, categories, timeframe):
     params = (q,)
     query += ", ts_rank_cd(totalvector, query) as rank"
   query += " FROM articles AS a INNER JOIN "
-  if timeframe == "alltime":
-    query += "alltime_ranks"
-  elif timeframe == "ytd":
-    query += "ytd_ranks"
-  elif timeframe == "lastmonth":
-    query += "month_ranks"
+  query_times = {
+    "alltime": "alltime_ranks",
+    "ytd": "ytd_ranks",
+    "lastmonth": "month_ranks"
+  }
+  query += query_times[timeframe]
   query += " AS r ON r.article=a.id"
 
   if q != "":
@@ -109,23 +109,13 @@ def author_details(connection, id):
 
     result.downloads = downloadsq[0][1]
     result.rank = models.RankEntry(downloadsq[0][0], author_count, downloadsq[0][2])
-  articles = connection.read("""
-    SELECT alltime_ranks.downloads, alltime_ranks.rank, ytd_ranks.rank, month_ranks.rank,
-      articles.id, articles.url, articles.title, articles.abstract, articles.collection,
-      articles.collection_rank, articles.origin_month, articles.origin_year
-    FROM articles
-    INNER JOIN article_authors ON article_authors.article=articles.id
-    LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article
-    LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article
-    LEFT JOIN month_ranks ON articles.id=month_ranks.article
-    WHERE article_authors.author=%s
-    ORDER BY alltime_ranks.rank
-  """, (id,))
+  sql = db.queries()["article_ranks"] + "WHERE article_authors.author=%s ORDER BY alltime_ranks.rank"
+  articles = connection.read(sql, (id,))
 
   alltime_count = connection.read("SELECT COUNT(article) FROM alltime_ranks")
   alltime_count = alltime_count[0][0]
   # NOTE: alltime_count will not be a count of all the papers on the site,
-  # it excludes papers that don't have any traffic data.
+  #   it excludes papers that don't have any traffic data.
 
   result.articles = [models.ArticleDetails(a, alltime_count, connection) for a in articles]
 
@@ -149,17 +139,8 @@ def paper_details(connection, id):
   alltime_count = connection.read("SELECT COUNT(article) FROM alltime_ranks")
   alltime_count = alltime_count[0][0]
 
-  paperq = connection.read("""
-    SELECT alltime_ranks.downloads, alltime_ranks.rank, ytd_ranks.rank, month_ranks.rank,
-      articles.id, articles.url, articles.title, articles.abstract, articles.collection,
-      articles.collection_rank, articles.origin_month, articles.origin_year
-    FROM articles
-    INNER JOIN article_authors ON article_authors.article=articles.id
-    LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article
-    LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article
-    LEFT JOIN month_ranks ON articles.id=month_ranks.article
-    WHERE articles.id=%s
-  """, (id,))   # TODO: Store this somewhere? It's used in author_details too (though modified)
+  sql = db.queries()["article_ranks"] + "WHERE articles.id=%s"
+  paperq = connection.read(sql, (id,))
   if len(paperq) == 0:
     raise NotFoundError(id)
   # if len(paperq) > 1:
