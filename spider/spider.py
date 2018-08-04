@@ -89,15 +89,14 @@ class Article(object):
       cursor.execute("SELECT url FROM articles WHERE doi=%s", (self.doi,))
       for x in cursor: # TODO: Look at using cursor.fetchone() here
         responses.append(x)
-      if len(responses) > 0:
-        if responses[0] == self.url:
+      if len(responses) > 0 and len(responses[0]) > 0:
+        if responses[0][0] == self.url:
           print("Found article already: {}".format(self.title))
           connection.db.commit()
           return False
         else:
           cursor.execute("UPDATE articles SET url=%s, title=%s, collection=%s WHERE doi=%s RETURNING id;", (self.url, self.title, self.collection, self.doi))
           print("Updated revision for article DOI {}: {}".format(self.doi, self.title))
-          # TODO: Update AUTHORS for revisions. This will be annoying.
           connection.db.commit()
           return True
     # If it's brand new:
@@ -440,7 +439,7 @@ def full_run(spider, collection="bioinformatics"):
 if __name__ == "__main__":
   spider = Spider()
   if len(sys.argv) == 1: # if no action is specified, do everything
-    full_run(spider)
+    full_run(spider) # TODO: Specify all categories
   elif sys.argv[1] == "rankings":
     spider.process_rankings()
   elif sys.argv[1] == "traffic":
