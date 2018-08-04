@@ -42,9 +42,10 @@ class RankEntry(object):
 
 class ArticleRanks(object):
   # Stores information about an individual article's rankings
-  def __init__(self, alltime_count, alltime, ytd, collection):
+  def __init__(self, alltime_count, alltime, ytd, lastmonth, collection):
     self.alltime = RankEntry(alltime, alltime_count)
     self.ytd = RankEntry(ytd, alltime_count)
+    self.lastmonth = RankEntry(lastmonth, alltime_count)
     self.collection = RankEntry(collection)
 
 class Article:
@@ -71,11 +72,11 @@ class ArticleDetails(Article):
   # detailed article info displayed on, i.e. author pages
   def __init__(self, sql_entry, alltime_count, connection):
     self.downloads = sql_entry[0]
-    self.ranks = ArticleRanks(alltime_count, sql_entry[1], sql_entry[2], sql_entry[8])
-    self.id = sql_entry[3]
-    self.url = sql_entry[4]
-    self.title = sql_entry[5]
-    self.abstract = sql_entry[6]
-    self.collection = sql_entry[7]
-    self.date = DateEntry(sql_entry[9], sql_entry[10])
+    self.ranks = ArticleRanks(alltime_count, sql_entry[1], sql_entry[2], sql_entry[3], sql_entry[9])
+    self.id = sql_entry[4]
+    self.url = sql_entry[5]
+    self.title = sql_entry[6]
+    self.abstract = sql_entry[7]
+    self.collection = sql_entry[8]
+    self.date = DateEntry(sql_entry[10], sql_entry[11])
     self.get_authors(connection)

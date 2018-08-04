@@ -55,6 +55,11 @@
                     <li>Site-wide: <strong>{{result.ranks.ytd.rank}}</strong> out of {{result.ranks.ytd.out_of}}</li>
                   </ul>
                 </li>
+                <li><strong>Downloads rankings since beginning of last month</strong>:
+                  <ul>
+                    <li>Site-wide: <strong>{{result.ranks.lastmonth.rank}}</strong> out of {{result.ranks.lastmonth.out_of}}</li>
+                  </ul>
+                </li>
               </ul>
             % end
           </div>

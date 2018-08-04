@@ -39,6 +39,8 @@ def index():
     title += "all time"
   elif timeframe == "ytd":
     title += "year to date"
+  elif timeframe == "lastmonth":
+    title += "since beginning of last month"
 
   try:
     results = endpoints.most_popular(connection, query, category_filter, timeframe)
