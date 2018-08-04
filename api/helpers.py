@@ -1,6 +1,10 @@
+"""Utilities for interpreting data that arrives in impractical formats.
+
+This module stores helper functions that transform data for the controllers.
+"""
 
 def get_traffic(connection, id):
-  """Returns a tuple indicating a single paper's download statistics.
+  """Collects data about a single paper's download statistics.
 
   Arguments:
     - connection: a database connection object.
@@ -17,6 +21,11 @@ def get_traffic(connection, id):
   return traffic[0] # array of tuples
 
 def month_name(monthnum):
+  """Converts a (1-indexed) numerical representation of a month
+  of the year into a three-character string for printing. If
+  the number is not recognized, it returns an empty string.
+
+  """
   months = {
     1: "Jan",
     2: "Feb",

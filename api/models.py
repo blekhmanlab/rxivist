@@ -1,6 +1,16 @@
+"""Data models used to organize data mostly for sending to the presentation layer.
+
+
+"""
+
 import helpers
 
 class SiteStats(object):
+  """Class that, when initialized, collects and organizes
+  site-wide statistics about the data it is analyzing:
+  number of papers indexed, number of authors profiled etc.
+
+  """
   def __init__(self, connection):
     resp = connection.read("SELECT COUNT(id) FROM articles;")
     if len(resp) != 1 or len(resp[0]) != 1:
@@ -15,6 +25,10 @@ class SiteStats(object):
       self.author_count = resp[0][0]
 
 class Author(object):
+  """Class organizing the basic facts about a single
+  author. Most other traits (rankings, a list of all
+  publications, etc.) is appended later.
+  """
   def __init__(self, id, first, last):
     self.id = id
     self.articles = []
@@ -28,20 +42,25 @@ class Author(object):
     self.rank = RankEntry()
 
 class DateEntry(object):
-  # Used to store paper publication date info
+  "Stores paper publication date info."
   def __init__(self, month, year):
     self.month = month
     self.year = year
     self.monthname = helpers.month_name(month)
 
 class RankEntry(object):
+  """Stores data about a paper's rank within a
+  single corpus.
+  """
   def __init__(self, rank=0, out_of=0, tie=False):
     self.rank = rank
     self.out_of = out_of
     self.tie = tie
 
 class ArticleRanks(object):
-  # Stores information about an individual article's rankings
+  """Stores information about all of an individual article's
+  rankings.
+  """
   def __init__(self, alltime_count, alltime, ytd, lastmonth, collection):
     self.alltime = RankEntry(alltime, alltime_count)
     self.ytd = RankEntry(ytd, alltime_count)
@@ -49,15 +68,26 @@ class ArticleRanks(object):
     self.collection = RankEntry(collection)
 
 class Article:
+  """Base class for the different formats in which articles
+  are presented throughout the site.
+  """
   def __init(self):
     pass
 
   def get_authors(self, connection):
+    """Fetches information about the paper's authors.
+
+    Arguments:
+      - connection: a database connection object.
+    Returns nothing. Sets the article's "authors" field to
+      a list of Author objects.
+
+    """
     author_data = connection.read("SELECT authors.id, authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s;", (self.id,))
     self.authors = [Author(a[0], a[1], a[2]) for a in author_data]
 
 class SearchResultArticle(Article):
-  # An article as displayed on the main results page
+  "An article as displayed on the main results page."
   def __init__(self, sql_entry, connection):
     self.downloads = sql_entry[0]
     self.id = sql_entry[1]
@@ -69,7 +99,7 @@ class SearchResultArticle(Article):
     self.get_authors(connection)
 
 class ArticleDetails(Article):
-  # detailed article info displayed on, i.e. author pages
+  "Detailed article info displayed on, i.e. author pages."
   def __init__(self, sql_entry, alltime_count, connection):
     self.downloads = sql_entry[0]
     self.ranks = ArticleRanks(alltime_count, sql_entry[1], sql_entry[2], sql_entry[3], sql_entry[9])

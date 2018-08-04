@@ -1,9 +1,20 @@
+"""Functions governing the application's interactions with the databas.
+
+There is essentially no business logic in here; it establishes a connection
+to the application's Postgres database and stores commonly referenced query
+elements.
+"""
 import time
 
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 def queries(): # TODO: This doesn't need to be a function
+  """ Returns a dict of strings containing complex queries
+  that are used in multiple locations.
+
+  """
+
   return {
     "article_ranks": """
       SELECT alltime_ranks.downloads, alltime_ranks.rank, ytd_ranks.rank, month_ranks.rank,
@@ -18,6 +29,10 @@ def queries(): # TODO: This doesn't need to be a function
   }
 
 class Connection(object):
+  """Data type holding the data required to maintain a database
+  connection and perform queries.
+
+  """
   def __init__(self, host, db, user, password):
     self.db = None
     dbname = db
@@ -44,6 +59,13 @@ class Connection(object):
       self._attempt_connect(params, pause, max_tries, attempts)
 
   def fetch_db_tables(self):
+    """Utility function that lists out all tables in the Rxivist database;
+    used in admin panel.
+
+    Returns:
+      - A list of all tables in the "public" schema.
+
+    """
     tables = []
     with self.db.cursor() as cursor:
       try:
@@ -55,6 +77,17 @@ class Connection(object):
     return tables
 
   def fetch_table_data(self, table):
+    """Utility function used by the admin panel; returns the contents of
+    a DB table. (The "articles" table has a custom parameter applied that
+    presents the most recently crawled articles first.)
+
+    Arguments:
+      - table: The name of the table for which data is wanted.
+    Returns:
+      - A list of column headers for the given table.
+      - A list of tuples, one for each row in the table.
+
+    """
     headers = []
     data = []
     with self.db.cursor() as cursor:
@@ -73,6 +106,18 @@ class Connection(object):
       return headers, data
 
   def read(self, query, params=None):
+    """Helper function that converts results returned stored in a
+    Psycopg cursor into a less temperamental list format.
+
+    Arguments:
+      - query: The SQL query to be executed.
+      - params: Any parameters to be substituted into the query. It's
+          important to let Psycopg handle this rather than using Python
+          string interpolation because it helps mitigate SQL injection.
+    Returns:
+      - A list of tuples, one for each row of results.
+
+    """
     results = []
     with self.db.cursor() as cursor:
       if params is not None:

@@ -1,3 +1,9 @@
+"""Definition of web service and initialization of the server.
+
+This is the entrypoint for the application, the script called
+when the server is started and the router for all user requests.
+"""
+
 import bottle
 import db
 import helpers

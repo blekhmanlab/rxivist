@@ -1,10 +1,28 @@
 # rxivist API
 
-## Endpoints
+(RESTful endpoints have not yet been implemented.)
 
-* `/db`: An admin endpoint that displays the tables currently stored in the rxivist database.
+## Admin endpoints
+
+* `/db`: Displays the tables currently stored in the Rxivist database.
 * `/db/$table_name`: Displays the contents of the `$table_name` table in the database.
-* `/hello` The "hello world" endpoint. Should respond `200 Hello World!` if the server isn't totally messed up.
+
+## Frontend
+
+Though the Rxivist web application may one day be broken out into its own codebase, it's currently integrated directly into this Bottle app and uses the SimpleTemplateEngine elements defined in the `/views` directory. It currently has three pages:
+
+### `/`: Main search page
+Query parameters:
+* `q`: string for text search of paper titles and abstracts.
+* `timeframe`: What range of time to use (year to date, all time, etc.) when ordering results by number of downloads.
+* `category`: Which bioRxiv collections to include in the results. *Multiple categories* can be included, though there is not currently a way to select multiple categories in the search form.
+
+### `/papers/$paperID`: Paper details
+Shows authorship, download an ranking information for a single paper.
+
+### `/authors/$authorID`: Author details
+Shows all of an author's papers and their respective rankings.
+
 
 ## Deployment to production
 The rxivist web application and API is designed to be run from a Docker container. The current official deployment is Docker running on a virtual machine. Once Docker is installed on whatever instance you're running, there are only a few commands to run:

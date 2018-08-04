@@ -39,7 +39,7 @@ def most_popular(connection, q, categories, timeframe):
           and titles. (Title matches are weighted more heavily.)
     - categories: A list of bioRxiv categories the results can be in.
   Returns:
-    - An ordered list of article elements that meet the search criteria.
+    - An ordered list of Article objects that meet the search criteria.
 
   """
 
@@ -89,6 +89,9 @@ def author_details(connection, id):
   Arguments:
     - connection: a database connection object.
     - id: the ID given to the author being queried.
+  Returns:
+    - An Author object containing information about that
+        author's publications.
 
   """
 
@@ -134,6 +137,9 @@ def paper_details(connection, id):
   Arguments:
     - connection: a database connection object.
     - id: the ID given to the author being queried.
+  Returns:
+    - A Paper object containing details about the paper and
+        its authors.
 
   """
   alltime_count = connection.read("SELECT COUNT(article) FROM alltime_ranks")
