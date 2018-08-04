@@ -40,32 +40,17 @@
                     {{ len(result.authors)-1 }} coauthors
                   %end
                 </li>
-                <li>{{result.downloads}} downloads
-                  %if result.date.monthname != "":
-                    since {{result.date.monthname}} {{result.date.year}}
-                  %end
-                <li><strong>All-time download rankings:</strong>
-                  <ul>
-                    <li>Site-wide: <strong>{{result.ranks.alltime.rank}}</strong> out of {{result.ranks.alltime.out_of}}</li>
-                    <li>In {{result.collection}}: <strong>{{result.ranks.collection.rank}}</strong> out of {{result.ranks.collection.out_of}}</li>
-                  </ul>
-                </li>
-                <li><strong>Year-to-date downloads rankings</strong>:
-                  <ul>
-                    <li>Site-wide: <strong>{{result.ranks.ytd.rank}}</strong> out of {{result.ranks.ytd.out_of}}</li>
-                  </ul>
-                </li>
-                <li><strong>Downloads rankings since beginning of last month</strong>:
-                  <ul>
-                    <li>Site-wide: <strong>{{result.ranks.lastmonth.rank}}</strong> out of {{result.ranks.lastmonth.out_of}}</li>
-                  </ul>
-                </li>
               </ul>
+
+              %include("components/paper_stats", paper=result)
+
             % end
           </div>
         </div>
       </div>
     </div>
+
     %include("components/footer")
+
   </body>
 </html>
