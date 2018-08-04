@@ -38,6 +38,12 @@
                     selected
                   %end
                   >year to date</option>
+
+                  <option value="lastmonth"
+                  %if timeframe == "lastmonth":
+                    selected
+                  %end
+                  >since last month</option>
                 </select>
                 <div class="input-group-append">
                   <button type="submit" class="btn btn-altcolor">Search</button>

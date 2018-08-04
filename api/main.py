@@ -22,7 +22,7 @@ def index():
   category_filter = bottle.request.query.getall('category') # multiple params possible
 
   # make sure it's a timeframe we recognize
-  if timeframe != "ytd":
+  if timeframe not in ["ytd", "lastmonth"]:
     timeframe = "alltime"
 
   # Get rid of a category filter that's just one empty parameter:

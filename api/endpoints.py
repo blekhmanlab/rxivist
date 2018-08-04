@@ -55,6 +55,8 @@ def most_popular(connection, q, categories, timeframe):
     query += "alltime_ranks"
   elif timeframe == "ytd":
     query += "ytd_ranks"
+  elif timeframe == "lastmonth":
+    query += "month_ranks"
   query += " AS r ON r.article=a.id"
 
   if q != "":
@@ -90,6 +92,8 @@ def author_details(connection, id):
 
   """
 
+  # TODO: Memoize all the stuff pulled together in this function,
+  # store it in a DB somewhere
   authorq = connection.read("SELECT id, given, surname FROM authors WHERE id = %s;", (id,))
   if len(authorq) == 0:
     raise NotFoundError(id)

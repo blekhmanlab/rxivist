@@ -37,7 +37,9 @@ class Connection(object):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS bounce_ranks (article integer PRIMARY KEY, rank integer NOT NULL, rate NUMERIC(6,5) NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS bounce_ranks_working (article integer PRIMARY KEY, rank integer NOT NULL, rate NUMERIC(6,5) NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS ytd_ranks (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS ytd_ranks_working (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS ytd_ranks_working   (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS month_ranks         (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS month_ranks_working (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks         (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_working (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
 

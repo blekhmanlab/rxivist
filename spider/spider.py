@@ -180,7 +180,7 @@ class Spider(object):
   def refresh_article_stats(self, collection):
     print("Refreshing article download stats...")
     with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT id, url FROM articles WHERE collection=%s AND last_crawled < now() - interval '1 month';", (collection,))
+      cursor.execute("SELECT id, url FROM articles WHERE collection=%s AND last_crawled < now() - interval '3 weeks';", (collection,))
       for article in cursor:
         url = article[1]
         article_id = article[0]
@@ -268,6 +268,7 @@ class Spider(object):
 
     self._rank_articles_ytd()
     self._rank_authors_alltime()
+    self._rank_articles_month()
     # self._rank_articles_bouncerate()
 
   def _rank_articles_alltime(self):
@@ -328,7 +329,7 @@ class Spider(object):
     print("Ranking papers by popularity, year to date...")
     with self.connection.db.cursor() as cursor:
       cursor.execute("TRUNCATE ytd_ranks_working")
-      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 GROUP BY article ORDER BY downloads DESC")
+      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 GROUP BY article ORDER BY downloads DESC") # TODO don't hard-code the year
       sql = "INSERT INTO ytd_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
       cursor.executemany(sql, params)
@@ -340,6 +341,30 @@ class Spider(object):
       cursor.execute("ALTER TABLE ytd_ranks_temp RENAME TO ytd_ranks_working")
     self.connection.db.commit()
 
+  def _rank_articles_month(self):
+    print("Ranking papers by popularity, since last month...")
+    with self.connection.db.cursor() as cursor:
+      # Determine most recent month
+      cursor.execute("SELECT MAX(month) FROM article_traffic WHERE year = 2018;")
+      month = cursor.fetchone()
+      if month is None or len(month) < 1:
+        print("**WARNING: Could not determine current month**")
+        return
+      month = month[0] - 1 # "since LAST month" prevents nonsense results early in the current month
+
+    with self.connection.db.cursor() as cursor:
+      print("Ranking articles based on traffic since {}/2018".format(month))
+      cursor.execute("TRUNCATE month_ranks_working")
+      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 AND month > %s GROUP BY article ORDER BY downloads DESC", (month,)) # TODO don't hard-code the year
+      sql = "INSERT INTO month_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
+      params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
+      cursor.executemany(sql, params)
+
+      # once it's all done, shuffle the tables around so the new results are active
+      cursor.execute("ALTER TABLE month_ranks RENAME TO month_ranks_temp")
+      cursor.execute("ALTER TABLE month_ranks_working RENAME TO month_ranks")
+      cursor.execute("ALTER TABLE month_ranks_temp RENAME TO month_ranks_working")
+    self.connection.db.commit()
 
   def _rank_authors_alltime(self):
     print("Ranking authors by popularity...")
