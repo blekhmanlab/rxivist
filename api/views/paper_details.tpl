@@ -3,6 +3,7 @@
   <head>
     %include("components/metadata.tpl")
     <title>Rxivist details – {{paper.title}}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
   </head>
 
   <body>
@@ -24,6 +25,13 @@
           % end
 
           %include("components/paper_stats", paper=paper)
+
+          <div class="row">
+            <div class="col-md-6">
+              <canvas id="myChart"></canvas>
+            </div>
+          </div>
+          %include("components/download_graph", paper=paper)
 
         </div>
       </div>

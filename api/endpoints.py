@@ -190,7 +190,7 @@ def paper_details(connection, id):
   # TODO: Figure out which join clause in the query makes a bunch of
   # identical responses come back for this
   result = models.ArticleDetails(paperq, alltime_count, connection)
-
+  result.GetDetailedTraffic(connection)
   # once we're done processing the results of the last query, go back
   # and query for some extra info about each article
   query = "SELECT COUNT(id) FROM articles WHERE collection=%s"

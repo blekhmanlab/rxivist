@@ -86,6 +86,16 @@ class Article:
     author_data = connection.read("SELECT authors.id, authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s;", (self.id,))
     self.authors = [Author(a[0], a[1], a[2]) for a in author_data]
 
+  def GetDetailedTraffic(self, connection):
+    data = connection.read("SELECT month, year, pdf FROM article_traffic WHERE article_traffic.article=%s ORDER BY year ASC, month ASC;", (self.id,))
+    self.traffic = [TrafficEntry(entry) for entry in data]
+
+class TrafficEntry(object):
+  def __init__(self, sql_entry):
+    self.month = sql_entry[0]
+    self.year = sql_entry[1]
+    self.downloads = sql_entry[2]
+
 class SearchResultArticle(Article):
   "An article as displayed on the main results page."
   def __init__(self, sql_entry, connection):
