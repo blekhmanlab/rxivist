@@ -60,6 +60,35 @@ def index():
     error=error, stats=stats, category_list=category_list,
     timeframe=timeframe)
 
+# ---- full display thing
+@bottle.get('/table')
+@bottle.view('table')
+def table():
+  if connection is None:
+    bottle.response.status = 421
+    return "Database is initializing."
+
+  query = bottle.request.query.q
+
+  category_list = endpoints.get_categories(connection) # list of all article categories
+  stats = models.SiteStats(connection) # site-wide metrics (paper count, etc)
+  error = ""
+  results = {}
+
+  title = "Most popular papers related to \"{},\" ".format(query) if query != "" else "Most popular bioRxiv papers"
+
+  try:
+    results = endpoints.table_results(connection, query)
+  except Exception as e:
+    print(e)
+    error = "There was a problem with the submitted query."
+    bottle.response.status = 500
+
+  return bottle.template('table', results=results,
+    query=query, title=title,
+    error=error, stats=stats,
+    category_list=category_list)
+
 # ---- Author details page
 @bottle.get('/authors/<id:int>')
 @bottle.view('author_details')

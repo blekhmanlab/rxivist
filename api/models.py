@@ -98,6 +98,22 @@ class SearchResultArticle(Article):
     self.date = DateEntry(sql_entry[6], sql_entry[7])
     self.get_authors(connection)
 
+class TableSearchResultArticle(Article):
+  "An article as displayed on the table-based main results page."
+  def __init__(self, sql_entry, connection):
+    self.alltime_downloads = sql_entry[0]
+    self.ytd_downloads = sql_entry[1]
+    self.month_downloads = sql_entry[2]
+    self.id = sql_entry[3]
+    self.url = sql_entry[4]
+    self.title = sql_entry[5]
+    self.abstract = sql_entry[6]
+    self.collection = sql_entry[7]
+    self.date = DateEntry(sql_entry[8], sql_entry[9])
+    # NOTE: We won't get authors for these results until there's
+    # a way to fetch the first author without sending a separate
+    # query for each paper in the table.
+
 class ArticleDetails(Article):
   "Detailed article info displayed on, i.e. author pages."
   def __init__(self, sql_entry, alltime_count, connection):

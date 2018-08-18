@@ -82,6 +82,41 @@ def most_popular(connection, q, categories, timeframe):
     results = [models.SearchResultArticle(a, connection) for a in cursor]
   return results
 
+def table_results(connection, q):
+  """Returns data about every paper in the db and makes the browser sort em out.
+
+  Arguments:
+    - connection: a database connection object.
+    - q:  A search string to compare against article abstracts
+          and titles. (Title matches are weighted more heavily.)
+  Returns:
+    - An ordered list of Article objects that meet the search criteria.
+
+  """
+
+  query = "SELECT alltime.downloads, ytd.downloads, lastmonth.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year"
+  params = ()
+  if q != "": # if there's a text search specified
+    params = (q,)
+    query += ", ts_rank_cd(totalvector, query) as rank"
+  query += """
+  FROM articles AS a
+  INNER JOIN alltime_ranks AS alltime ON alltime.article=a.id
+  INNER JOIN ytd_ranks AS ytd ON ytd.article=a.id
+  INNER JOIN month_ranks AS lastmonth ON lastmonth.article=a.id
+  """
+
+  if q != "":
+    query += """, to_tsquery(%s) query,
+    coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'D')) totalvector
+    WHERE query @@ totalvector
+    """
+  query += ";"
+  with connection.db.cursor() as cursor:
+    cursor.execute(query, params)
+    results = [models.TableSearchResultArticle(a, connection) for a in cursor]
+  return results
+
 def author_details(connection, id):
   """Returns a dict of information about a single author, including a list of
       all their papers.
