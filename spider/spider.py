@@ -94,7 +94,8 @@ class Article(object):
         if responses[0][0] == self.url:
           print("Found article already: {}".format(self.title))
           connection.db.commit()
-          return False
+          return True # TODO remove this once we've done a preliminary scrape of all papers
+          # return False
         else:
           cursor.execute("UPDATE articles SET url=%s, title=%s, collection=%s WHERE doi=%s RETURNING id;", (self.url, self.title, self.collection, self.doi))
           print("Updated revision for article DOI {}: {}".format(self.doi, self.title))
@@ -105,7 +106,7 @@ class Article(object):
       try:
         cursor.execute("INSERT INTO articles (url, title, doi, collection) VALUES (%s, %s, %s, %s) RETURNING id;", (self.url, self.title, self.doi, self.collection))
       finally:
-        connection.db.commit() # Needed to end the botched transaction
+        connection.db.commit() # Needed to end the botched transaction TODO (this may not be true with autocommit now)
       self.id = cursor.fetchone()[0]
 
       author_ids = self._record_authors(connection)
@@ -274,6 +275,24 @@ class Spider(object):
     self._rank_articles_month()
     # self._rank_articles_bouncerate()
 
+    self._calculate_download_distribution()
+
+  def _calculate_download_distribution(self):
+    print("Calculating distribution of download counts.")
+    bucket_size = 5
+    results = defaultdict(int)
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT downloads FROM alltime_ranks ORDER BY downloads ASC;")
+      for paper in cursor:
+        if len(paper) > 0:
+          results[int(paper[0] / bucket_size) * bucket_size] += 1
+      cursor.execute("TRUNCATE download_distribution")
+      sql = "INSERT INTO download_distribution (bucket, count, category) VALUES (%s, %s, 'alltime');"
+      params = [(bucket, count) for bucket, count in results.items()]
+      print("Recording...")
+      cursor.executemany(sql, params)
+
+
   def _rank_articles_alltime(self):
     print("Ranking papers by popularity...")
     with self.connection.db.cursor() as cursor:
@@ -437,8 +456,8 @@ def full_run(spider, collection="bioinformatics"):
   spider.find_record_new_articles(collection)
   spider.fetch_abstracts()
   spider.calculate_vectors()
-  spider.refresh_article_stats(collection)
-  spider.process_rankings()
+  # spider.refresh_article_stats(collection)
+  # spider.process_rankings()
 
 if __name__ == "__main__":
   spider = Spider()
@@ -451,5 +470,7 @@ if __name__ == "__main__":
       spider.refresh_article_stats(sys.argv[2])
     else:
       print("Must specify collection to refresh traffic stats for.")
+  elif sys.argv[1] == "distro":
+    spider._calculate_download_distribution()
   else:
     full_run(spider, sys.argv[1])

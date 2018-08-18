@@ -117,7 +117,8 @@ def display_paper_details(id):
     bottle.response.status = 500
     print(e)
     return {"error": "Server error."}
-  return bottle.template('paper_details', paper=paper)
+  download_distribution = endpoints.download_distribution(connection)
+  return bottle.template('paper_details', paper=paper, download_distribution=download_distribution)
 
 # ---- DB convenience endpoint
 @bottle.get('/db')

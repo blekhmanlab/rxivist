@@ -198,3 +198,8 @@ def paper_details(connection, id):
   result.ranks.collection.out_of = collection_count[0][0]
 
   return result
+
+def download_distribution(connection):
+  data = connection.read("SELECT bucket, count FROM download_distribution WHERE category='alltime' ORDER BY bucket")
+  results = [(entry[0], entry[1]) for entry in data]
+  return results

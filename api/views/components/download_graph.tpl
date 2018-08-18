@@ -1,5 +1,5 @@
 <script>
-var ctx = document.getElementById('myChart').getContext('2d');
+var ctx = document.getElementById('downloadsOverTime').getContext('2d');
 var chart = new Chart(ctx, {
   // The type of chart we want to create
   type: 'line',
@@ -22,8 +22,26 @@ var chart = new Chart(ctx, {
       ],
     }]
   },
-
-  // Configuration options go here
-  options: {}
+  options: {
+    legend: {
+      display: false
+    },
+    scales: {
+      yAxes: [{
+        display: true,
+        position: 'left',
+        scaleLabel: {
+          display: true,
+          labelString: 'Downloads'
+        }
+      }],
+      xAxes: [{
+        scaleLabel: {
+          display: true,
+          labelString: 'Month'
+        }
+      }],
+    }
+  }
 });
 </script>

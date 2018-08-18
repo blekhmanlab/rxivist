@@ -43,6 +43,7 @@ class Connection(object):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks         (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_working (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
 
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS download_distribution (id SERIAL PRIMARY KEY, bucket integer NOT NULL, count integer NOT NULL, category text NOT NULL);")
     self.db.commit()
 
   def _clear_out(self):

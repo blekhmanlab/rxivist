@@ -3,7 +3,9 @@
   <head>
     %include("components/metadata.tpl")
     <title>Rxivist details – {{paper.title}}</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.5/chartjs-plugin-annotation.js"></script>
+    <script src="https://cdn.rawgit.com/chartjs/Chart.js/master/samples/utils.js"></script>
   </head>
 
   <body>
@@ -28,10 +30,16 @@
 
           <div class="row">
             <div class="col-md-6">
-              <canvas id="myChart"></canvas>
+              <h3>Downloads over time</h3>
+              <canvas id="downloadsOverTime"></canvas>
+            </div>
+            <div class="col-md-6">
+              <h3>Distribution of downloads, site-wide</h3>
+              <canvas id="downloadsDistribution"></canvas>
             </div>
           </div>
           %include("components/download_graph", paper=paper)
+          %include("components/download_distribution", paper=paper, download_distribution=download_distribution)
 
         </div>
       </div>
