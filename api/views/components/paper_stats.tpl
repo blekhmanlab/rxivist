@@ -14,7 +14,7 @@
       <li>Site-wide: <strong>{{paper.ranks.ytd.rank}}</strong> out of {{paper.ranks.ytd.out_of}}</li>
     </ul>
   </li>
-  <li><strong>Downloads rankings since beginning of last month</strong>:
+  <li><strong>Download rankings since beginning of last month</strong>:
     <ul>
       <li>Site-wide: <strong>{{paper.ranks.lastmonth.rank}}</strong> out of {{paper.ranks.lastmonth.out_of}}</li>
     </ul>

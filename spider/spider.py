@@ -1,15 +1,16 @@
 from collections import defaultdict
 import re
 import sys
+import time
 
 import psycopg2
 from requests_html import HTMLSession
 
-
 import db
 import config
 
-TESTING = True    # this is just for testing, so we don't crawl the whole site during development TODO delete
+TESTING = False    # this is just for testing, so we don't crawl the whole site during development TODO delete
+testing_pagecount = 50
 
 class Author(object):
   def __init__(self, given, surname):
@@ -153,14 +154,17 @@ class Spider(object):
 
   def find_record_new_articles(self, collection):
     # we need to grab the first page to figure out how many pages there are
+    print("\n---\n\nFetching page 0 in {}".format(collection))
     r = self.session.get("https://www.biorxiv.org/collection/{}".format(collection))
     results = pull_out_articles(r.html, collection)
     keep_going = self.record_articles(results)
     if not keep_going: return # if we already knew about the first entry, we're done
 
-    pagecount = 10 if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
+    pagecount = testing_pagecount if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
     for p in range(1, pagecount): # iterate through pages
-      print("\n---\n\nFetching page {} in {}".format(p+1, collection)) # pages are zero-indexed
+      # print("Pausing 15 seconds before fetching next page...")
+      # time.sleep(15)
+      print("\n---\n\nFetching page {} in {}".format(p, collection)) # pages are zero-indexed
       r = self.session.get("https://www.biorxiv.org/collection/{}?page={}".format(collection, p))
       results = pull_out_articles(r.html, collection)
       keep_going = self.record_articles(results)
