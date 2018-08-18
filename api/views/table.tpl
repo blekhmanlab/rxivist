@@ -19,11 +19,11 @@
     <style>
       .myGrid {
         width: 100%;
-        height: 1000px;
+        /* height: 70%; */
       }
     </style>
     <script>
-      var app = angular.module('app', ['ngTouch', 'ui.grid', 'ui.grid.resizeColumns'])
+      var app = angular.module('app', ['ngTouch', 'ui.grid', 'ui.grid.resizeColumns'])//, 'ui.grid.pagination'])
 
       app.controller('MainCtrl', ['uiGridConstants', function(uiGridConstants) {
         var vm = this;
@@ -33,6 +33,7 @@
         vm.gridOptions = {
           enableSorting: true,
           enableFiltering: true,
+          paginationPageSize: 25,
           columnDefs: [
             {
               field: 'title',
@@ -56,17 +57,24 @@
             {
               field: 'alltime_downloads',
               enableFiltering: false,
-              maxWidth: download_col_max_width
+              maxWidth: download_col_max_width,
+              defaultSort: {
+                direction: uiGridConstants.DESC,
+                priority: 0
+              },
+              sortDirectionCycle: [null, uiGridConstants.DESC, uiGridConstants.ASC]
             },
             {
               field: 'ytd_downloads',
               enableFiltering: false,
-              maxWidth: download_col_max_width
+              maxWidth: download_col_max_width,
+              sortDirectionCycle: [null, uiGridConstants.DESC, uiGridConstants.ASC]
             },
             {
               field: 'month_downloads',
               enableFiltering: false,
-              maxWidth: download_col_max_width
+              maxWidth: download_col_max_width,
+              sortDirectionCycle: [null, uiGridConstants.DESC, uiGridConstants.ASC]
             },
           ],
           onRegisterApi: function( gridApi ) {
