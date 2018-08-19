@@ -14,9 +14,9 @@ TESTING = False    # this is just for testing, so we don't crawl the whole site 
 testing_pagecount = 50
 
 stop_on_recognized = False # whether to stop crawling a collection once we
-                          # encounter a paper that's already been indexed, or
-                          # if every crawling session should look on every page
-                          # for unindexed papers.
+                           # encounter a paper that's already been indexed, or
+                           # if every crawling session should look on every page
+                           # for unindexed papers.
 
 class Author(object):
   def __init__(self, given, surname):
@@ -123,8 +123,18 @@ class Article(object):
       # fetch traffic stats for the new article
       # TODO: this should be a method for Article, not Spider
       print("Recording stats for new article:")
-      stat_table = spider.get_article_stats(self.url)
-      spider.save_article_stats(self.id, stat_table)
+      stat_table = None
+      try:
+        stat_table = spider.get_article_stats(self.url)
+      except Exception as e:
+        print("Error fetching stats. Trying one more time...")
+      try:
+        stat_table = spider.get_article_stats(self.url)
+      except Exception as e:
+        print("Error fetching stats again. Giving up on this one.")
+
+      if stat_table is not None:
+        spider.save_article_stats(self.id, stat_table)
     return True
 
   def _record_authors(self, connection):
@@ -283,6 +293,11 @@ class Spider(object):
   def process_rankings(self):
     # pulls together all the separate ranking calls
     self._rank_articles_alltime()
+    self._rank_articles_ytd()
+    self._rank_articles_month()
+    # self._rank_articles_bouncerate()
+    # self._rank_articles_hotness()
+
     categories = []
     with self.connection.db.cursor() as cursor:
       cursor.execute("SELECT DISTINCT collection FROM articles ORDER BY collection;")
@@ -292,12 +307,7 @@ class Spider(object):
     for category in categories:
       self._rank_articles_categories(category)
 
-    self._rank_articles_ytd()
     self._rank_authors_alltime()
-    self._rank_articles_month()
-    # self._rank_articles_bouncerate()
-    # self._rank_articles_hotness()
-
     self._calculate_download_distributions()
 
   def _calculate_download_distributions(self):
@@ -312,14 +322,14 @@ class Spider(object):
         "bucket_size": 25
       },
     ]
-    results = defaultdict(int)
     for task in tasks:
+      results = defaultdict(int)
       print("Calculating download distributions for {}".format(task["name"]))
       with self.connection.db.cursor() as cursor:
         cursor.execute("SELECT downloads FROM {}_ranks ORDER BY downloads ASC;".format(task["name"]))
-        for paper in cursor:
-          if len(paper) > 0:
-            results[int(paper[0] / task["bucket_size"]) * task["bucket_size"]] += 1
+        for entity in cursor:
+          if len(entity) > 0:
+            results[int(entity[0] / task["bucket_size"]) * task["bucket_size"]] += 1
         cursor.execute("DELETE FROM download_distribution WHERE category=%s", (task["name"],))
         sql = "INSERT INTO download_distribution (bucket, count, category) VALUES (%s, %s, %s);"
         params = [(bucket, count, task["name"]) for bucket, count in results.items()]

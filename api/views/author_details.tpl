@@ -11,21 +11,18 @@
   <body>
   <br>
     <div class="container" id="main">
-
       %include("components/header")
 
       <div class="row">
         <div class="col-sm-12">
           <h1>Author: {{author.full}}</h1>
-          <div>
-            <ul>
-              <li>All-time downloads: {{author.downloads}} (rank: <strong>{{author.rank.rank}}</strong>
-              %if author.rank.tie:
-                (tie)
-              %end
-              out of {{author.rank.out_of}})
-            </ul>
-          </div>
+          <ul>
+            <li>All-time downloads: {{author.downloads}} (rank: <strong>{{author.rank.rank}}</strong>
+            %if author.rank.tie:
+              (tie)
+            %end
+            out of {{author.rank.out_of}})
+          </ul>
         </div>
       </div>
       <div class="row">
@@ -55,14 +52,13 @@
         % end
       </div>
       <div class="row">
-        <div class="col-md-12">
-          <h3>Distribution of downloads per author, site-wide</h3>
+        <div class="col-md-8 offset-md-2">
+          <h3>Downloads per author, site-wide</h3>
           <canvas id="downloadsDistribution"></canvas>
         </div>
         %include("components/download_distribution", entity=author, entity_name="author", download_distribution=download_distribution)
       </div>
     </div>
-
     %include("components/footer")
 
   </body>
