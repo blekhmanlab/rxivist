@@ -1,8 +1,9 @@
+{{paper.downloads}} downloads
+  %if paper.date.monthname != "":
+    since {{paper.date.monthname}} {{paper.date.year}}
+  %end
+
 <ul>
-  <li>{{paper.downloads}} downloads
-          %if paper.date.monthname != "":
-            since {{paper.date.monthname}} {{paper.date.year}}
-          %end
   <li><strong>Download rankings, all-time:</strong>
     <ul>
       <li>Site-wide: <strong>{{paper.ranks.alltime.rank}}</strong> out of {{paper.ranks.alltime.out_of}}</li>

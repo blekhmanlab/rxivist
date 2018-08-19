@@ -25,26 +25,31 @@
           % for i, coauthor in enumerate(paper.authors):
             <a href="/authors/{{coauthor.id}}">{{coauthor.full}}</a>{{", " if i < (len(paper.authors) - 1) else ""}}
           % end
-
-          %include("components/paper_stats", paper=paper)
-
-          <div class="row">
-            <div class="col-md-6">
-              <h3>Downloads over time</h3>
-              <canvas id="downloadsOverTime"></canvas>
-            </div>
-            % if paper.downloads is not None:
-              <div class="col-md-6">
-                <h3>Distribution of downloads per paper, site-wide</h3>
-                <canvas id="downloadsDistribution"></canvas>
-              </div>
-              %include("components/download_distribution", entity=paper,  entity_name="paper", download_distribution=download_distribution)
-            % end
-          </div>
-          %include("components/download_graph", paper=paper)
-
         </div>
       </div>
+      <div class="row">
+        <div class="col-md-6">
+          <p>{{paper.abstract}}
+        </div>
+        <div class="col-md-6">
+          %include("components/paper_stats", paper=paper)
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          <h3>Downloads over time</h3>
+          <canvas id="downloadsOverTime"></canvas>
+        </div>
+        % if paper.downloads is not None:
+          <div class="col-md-6">
+            <h3>Distribution of downloads per paper, site-wide</h3>
+            <canvas id="downloadsDistribution"></canvas>
+          </div>
+          %include("components/download_distribution", entity=paper,  entity_name="paper", download_distribution=download_distribution)
+        % end
+      </div>
+      %include("components/download_graph", paper=paper)
+
     </div>
 
     %include("components/footer")

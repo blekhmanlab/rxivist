@@ -131,8 +131,6 @@ def author_details(connection, id):
 
   """
 
-  # TODO: Memoize all the stuff pulled together in this function,
-  # store it in a DB somewhere
   authorq = connection.read("SELECT id, given, surname FROM authors WHERE id = %s;", (id,))
   if len(authorq) == 0:
     raise NotFoundError(id)
