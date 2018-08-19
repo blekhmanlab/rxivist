@@ -200,7 +200,7 @@ def paper_details(connection, id):
 
   return result
 
-def download_distribution(connection):
-  data = connection.read("SELECT bucket, count FROM download_distribution WHERE category='alltime' ORDER BY bucket")
+def download_distribution(connection, category):
+  data = connection.read("SELECT bucket, count FROM download_distribution WHERE category=%s ORDER BY bucket", (category,))
   results = [(entry[0], entry[1]) for entry in data]
   return results

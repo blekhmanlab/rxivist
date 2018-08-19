@@ -3,6 +3,9 @@
   <head>
     %include("components/metadata.tpl")
     <title>{{author.full}} author profile – Rxivist</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.5/chartjs-plugin-annotation.js"></script>
+    <script src="https://cdn.rawgit.com/chartjs/Chart.js/master/samples/utils.js"></script>
   </head>
 
   <body>
@@ -12,7 +15,7 @@
       %include("components/header")
 
       <div class="row">
-        <div class="col">
+        <div class="col-sm-12">
           <h1>Author: {{author.full}}</h1>
           <div>
             <ul>
@@ -45,8 +48,15 @@
               %include("components/paper_stats", paper=result)
 
             % end
-          </div>
+          </ul>
         </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12">
+          <h3>Distribution of downloads per author, site-wide</h3>
+          <canvas id="downloadsDistribution"></canvas>
+        </div>
+        %include("components/download_distribution", entity=author, entity_name="author", download_distribution=download_distribution)
       </div>
     </div>
 

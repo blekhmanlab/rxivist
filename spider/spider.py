@@ -13,6 +13,11 @@ import config
 TESTING = False    # this is just for testing, so we don't crawl the whole site during development TODO delete
 testing_pagecount = 50
 
+stop_on_recognized = False # whether to stop crawling a collection once we
+                          # encounter a paper that's already been indexed, or
+                          # if every crawling session should look on every page
+                          # for unindexed papers.
+
 class Author(object):
   def __init__(self, given, surname):
     self.given = given
@@ -95,8 +100,9 @@ class Article(object):
         if responses[0][0] == self.url:
           print("Found article already: {}".format(self.title))
           connection.db.commit()
-          return True # TODO remove this once we've done a preliminary scrape of all papers
-          # return False
+          if stop_on_recognized:
+            return False
+          return True
         else:
           cursor.execute("UPDATE articles SET url=%s, title=%s, collection=%s WHERE doi=%s RETURNING id;", (self.url, self.title, self.collection, self.doi))
           print("Updated revision for article DOI {}: {}".format(self.doi, self.title))
@@ -292,23 +298,33 @@ class Spider(object):
     # self._rank_articles_bouncerate()
     # self._rank_articles_hotness()
 
-    self._calculate_download_distribution()
+    self._calculate_download_distributions()
 
-  def _calculate_download_distribution(self):
+  def _calculate_download_distributions(self):
     print("Calculating distribution of download counts.")
-    bucket_size = 5
+    tasks = [
+      {
+        "name": "alltime",
+        "bucket_size": 5
+      },
+      {
+        "name": "author",
+        "bucket_size": 25
+      },
+    ]
     results = defaultdict(int)
-    with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT downloads FROM alltime_ranks ORDER BY downloads ASC;")
-      for paper in cursor:
-        if len(paper) > 0:
-          results[int(paper[0] / bucket_size) * bucket_size] += 1
-      cursor.execute("TRUNCATE download_distribution")
-      sql = "INSERT INTO download_distribution (bucket, count, category) VALUES (%s, %s, 'alltime');"
-      params = [(bucket, count) for bucket, count in results.items()]
-      print("Recording...")
-      cursor.executemany(sql, params)
-
+    for task in tasks:
+      print("Calculating download distributions for {}".format(task["name"]))
+      with self.connection.db.cursor() as cursor:
+        cursor.execute("SELECT downloads FROM {}_ranks ORDER BY downloads ASC;".format(task["name"]))
+        for paper in cursor:
+          if len(paper) > 0:
+            results[int(paper[0] / task["bucket_size"]) * task["bucket_size"]] += 1
+        cursor.execute("DELETE FROM download_distribution WHERE category=%s", (task["name"],))
+        sql = "INSERT INTO download_distribution (bucket, count, category) VALUES (%s, %s, %s);"
+        params = [(bucket, count, task["name"]) for bucket, count in results.items()]
+        print("Recording...")
+        cursor.executemany(sql, params)
 
   def _rank_articles_alltime(self):
     print("Ranking papers by popularity...")
@@ -532,6 +548,6 @@ if __name__ == "__main__":
     else:
       print("Must specify collection to refresh traffic stats for.")
   elif sys.argv[1] == "distro":
-    spider._calculate_download_distribution()
+    spider._calculate_download_distributions()
   else:
     full_run(spider, sys.argv[1])

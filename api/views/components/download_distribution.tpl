@@ -12,7 +12,7 @@ window.onload = function() {
       datasets: [
         {
           type: 'bar',
-          label: "Papers",
+          label: "{{entity_name}}s",
           backgroundColor: "#2f69bf",
           data: [
             % for entry in download_distribution:
@@ -36,10 +36,10 @@ window.onload = function() {
             type: "line",
             mode: "vertical",
             scaleID: "x-axis-0",
-            value: {{ int(paper.downloads / download_distribution[1][0]) * download_distribution[1][0] }},
+            value: {{ int(entity.downloads / download_distribution[1][0]) * download_distribution[1][0] }},
             borderColor: "red",
             label: {
-              content: "THIS PAPER",
+              content: "THIS {{ entity_name.upper() }}",
               enabled: true,
               position: "top"
             }
@@ -52,7 +52,7 @@ window.onload = function() {
           position: 'left',
           scaleLabel: {
             display: true,
-            labelString: 'paper count'
+            labelString: '{{entity_name}} count'
           }
         }],
         xAxes: [{
