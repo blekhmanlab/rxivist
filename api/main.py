@@ -28,7 +28,7 @@ def index():
   category_filter = bottle.request.query.getall('category') # multiple params possible
 
   # make sure it's a timeframe we recognize
-  if timeframe not in ["ytd", "lastmonth"]:
+  if timeframe not in ["ytd", "lastmonth", "hotness"]:
     timeframe = "alltime"
 
   # Get rid of a category filter that's just one empty parameter:
@@ -44,7 +44,8 @@ def index():
   printable_times = {
     "alltime": "all time",
     "ytd": "year to date",
-    "lastmonth": "since beginning of last month"
+    "lastmonth": "since beginning of last month",
+    "hotness": "aggregate hotness score"
   }
   title += printable_times[timeframe]
 

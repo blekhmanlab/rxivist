@@ -54,7 +54,8 @@ def most_popular(connection, q, categories, timeframe):
   query_times = {
     "alltime": "alltime_ranks",
     "ytd": "ytd_ranks",
-    "lastmonth": "month_ranks"
+    "lastmonth": "month_ranks",
+    "hotness": "hotness_ranks"
   }
   query += query_times[timeframe]
   query += " AS r ON r.article=a.id"

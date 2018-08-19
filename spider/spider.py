@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 import re
 import sys
 import time
@@ -274,6 +275,7 @@ class Spider(object):
     self._rank_authors_alltime()
     self._rank_articles_month()
     # self._rank_articles_bouncerate()
+    # self._rank_articles_hotness()
 
     self._calculate_download_distribution()
 
@@ -310,6 +312,50 @@ class Spider(object):
       cursor.execute("ALTER TABLE alltime_ranks RENAME TO alltime_ranks_temp")
       cursor.execute("ALTER TABLE alltime_ranks_working RENAME TO alltime_ranks")
       cursor.execute("ALTER TABLE alltime_ranks_temp RENAME TO alltime_ranks_working")
+    self.connection.db.commit()
+
+  def _rank_articles_hotness(self):
+    print("Determining aggregate hotness scores for each paper.")
+    articles = []
+    # get a list of all the article IDs with traffic
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("TRUNCATE hotness_ranks_working")
+      cursor.execute("SELECT DISTINCT article FROM article_traffic;")
+      articles = [record[0] for record in cursor]
+    # calculate a hotness score for each article
+    for article in articles:
+      with self.connection.db.cursor() as cursor:
+        cursor.execute("SELECT month, year, pdf FROM article_traffic WHERE article_traffic.article=%s;", (article,))
+        downloads = defaultdict(lambda: defaultdict(int))
+        for record in cursor:
+          downloads[record[1]][record[0]] = record[2]
+        score = 0
+        multiplier = 100
+        backoff = 0.2
+        year = datetime.now().year
+        for month in range(datetime.now().month, 0, -1):
+          score += downloads[year][month] * multiplier
+          multiplier = multiplier * (1.0 - backoff)
+        for year in range(datetime.now().year-1, 2009, -1):
+          for month in range(12, 0, -1):
+            score += downloads[year][month] * multiplier
+            multiplier = multiplier * (1.0 - backoff)
+        sql = "INSERT INTO hotness_ranks_working (article, score) VALUES (%s, %s);"
+        cursor.execute(sql, (article, score))
+    # once all the scores are calculated, rank em all:
+    print("Ranking articles by hotness...")
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT article, score FROM hotness_ranks_working ORDER BY score DESC;")
+      sql = "UPDATE hotness_ranks_working SET rank=%s WHERE article=%s;"
+      params = [(rank, record[1]) for rank, record in enumerate(cursor, start=1)]
+      cursor.executemany(sql, params)
+      self.connection.db.commit()
+    with self.connection.db.cursor() as cursor:
+      print("Activating current results.")
+      # once it's all done, shuffle the tables around so the new results are active
+      cursor.execute("ALTER TABLE hotness_ranks RENAME TO hotness_ranks_temp")
+      cursor.execute("ALTER TABLE hotness_ranks_working RENAME TO hotness_ranks")
+      cursor.execute("ALTER TABLE hotness_ranks_temp RENAME TO hotness_ranks")
     self.connection.db.commit()
 
   def _rank_articles_categories(self, category):
@@ -456,8 +502,8 @@ def full_run(spider, collection="bioinformatics"):
   spider.find_record_new_articles(collection)
   spider.fetch_abstracts()
   spider.calculate_vectors()
-  # spider.refresh_article_stats(collection)
-  # spider.process_rankings()
+  spider.refresh_article_stats(collection)
+  spider.process_rankings()
 
 if __name__ == "__main__":
   spider = Spider()

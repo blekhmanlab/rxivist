@@ -44,6 +44,12 @@
                     selected
                   %end
                   >since last month</option>
+
+                  <option value="hotness"
+                  %if timeframe == "hotness":
+                    selected
+                  %end
+                  >aggregate hotness</option>
                 </select>
                 <div class="input-group-append">
                   <button type="submit" class="btn btn-altcolor">Search</button>

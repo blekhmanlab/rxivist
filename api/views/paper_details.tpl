@@ -33,13 +33,15 @@
               <h3>Downloads over time</h3>
               <canvas id="downloadsOverTime"></canvas>
             </div>
-            <div class="col-md-6">
-              <h3>Distribution of downloads, site-wide</h3>
-              <canvas id="downloadsDistribution"></canvas>
-            </div>
+            % if paper.downloads is not None:
+              <div class="col-md-6">
+                <h3>Distribution of downloads, site-wide</h3>
+                <canvas id="downloadsDistribution"></canvas>
+              </div>
+              %include("components/download_distribution", paper=paper, download_distribution=download_distribution)
+            % end
           </div>
           %include("components/download_graph", paper=paper)
-          %include("components/download_distribution", paper=paper, download_distribution=download_distribution)
 
         </div>
       </div>
