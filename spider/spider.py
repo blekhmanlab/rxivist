@@ -129,10 +129,25 @@ class Article(object):
     return author_ids
 
   def _link_authors(self, author_ids, connection):
-    with connection.db.cursor() as cursor:
-      sql = "INSERT INTO article_authors (article, author) VALUES (%s, %s) RETURNING id;"
-      cursor.executemany(sql, [(self.id, x) for x in author_ids])
-      connection.db.commit()
+    try:
+      with connection.db.cursor() as cursor:
+        sql = "INSERT INTO article_authors (article, author) VALUES (%s, %s);"
+        cursor.executemany(sql, [(self.id, x) for x in author_ids])
+        connection.db.commit()
+    except Exception as e:
+      # If there's an error associating all the authors with their paper all at once,
+      # send separate queries for each one
+      # (This came up last time because an author was listed twice on the same paper.)
+      print("ERROR associating authors to paper: {}".format(e))
+      print("Recording article associations one at a time.")
+      for x in author_ids:
+        try:
+          with connection.db.cursor() as cursor:
+            cursor.execute("INSERT INTO article_authors (article, author) VALUES (%s, %s);", (self.id, x))
+            connection.db.commit()
+        except Exception as e:
+          print("ERROR: Another problem associating author {} to article {}. Moving on.".format(x, self.id))
+          pass
 
 def determine_page_count(html):
   # takes a biorxiv results page and
