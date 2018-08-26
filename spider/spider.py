@@ -13,7 +13,7 @@ import config
 TESTING = False    # this is just for testing, so we don't crawl the whole site during development TODO delete
 testing_pagecount = 50
 
-stop_on_recognized = False # whether to stop crawling a collection once we
+stop_on_recognized = True # whether to stop crawling a collection once we
                            # encounter a paper that's already been indexed, or
                            # if every crawling session should look on every page
                            # for unindexed papers.
@@ -223,8 +223,18 @@ class Spider(object):
         stat_table = self.get_article_stats(url)
         self.save_article_stats(article_id, stat_table)
 
-  def get_article_abstract(self, url):
-    resp = self.session.get(url)
+  def get_article_abstract(self, url, retry=True):
+    try:
+      resp = self.session.get(url)
+    except Exception as e:
+      print("Error fetching abstract: {}".format(e))
+      if retry:
+        print("Retrying:")
+        time.sleep(3)
+        self.get_article_abstract(url, False)
+      else:
+        print("Giving up on this one for now.")
+        return False # TODO: this should be an exception
     abstract = resp.html.find("#p-2")
     if len(abstract) < 1:
       return False # TODO: this should be an exception
@@ -543,6 +553,9 @@ def full_run(spider, collection="bioinformatics"):
   spider.find_record_new_articles(collection)
   spider.fetch_abstracts()
   spider.calculate_vectors()
+
+  # TODO: We should find new articles in *all* categories before
+  # refreshing stats, to make sure we know about all revisions that have happened
   spider.refresh_article_stats(collection)
   spider.process_rankings()
 
