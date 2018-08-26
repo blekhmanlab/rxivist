@@ -7,7 +7,7 @@
   <li><strong>Download rankings, all-time:</strong>
     <ul>
       <li>Site-wide: <strong>{{ format(paper.ranks.alltime.rank, ",d") }}</strong> out of {{ format(paper.ranks.alltime.out_of, ",d") }}</li>
-      <li>In {{paper.collection}}: <strong>{{ format(paper.ranks.collection.rank, ",d") }}</strong> out of {{ format(paper.ranks.collection.out_of, ",d") }}</li>
+      <li>In {{ helpers.formatCategory(paper.collection) }}: <strong>{{ format(paper.ranks.collection.rank, ",d") }}</strong> out of {{ format(paper.ranks.collection.out_of, ",d") }}</li>
     </ul>
   </li>
   <li><strong>Download rankings, year to date</strong>:

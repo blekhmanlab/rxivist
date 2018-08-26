@@ -1,3 +1,4 @@
+% import helpers
 <!doctype html>
 <html lang="en">
   <head>
@@ -32,11 +33,11 @@
                 <select class="form-control col-sm-4" id="category" name="category">
                   <option value="">all categories</option>
                   % for cat in category_list:
-                    <option
+                    <option value="{{cat}}"
                     % if cat in category_filter:
                       selected
                     % end
-                    >{{cat}}</option>
+                    >{{ helpers.formatCategory(cat) }}</option>
                   %end
                 </select>
                 <select class="form-control  col-sm-4" id="timeframe" name="timeframe">
@@ -81,7 +82,7 @@
           %if len(category_filter) > 0:
             <h4 style="padding-left: 20px;">in categor{{ "ies:" if len(category_filter) > 1 else "y" }}
               % for i, cat in enumerate(category_filter):
-                {{ cat }}{{", " if i < (len(category_filter)-1) else ""}}
+                {{ helpers.formatCategory(cat) }}{{", " if i < (len(category_filter)-1) else ""}}
               %end
             </h4>
           %end
@@ -100,7 +101,7 @@
                       % end
                     </span>
                     % if len(category_filter) != 1:
-                      <span class="badge badge-secondary" style="margin-left: 10px;">{{result.collection}}</span>
+                      <span class="badge badge-secondary" style="margin-left: 10px;">{{ helpers.formatCategory(result.collection) }}</span>
                     % end
                     % if result.date.month is not None:
                       <span class="badge badge-secondary" style="margin-left: 10px;">{{result.date.monthname}} {{result.date.year}}</span>

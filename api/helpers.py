@@ -43,3 +43,6 @@ def month_name(monthnum):
   if monthnum is None or monthnum < 1 or monthnum > 12:
     return ""
   return months[monthnum]
+
+def formatCategory(cat):
+  return cat.replace("-", " ")
