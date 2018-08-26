@@ -3,9 +3,11 @@ from datetime import datetime
 import re
 import sys
 import time
+import math
 
 import psycopg2
 from requests_html import HTMLSession
+import requests
 
 import db
 import config
@@ -200,6 +202,39 @@ class Spider(object):
     self.connection = db.Connection(config.db["host"], config.db["db"], config.db["user"], config.db["password"])
     self.session = HTMLSession(mock_browser=False)
     self.session.headers['User-Agent'] = "rxivist web crawler (rxivist.org)"
+
+  def pull_altmetric_data(self):
+    headers = {'user-agent': 'rxivist web crawler (rxivist.org)'}
+    print("Fetching Altmetric data")
+    r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&page=1", headers=headers)
+    if r.status_code != 200:
+      return
+    results = r.json()
+    result_count = 1
+    if "query" in results.keys() and "total" in results["query"]:
+      result_count = results["query"]["total"]
+    last_page = math.ceil(result_count / 100)
+    print("Total results are {}, meaning {} pages".format(result_count, last_page))
+    for page in range(1, last_page + 1):
+      time.sleep(1) # 1 per second limit
+      print("Fetching page {}".format(page))
+      r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&page={}".format(page), headers=headers)
+      results = r.json()
+      for result in results["results"]:
+        if "doi" not in result.keys():
+          continue
+        with self.connection.db.cursor() as cursor:
+          cursor.execute("SELECT id FROM articles WHERE doi=%s;", (result["doi"],))
+          article_id = cursor.fetchone()
+          if article_id is None: # if we don't know about the article that was mentioned, bail
+            continue
+          print("Found a recognized article! Paper {}, DOI {}".format(article_id, result["doi"]))
+          sql = "INSERT INTO altmetric_daily (article, score, week_score, tweets, altmetric_id) VALUES (%s, %s, %s, %s, %s);"
+          score = result.get("score", 0)
+          week_score = result["history"].get("1w", 0)
+          tweets = result.get("cited_by_tweeters_count", 0)
+          altmetric_id = result.get("altmetric_id", 0)
+          cursor.execute(sql, (article_id, score, week_score, tweets, altmetric_id))
 
   def find_record_new_articles(self, collection):
     # we need to grab the first page to figure out how many pages there are
@@ -589,5 +624,7 @@ if __name__ == "__main__":
       print("Must specify collection to refresh traffic stats for.")
   elif sys.argv[1] == "distro":
     spider._calculate_download_distributions()
+  elif sys.argv[1] == "altmetric":
+    spider.pull_altmetric_data()
   else:
     full_run(spider, sys.argv[1])
