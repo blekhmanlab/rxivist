@@ -72,11 +72,11 @@ def most_popular(connection, q, categories, timeframe, metric):
     query += """, to_tsquery(%s) query,
     coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'D')) totalvector
     """
-  if q != "" or len(categories) > 0:
+  if q != "" or len(categories) > 0 or metric == "altmetric":
     query += " WHERE "
   if q != "":
     query += "query @@ totalvector "
-    if len(categories) > 0:
+    if len(categories) > 0 or metric == "altmetric":
       query += " AND "
 
   if len(categories) > 0:
@@ -85,6 +85,10 @@ def most_popular(connection, q, categories, timeframe, metric):
       params = (q,categories)
     else:
       params = (categories,)
+    if metric == "altmetric":
+      query += " AND "
+  if metric == "altmetric":
+      query += "r.crawled > now() - interval '2 days'"
   query += " ORDER BY "
   if metric == "downloads":
     query += "r.rank ASC"
