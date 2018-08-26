@@ -85,9 +85,16 @@ class Article(object):
         first = entry.find(".nlm-collab")[0].text
         last = ""
       else:
-        first = entry.find(".nlm-given-names")[0].text
-        last = entry.find(".nlm-surname")[0].text
-      self.authors.append(Author(first, last))
+        if len(entry.find(".nlm-given-names")) > 0:
+          first = entry.find(".nlm-given-names")[0].text
+        else:
+          first = ""
+        if len(entry.find(".nlm-surname")) > 0:
+          last = entry.find(".nlm-surname")[0].text
+        else:
+          last = ""
+      if (first != last) and (first != ""): # if we have a name at all
+        self.authors.append(Author(first, last))
 
   def record(self, connection, spider):
     with connection.db.cursor() as cursor:
@@ -168,7 +175,16 @@ class Article(object):
 def determine_page_count(html):
   # takes a biorxiv results page and
   # finds the highest page number listed
-  return int(html.find(".pager-last")[0].text)
+  last = html.find(".pager-last")
+  if len(last) > 0:
+    return int(last[0].text)
+  # if there isn't a break in the list of page numbers (i.e. when there are
+  # only a couple pages of results), pager-last won't be there, so just grab
+  # the highest page number:
+  pages = html.find(".pager-item")
+  if len(pages) > 0:
+    return int(pages[-1].text)
+  return 0
 
 def pull_out_articles(html, collection):
   entries = html.find(".highwire-article-citation")
@@ -224,6 +240,7 @@ class Spider(object):
         self.save_article_stats(article_id, stat_table)
 
   def get_article_abstract(self, url, retry=True):
+    time.sleep(1) # checking if we get rate limited?
     try:
       resp = self.session.get(url)
     except Exception as e:
