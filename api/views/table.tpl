@@ -4,18 +4,18 @@
     %include("components/metadata.tpl")
     <title>Rxivist: Popular biology pre-print papers ranked</title>
 
-    <link rel="stylesheet" href="https://cdn.rawgit.com/angular-ui/bower-ui-grid/master/ui-grid.min.css"/>
-    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.7.0/angular.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.7.0/angular-touch.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.7.0/angular-animate.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.7.0/angular-aria.js"></script>
-    <script src="http://ui-grid.info/docs/grunt-scripts/csv.js"></script>
-    <script src="http://ui-grid.info/docs/grunt-scripts/pdfmake.js"></script>
-    <script src="http://ui-grid.info/docs/grunt-scripts/vfs_fonts.js"></script>
-    <script src="http://ui-grid.info/docs/grunt-scripts/lodash.min.js"></script>
-    <script src="http://ui-grid.info/docs/grunt-scripts/jszip.min.js"></script>
-    <script src="http://ui-grid.info/docs/grunt-scripts/excel-builder.dist.js"></script>
-    <script src="https://cdn.rawgit.com/angular-ui/bower-ui-grid/master/ui-grid.min.js"></script>
+    <link rel="stylesheet" href="//cdn.rawgit.com/angular-ui/bower-ui-grid/master/ui-grid.min.css"/>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.7.0/angular.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.7.0/angular-touch.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.7.0/angular-animate.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.7.0/angular-aria.js"></script>
+    <script src="//ui-grid.info/docs/grunt-scripts/csv.js"></script>
+    <script src="//ui-grid.info/docs/grunt-scripts/pdfmake.js"></script>
+    <script src="//ui-grid.info/docs/grunt-scripts/vfs_fonts.js"></script>
+    <script src="//ui-grid.info/docs/grunt-scripts/lodash.min.js"></script>
+    <script src="//ui-grid.info/docs/grunt-scripts/jszip.min.js"></script>
+    <script src="//ui-grid.info/docs/grunt-scripts/excel-builder.dist.js"></script>
+    <script src="//cdn.rawgit.com/angular-ui/bower-ui-grid/master/ui-grid.min.js"></script>
     <style>
       .myGrid {
         width: 100%;
