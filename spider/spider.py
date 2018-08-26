@@ -311,6 +311,14 @@ class Spider(object):
     return stats
 
   def save_article_stats(self, article_id, stats):
+    # First, delete the most recently fetched month, because it was probably recorded before
+    # that month was complete:
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT MAX(month) FROM article_traffic WHERE year = 2018 AND article=%s;", (article_id,))
+      month = cursor.fetchone()
+      if month is not None and len(month) > 0:
+        month = month[0]
+        cursor.execute("DELETE FROM article_traffic WHERE year = 2018 AND article=%s AND month = %s", (article_id, month))
     with self.connection.db.cursor() as cursor:
       # we check for which ones are already recorded because
       # the postgres UPSERT feature is bananas
