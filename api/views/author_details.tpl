@@ -55,6 +55,8 @@
         <div class="col-md-8 offset-md-2">
           <h3>Downloads per author, site-wide</h3>
           <canvas id="downloadsDistribution"></canvas>
+          <br>
+          <canvas id="downloadsDistributionNoLog"></canvas>
         </div>
         %include("components/download_distribution", entity=author, entity_name="author", download_distribution=download_distribution)
       </div>
