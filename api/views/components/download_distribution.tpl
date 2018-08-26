@@ -53,7 +53,8 @@ window.onload = function() {
           scaleLabel: {
             display: true,
             labelString: '{{entity_name}} count'
-          }
+          },
+          type: 'logarithmic'
         }],
         xAxes: [{
           scaleLabel: {
