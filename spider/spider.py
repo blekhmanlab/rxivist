@@ -206,7 +206,7 @@ class Spider(object):
   def pull_altmetric_data(self):
     headers = {'user-agent': 'rxivist web crawler (rxivist.org)'}
     print("Fetching Altmetric data")
-    r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&page=1", headers=headers)
+    r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&doi_prefix=10.1101&page=1", headers=headers)
     if r.status_code != 200:
       return
     results = r.json()
@@ -218,7 +218,9 @@ class Spider(object):
     for page in range(1, last_page + 1):
       time.sleep(1) # 1 per second limit
       print("Fetching page {}".format(page))
-      r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&page={}".format(page), headers=headers)
+      # TODO: Validate that DOI prefix 10.1101 is bioRxiv, and that we won't miss
+      # papers that somehow get another prefix.
+      r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&doi_prefix=10.1101&page={}".format(page), headers=headers)
       results = r.json()
       for result in results["results"]:
         if "doi" not in result.keys():
@@ -229,12 +231,13 @@ class Spider(object):
           if article_id is None: # if we don't know about the article that was mentioned, bail
             continue
           print("Found a recognized article! Paper {}, DOI {}".format(article_id, result["doi"]))
-          sql = "INSERT INTO altmetric_daily (article, score, week_score, tweets, altmetric_id) VALUES (%s, %s, %s, %s, %s);"
+          sql = "INSERT INTO altmetric_daily (article, score, day_score, week_score, tweets, altmetric_id) VALUES (%s, %s, %s, %s, %s, %s);"
           score = result.get("score", 0)
+          day_score = result["history"].get("1d", 0)
           week_score = result["history"].get("1w", 0)
           tweets = result.get("cited_by_tweeters_count", 0)
           altmetric_id = result.get("altmetric_id", 0)
-          cursor.execute(sql, (article_id, score, week_score, tweets, altmetric_id))
+          cursor.execute(sql, (article_id, score, day_score, week_score, tweets, altmetric_id))
 
   def find_record_new_articles(self, collection):
     # we need to grab the first page to figure out how many pages there are

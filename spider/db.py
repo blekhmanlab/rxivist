@@ -32,7 +32,7 @@ class Connection(object):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_authors (id SERIAL PRIMARY KEY, article integer NOT NULL, author integer NOT NULL, UNIQUE (article, author));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_traffic (id SERIAL PRIMARY KEY, article integer NOT NULL, month integer, year integer NOT NULL, abstract integer, pdf integer, UNIQUE (article, month, year));")
 
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS altmetric_daily (id SERIAL PRIMARY KEY, article integer, crawled DATE NOT NULL DEFAULT CURRENT_DATE, score integer, week_score integer, tweets integer, altmetric_id integer);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS altmetric_daily (id SERIAL PRIMARY KEY, article integer, crawled DATE NOT NULL DEFAULT CURRENT_DATE, score integer, day_score integer, week_score integer, tweets integer, altmetric_id integer);")
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS alltime_ranks (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS alltime_ranks_working (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
