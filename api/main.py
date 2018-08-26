@@ -35,8 +35,12 @@ def index():
   if timeframe not in ["ytd", "lastmonth", "hotness"]:
     timeframe = "alltime"
 
+  title = "Most "
   if metric == "altmetric":
     timeframe = "day" # only option for now
+    title += "discussed"
+  elif metric == "downloads":
+    title += "downloaded"
 
   # Get rid of a category filter that's just one empty parameter:
   if len(category_filter) == 1 and category_filter[0] == "":
@@ -47,7 +51,10 @@ def index():
   error = ""
   results = {}
 
-  title = "Most popular papers related to \"{},\" ".format(query) if query != "" else "Most popular bioRxiv papers, "
+  if query != "":
+    title += " papers related to \"{},\" ".format(query)
+  else:
+    title += " bioRxiv papers, "
   printable_times = {
     "alltime": "all time",
     "ytd": "year to date",

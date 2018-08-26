@@ -92,7 +92,13 @@
                   <div class="card-header context" id="heading{{result.id}}"  data-toggle="collapse" data-target="#collapse{{result.id}}" aria-expanded="true" aria-controls="collapse{{result.id}}">
                     <strong>{{i+1}}:</strong> {{result.title}}
                     <br>
-                    <span class="badge badge-secondary" style="margin-left: 10px;">{{result.downloads}} downloads</span>
+                    <span class="badge badge-secondary" style="margin-left: 10px;">
+                      % if metric == "downloads":
+                        {{ format(result.downloads, ",d") }} downloads
+                      % elif metric == "altmetric":
+                        Score today: {{ format(result.downloads, ",d") }}
+                      % end
+                    </span>
                     % if len(category_filter) != 1:
                       <span class="badge badge-secondary" style="margin-left: 10px;">{{result.collection}}</span>
                     % end

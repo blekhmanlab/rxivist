@@ -17,11 +17,11 @@
         <div class="col-sm-12">
           <h1>Author: {{author.full}}</h1>
           <ul>
-            <li>All-time downloads: {{author.downloads}} (rank: <strong>{{author.rank.rank}}</strong>
+            <li>All-time downloads: {{ format(author.downloads, ",d") }} (rank: <strong>{{ format(author.rank.rank, ",d") }}</strong>
             %if author.rank.tie:
               (tie)
             %end
-            out of {{author.rank.out_of}})
+            out of {{ format(author.rank.out_of, ",d") }})
           </ul>
         </div>
       </div>
@@ -42,7 +42,7 @@
                 %elif len(result.authors) == 2:
                   1 coauthor
                 %else:
-                  {{ len(result.authors)-1 }} coauthors
+                  {{ format(len(result.authors)-1, ",d") }} coauthors
                 %end
               </li>
             </ul>
