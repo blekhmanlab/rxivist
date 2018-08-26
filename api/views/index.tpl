@@ -16,8 +16,20 @@
               <div class="input-group mb-3 col-sm-9">
                 <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here (optional)" value="{{query}}">
               </div>
-              <div class="input-group mb-3 col-md-6">
-                <select class="form-control col-sm-6" id="category" name="category">
+              <div class="input-group mb-3 col-md-9">
+                <select class="form-control  col-sm-4" id="metric" name="metric">
+                  <option value="downloads"
+                  %if metric == "downloads":
+                    selected
+                  %end
+                  >downloads</option>
+                  <option value="altmetric"
+                  %if metric == "altmetric":
+                    selected
+                  %end
+                  >Altmetric score</option>
+                </select>
+                <select class="form-control col-sm-4" id="category" name="category">
                   <option value="">all categories</option>
                   % for cat in category_list:
                     <option
@@ -27,7 +39,7 @@
                     >{{cat}}</option>
                   %end
                 </select>
-                <select class="form-control  col-sm-6" id="timeframe" name="timeframe">
+                <select class="form-control  col-sm-4" id="timeframe" name="timeframe">
                   <option value="alltime"
                   %if timeframe == "alltime":
                     selected

@@ -26,10 +26,17 @@ def index():
   query = bottle.request.query.q
   timeframe = bottle.request.query.timeframe
   category_filter = bottle.request.query.getall('category') # multiple params possible
+  metric = bottle.request.query.metric
+
+  if metric not in ["downloads", "altmetric"]:
+    metric = "downloads"
 
   # make sure it's a timeframe we recognize
   if timeframe not in ["ytd", "lastmonth", "hotness"]:
     timeframe = "alltime"
+
+  if metric == "altmetric":
+    timeframe = "day" # only option for now
 
   # Get rid of a category filter that's just one empty parameter:
   if len(category_filter) == 1 and category_filter[0] == "":
@@ -45,12 +52,13 @@ def index():
     "alltime": "all time",
     "ytd": "year to date",
     "lastmonth": "since beginning of last month",
-    "hotness": "aggregate hotness score"
+    "hotness": "aggregate hotness score",
+    "day": "last 24 hours"
   }
   title += printable_times[timeframe]
 
   try:
-    results = endpoints.most_popular(connection, query, category_filter, timeframe)
+    results = endpoints.most_popular(connection, query, category_filter, timeframe, metric)
   except Exception as e:
     print(e)
     error = "There was a problem with the submitted query."
@@ -59,7 +67,7 @@ def index():
   return bottle.template('index', results=results,
     query=query, category_filter=category_filter, title=title,
     error=error, stats=stats, category_list=category_list,
-    timeframe=timeframe)
+    timeframe=timeframe, metric=metric)
 
 # ---- full display thing
 @bottle.get('/table')

@@ -30,7 +30,7 @@ def get_categories(connection):
       results.append(cat[0])
   return results
 
-def most_popular(connection, q, categories, timeframe):
+def most_popular(connection, q, categories, timeframe, metric):
   """Returns a list of the 20 most downloaded papers that meet a given set of constraints.
 
   Arguments:
@@ -45,19 +45,27 @@ def most_popular(connection, q, categories, timeframe):
 
   # TODO: validate that the category filters passed in are actual categories
 
-  query = "SELECT r.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year"
+  query = "SELECT "
+  if metric == "downloads":
+    query += "r.downloads"
+  elif metric == "altmetric":
+    query += "r.day_score"
+  query += ", a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year"
   params = ()
   if q != "": # if there's a text search specified
     params = (q,)
     query += ", ts_rank_cd(totalvector, query) as rank"
   query += " FROM articles AS a INNER JOIN "
-  query_times = {
-    "alltime": "alltime_ranks",
-    "ytd": "ytd_ranks",
-    "lastmonth": "month_ranks",
-    "hotness": "hotness_ranks"
-  }
-  query += query_times[timeframe]
+  if metric == "altmetric":
+    query += "altmetric_daily"
+  elif metric == "downloads":
+    query_times = {
+      "alltime": "alltime_ranks",
+      "ytd": "ytd_ranks",
+      "lastmonth": "month_ranks",
+      "hotness": "hotness_ranks",
+    }
+    query += query_times[timeframe]
   query += " AS r ON r.article=a.id"
 
   if q != "":
@@ -77,7 +85,12 @@ def most_popular(connection, q, categories, timeframe):
       params = (q,categories)
     else:
       params = (categories,)
-  query += " ORDER BY r.rank ASC LIMIT 20;"
+  query += " ORDER BY "
+  if metric == "downloads":
+    query += "r.rank ASC"
+  elif metric == "altmetric":
+    query += "r.day_score DESC"
+  query += " LIMIT 20;"
   with connection.db.cursor() as cursor:
     cursor.execute(query, params)
     results = [models.SearchResultArticle(a, connection) for a in cursor]
