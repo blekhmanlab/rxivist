@@ -605,8 +605,15 @@ class Spider(object):
         })
       sql = "INSERT INTO author_ranks_working (author, rank, downloads, tie) VALUES (%s, %s, %s, %s);"
       params = [(record["id"], record["rank"], record["downloads"], record["tie"]) for record in ranks]
-      print("Recording...")
-      cursor.executemany(sql, params)
+      print("Recording {} ranks...".format(len(params)))
+
+      start = 0
+      interval = 1000
+      while True:
+        end = start + interval if start + interval < len(params) else len(params)
+        print("Recording ranks {} through {}...".format(start, end-1))
+        cursor.executemany(sql, params[start:end])
+        start += interval
 
       print("Activating current results.")
       # once it's all done, shuffle the tables around so the new results are active
