@@ -18,7 +18,7 @@
         <div class="col-sm-12">
           <h1>Author: {{author.full}}</h1>
           <ul>
-            <li>All-time downloads: {{ helpers.formatNumber(author.downloads) }} (rank: <strong>{{ format(author.rank.rank) }}</strong>
+            <li>All-time downloads: {{ helpers.formatNumber(author.downloads) }} (rank: <strong>{{ helpers.formatNumber(author.rank.rank) }}</strong>
             %if author.rank.tie:
               (tie)
             %end

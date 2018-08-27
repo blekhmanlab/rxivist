@@ -13,7 +13,7 @@
     <div class="col col-md-5 col-sm-12">
       <ul>
         <li><strong>Rxivist is in development.</strong> If you're here, you're almost definitely lost.
-        <li>Currently indexing <strong>{{ helpers.formatNumber(stats.paper_count) }} papers</strong> from <strong>{{ format(stats.author_count) }} authors</strong>
+        <li>Currently indexing <strong>{{ helpers.formatNumber(stats.paper_count) }} papers</strong> from <strong>{{ helpers.formatNumber(stats.author_count) }} authors</strong>
         <li><a href="#" data-toggle="modal" data-target="#about">About the project</a>
       </ul>
     </div>
