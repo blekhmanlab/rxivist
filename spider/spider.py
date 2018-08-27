@@ -384,15 +384,15 @@ class Spider(object):
     self._calculate_download_distributions()
 
   def _calculate_download_distributions(self):
-    print("Calculating distribution of download counts.")
+    print("Calculating distribution of download counts with logarithmic scales.")
     tasks = [
       {
         "name": "alltime",
-        "bucket_size": 5
+        "scale_power": 1.5
       },
       {
         "name": "author",
-        "bucket_size": 25
+        "scale_power": 1.5
       },
     ]
     for task in tasks:
@@ -403,13 +403,26 @@ class Spider(object):
         cursor.execute("SELECT MAX(downloads) FROM {}_ranks;".format(task["name"]))
         biggest = cursor.fetchone()[0]
         # then set up all the empty buckets (so they aren't missing when we draw the graph)
-        for bucket in range(0, biggest + task["bucket_size"], task["bucket_size"]):
+        buckets = [0, task["scale_power"]]
+        current = task["scale_power"]
+        while True:
+          current = current * task["scale_power"]
+          buckets.append(current)
+          if current > biggest:
+            break
+        print("Buckets determined! {} buckets between 0 and {}".format(len(buckets), buckets[-1]))
+        for bucket in buckets:
           results[bucket] = 0
         # now fill in the buckets:
         cursor.execute("SELECT downloads FROM {}_ranks ORDER BY downloads ASC;".format(task["name"]))
         for entity in cursor:
           if len(entity) > 0:
-            results[int(entity[0] / task["bucket_size"]) * task["bucket_size"]] += 1
+            # determine what bucket it's in:
+            target = 0
+            for bucket_num, bucket in enumerate(buckets):
+              if entity[0] < bucket:
+                results[buckets[bucket_num-1]] += 1
+                break
         cursor.execute("DELETE FROM download_distribution WHERE category=%s", (task["name"],))
         sql = "INSERT INTO download_distribution (bucket, count, category) VALUES (%s, %s, %s);"
         params = [(bucket, count, task["name"]) for bucket, count in results.items()]
