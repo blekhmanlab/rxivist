@@ -95,9 +95,9 @@
                     <br>
                     <span class="badge badge-secondary" style="margin-left: 10px;">
                       % if metric == "downloads":
-                        {{ format(result.downloads, ",d") }} downloads
+                        {{ helpers.formatNumber(result.downloads) }} downloads
                       % elif metric == "altmetric":
-                        Score today: {{ format(result.downloads, ",d") }}
+                        Score today: {{ helpers.formatNumber(result.downloads) }}
                       % end
                     </span>
                     % if len(category_filter) != 1:

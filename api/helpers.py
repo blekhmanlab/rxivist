@@ -46,3 +46,8 @@ def month_name(monthnum):
 
 def formatCategory(cat):
   return cat.replace("-", " ")
+
+def formatNumber(val):
+  if val is None:
+    return "None"
+  return format(val, ",d")

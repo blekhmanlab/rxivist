@@ -1,3 +1,4 @@
+% import helpers
 <!doctype html>
 <html lang="en">
   <head>
@@ -17,11 +18,11 @@
         <div class="col-sm-12">
           <h1>Author: {{author.full}}</h1>
           <ul>
-            <li>All-time downloads: {{ format(author.downloads, ",d") }} (rank: <strong>{{ format(author.rank.rank, ",d") }}</strong>
+            <li>All-time downloads: {{ helpers.formatNumber(author.downloads) }} (rank: <strong>{{ format(author.rank.rank) }}</strong>
             %if author.rank.tie:
               (tie)
             %end
-            out of {{ format(author.rank.out_of, ",d") }})
+            out of {{ helpers.formatNumber(author.rank.out_of) }})
           </ul>
         </div>
       </div>
@@ -42,7 +43,7 @@
                 %elif len(result.authors) == 2:
                   1 coauthor
                 %else:
-                  {{ format(len(result.authors)-1, ",d") }} coauthors
+                  {{ helpers.formatNumber(len(result.authors)-1) }} coauthors
                 %end
               </li>
             </ul>

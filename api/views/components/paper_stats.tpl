@@ -1,4 +1,5 @@
-{{ format(paper.downloads, ",d") }} downloads
+% import helpers
+{{ helpers.formatNumber(paper.downloads) }} downloads
   %if paper.date.monthname != "":
     since {{paper.date.monthname}} {{paper.date.year}}
   %end
@@ -6,18 +7,18 @@
 <ul>
   <li><strong>Download rankings, all-time:</strong>
     <ul>
-      <li>Site-wide: <strong>{{ format(paper.ranks.alltime.rank, ",d") }}</strong> out of {{ format(paper.ranks.alltime.out_of, ",d") }}</li>
-      <li>In {{ helpers.formatCategory(paper.collection) }}: <strong>{{ format(paper.ranks.collection.rank, ",d") }}</strong> out of {{ format(paper.ranks.collection.out_of, ",d") }}</li>
+      <li>Site-wide: <strong>{{ helpers.formatNumber(paper.ranks.alltime.rank) }}</strong> out of {{ format(paper.ranks.alltime.out_of) }}</li>
+      <li>In {{ helpers.formatCategory(paper.collection) }}: <strong>{{ helpers.formatNumber(paper.ranks.collection.rank) }}</strong> out of {{ format(paper.ranks.collection.out_of) }}</li>
     </ul>
   </li>
   <li><strong>Download rankings, year to date</strong>:
     <ul>
-      <li>Site-wide: <strong>{{ format(paper.ranks.ytd.rank, ",d") }}</strong> out of {{ format(paper.ranks.ytd.out_of, ",d") }}</li>
+      <li>Site-wide: <strong>{{ helpers.formatNumber(paper.ranks.ytd.rank) }}</strong> out of {{ format(paper.ranks.ytd.out_of) }}</li>
     </ul>
   </li>
   <li><strong>Download rankings since beginning of last month</strong>:
     <ul>
-      <li>Site-wide: <strong>{{ format(paper.ranks.lastmonth.rank, ",d") }}</strong> out of {{ format(paper.ranks.lastmonth.out_of, ",d") }}</li>
+      <li>Site-wide: <strong>{{ helpers.formatNumber(paper.ranks.lastmonth.rank) }}</strong> out of {{ format(paper.ranks.lastmonth.out_of) }}</li>
     </ul>
   </li>
 </ul>
