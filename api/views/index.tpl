@@ -86,6 +86,10 @@
               %end
             </h4>
           %end
+
+          % if metric == "altmetric":
+            <p><em>Note: Currently, the only timeframe available for Altmetric searches is "last 24 hours."</em></p>
+          % end
           % if len(results) > 0:
             <div class="accordion" id="alltime">
               % for i, result in enumerate(results):
