@@ -245,8 +245,9 @@ class Spider(object):
         with self.connection.db.cursor() as cursor:
           cursor.execute("SELECT id FROM articles WHERE doi=%s;", (result["doi"],))
           article_id = cursor.fetchone()
-          if article_id is None: # if we don't know about the article that was mentioned, bail
+          if article_id is None or len(article_id) == 0: # if we don't know about the article that was mentioned, bail
             continue
+          article_id = article_id[0]
           print("Found a recognized article! Paper {}, DOI {}".format(article_id, result["doi"]))
           sql = "INSERT INTO altmetric_daily (article, score, day_score, week_score, tweets, altmetric_id) VALUES (%s, %s, %s, %s, %s, %s);"
           score = result.get("score", 0)
@@ -390,6 +391,15 @@ class Spider(object):
         self.connection.db.commit()
       print("Recorded {} stats for ID {}".format(len(to_record), article_id))
 
+  def fetch_categories(self):
+    categories = []
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT DISTINCT collection FROM articles ORDER BY collection;")
+      for cat in cursor:
+        if len(cat) > 0:
+          categories.append(cat[0])
+    return categories
+
   def process_rankings(self):
     # pulls together all the separate ranking calls
     self._rank_articles_alltime()
@@ -398,13 +408,7 @@ class Spider(object):
     # self._rank_articles_bouncerate()
     # self._rank_articles_hotness()
 
-    categories = []
-    with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT DISTINCT collection FROM articles ORDER BY collection;")
-      for cat in cursor:
-        if len(cat) > 0:
-          categories.append(cat[0])
-    for category in categories:
+    for category in self.fetch_categories():
       self._rank_articles_categories(category)
 
     self._rank_authors_alltime()
@@ -697,15 +701,20 @@ class Spider(object):
       cursor.execute("UPDATE articles SET abstract_vector = to_tsvector(coalesce(abstract,'')) WHERE abstract_vector IS NULL;")
       self.connection.db.commit()
 
-def full_run(spider, collection="bioinformatics"):
-  spider.find_record_new_articles(collection)
-  # spider.fetch_abstracts()
-  # spider.calculate_vectors()
+def full_run(spider, collection=None):
+  if collection is not None:
+    spider.find_record_new_articles(collection)
+  else:
+    print("No collection specified, iterating through all known categories.")
+    for collection in spider.fetch_categories():
+      spider.find_record_new_articles(collection)
+  spider.fetch_abstracts()
+  spider.calculate_vectors()
+  spider.refresh_article_stats(collection)
 
-  # TODO: We should find new articles in *all* categories before
-  # refreshing stats, to make sure we know about all revisions that have happened
-  # spider.refresh_article_stats(collection)
-  # spider.process_rankings()
+  spider.pull_altmetric_data()
+
+  spider.process_rankings()
 
 if __name__ == "__main__":
   spider = Spider()
