@@ -1,14 +1,30 @@
 <script>
 window.onload = function() {
-  var ctx = document.getElementById("downloadsDistribution").getContext('2d');
-  var myChart = new Chart(ctx, {
+  var ctx1 = document.getElementById("downloadsDistribution").getContext('2d');
+
+  // determine which bucket the entity is in:
+  downloads = {{ entity.downloads }};
+  console.log("Downloads: " + downloads);
+  bucket_list = [
+    % for entry in download_distribution:
+      {{entry[0]}},
+    % end
+  ];
+  entityBucket = 0;
+  for(var i=0; i < bucket_list.length; i++) {
+    if(downloads < bucket_list[i]) {
+      entityBucket = bucket_list[i];
+      // NOTE: The entity isn't put into the i-1 bucket, as it should be, because
+      // the line is drawn to the left of the bar in question and ends up looking
+      // like it's in the wrong spot.
+      break;
+    }
+  }
+
+  var myChart = new Chart(ctx1, {
     type: 'bar',
     data: {
-      labels: [
-        % for entry in download_distribution:
-          {{entry[0]}},
-        % end
-      ],
+      labels: bucket_list,
       datasets: [
         {
           type: 'bar',
@@ -36,77 +52,24 @@ window.onload = function() {
             type: "line",
             mode: "vertical",
             scaleID: "x-axis-0",
-            value: {{ int(entity.downloads / download_distribution[1][0]) * download_distribution[1][0] }},
+            value: entityBucket,
             borderColor: "red",
             label: {
               content: "THIS {{ entity_name.upper() }}",
               enabled: true,
               position: "top"
             }
-          }
-        ]
-      },
-      scales: {
-        yAxes: [{
-          display: true,
-          position: 'left',
-          scaleLabel: {
-            display: true,
-            labelString: '{{entity_name}} count'
           },
-          type: 'logarithmic'
-        }],
-        xAxes: [{
-          scaleLabel: {
-            display: true,
-            labelString: 'Downloads, all-time'
-          }
-        }],
-      }
-    }
-  });
-  var ctx2 = document.getElementById("downloadsDistributionNoLog").getContext('2d');
-  var myChart2 = new Chart(ctx2, {
-    type: 'bar',
-    data: {
-      labels: [
-        % for entry in download_distribution:
-          {{entry[0]}},
-        % end
-      ],
-      datasets: [
-        {
-          type: 'bar',
-          label: "{{entity_name}}s",
-          backgroundColor: "#2f69bf",
-          data: [
-            % for entry in download_distribution:
-              {{entry[1]}},
-            % end
-          ],
-          lineAtIndex: [
-            100
-          ],
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      legend: {
-        display: false
-      },
-      annotation: {
-        annotations: [
           {
             type: "line",
             mode: "vertical",
             scaleID: "x-axis-0",
-            value: {{ int(entity.downloads / download_distribution[1][0]) * download_distribution[1][0] }},
-            borderColor: "red",
+            value: entityBucket,
+            borderColor: "none",
             label: {
-              content: "THIS {{ entity_name.upper() }}",
+              content: "{{ helpers.formatNumber(entity.downloads) }}",
               enabled: true,
-              position: "top"
+              position: "middle"
             }
           }
         ]
