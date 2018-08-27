@@ -15,7 +15,7 @@
           <div id="searchform">
             <form action="/" method="get">
               <div class="input-group mb-3 col-sm-9">
-                <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here (optional)" value="{{query}}">
+                <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here (optional)" value="{{ query.replace("&", " ") }}">
               </div>
               <div class="input-group mb-3 col-md-9">
                 <select class="form-control  col-sm-4" id="metric" name="metric">
@@ -75,7 +75,7 @@
             {{error}}
           </div>
           %if len(results) == 0:
-            <div><h3>No results found for "{{query}}"</h3></div>
+            <div><h3>No results found for "{{ query.replace("&", " ") }}"</h3></div>
           %else:
             <h2>{{title}}</h2>
           %end
