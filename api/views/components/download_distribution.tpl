@@ -4,7 +4,6 @@ window.onload = function() {
 
   // determine which bucket the entity is in:
   downloads = {{ entity.downloads }};
-  console.log("Downloads: " + downloads);
   bucket_list = [
     % for entry in download_distribution:
       {{entry[0]}},
