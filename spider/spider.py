@@ -12,14 +12,32 @@ import requests
 import db
 import config
 
-TESTING = False    # this is just for testing, so we don't crawl the whole site during development TODO delete
-testing_pagecount = 50
+TESTING = False
+# this is just for testing, so we don't crawl
+# the whole site during development TODO delete
 
-polite = True # whether to add pauses at several places in the crawl
-stop_on_recognized = True # whether to stop crawling a collection once we
-                           # encounter a paper that's already been indexed, or
-                           # if every crawling session should look on every page
-                           # for unindexed papers.
+testing_pagecount = 50
+# how many pages to grab from a single collection
+# before bailing, if TESTING is True
+
+polite = True
+# whether to add pauses at several places in the crawl
+
+stop_on_recognized = True
+# whether to stop crawling once we've encountered a set
+# number of papers that we've already recorded. setting this
+# to 0 would make sense, except if papers are added to a
+# collection WHILE you're indexing it, the crawler dies early.
+# (if this is set to False, the crawler will go through every
+# single page of results for a collection, which is probably
+# wasteful.)
+
+recognized_limit = 20
+# if stop_on_recognized is True, how many papers we have
+# to recognize *in a row* before we assume that we've indexed
+# all the papers at that point in the chronology.
+
+
 
 class Author(object):
   def __init__(self, given, surname):
@@ -110,9 +128,7 @@ class Article(object):
         if responses[0][0] == self.url:
           print("Found article already: {}".format(self.title))
           connection.db.commit()
-          if stop_on_recognized:
-            return False
-          return True
+          return False
         else:
           cursor.execute("UPDATE articles SET url=%s, title=%s, collection=%s WHERE doi=%s RETURNING id;", (self.url, self.title, self.collection, self.doi))
           print("Updated revision for article DOI {}: {}".format(self.doi, self.title))
@@ -245,8 +261,13 @@ class Spider(object):
     print("\n---\n\nFetching page 0 in {}".format(collection))
     r = self.session.get("https://www.biorxiv.org/collection/{}".format(collection))
     results = pull_out_articles(r.html, collection)
-    keep_going = self.record_articles(results)
-    if not keep_going: return # if we already knew about the first entry, we're done
+    consecutive_recognized = 0
+    for x in results:
+      if not x.record(self.connection, self): # TODO: don't pass the whole damn spider here
+        consecutive_recognized += 1
+        if consecutive_recognized > recognized_limit: return
+      else:
+        consecutive_recognized = 0
 
     pagecount = testing_pagecount if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
     for p in range(1, pagecount): # iterate through pages
@@ -255,8 +276,12 @@ class Spider(object):
       print("\n---\n\nFetching page {} in {}".format(p, collection)) # pages are zero-indexed
       r = self.session.get("https://www.biorxiv.org/collection/{}?page={}".format(collection, p))
       results = pull_out_articles(r.html, collection)
-      keep_going = self.record_articles(results)
-      if not keep_going: break # If we encounter a recognized article, we're done
+      for x in results:
+        if not x.record(self.connection, self):
+          consecutive_recognized += 1
+          if consecutive_recognized > recognized_limit: return
+        else:
+          consecutive_recognized = 0
 
   def fetch_abstracts(self):
     with self.connection.db.cursor() as cursor:
@@ -444,7 +469,7 @@ class Spider(object):
       interval = 1000 # assuming we can pass the cursor into it without breaking everything
       while True:
         end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}...".format(start, end-1))
+        print("Recording ranks {} through {}.".format(start, end-1))
         cursor.executemany(sql, params[start:end])
         start += interval
 
@@ -495,7 +520,7 @@ class Spider(object):
       interval = 1000
       while True:
         end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}...".format(start, end-1))
+        print("Recording ranks {} through {}.".format(start, end-1))
         cursor.executemany(sql, params[start:end])
         start += interval
 
@@ -526,7 +551,7 @@ class Spider(object):
       interval = 1000
       while True:
         end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}...".format(start, end-1))
+        print("Recording ranks {} through {}.".format(start, end-1))
         cursor.executemany(sql, params[start:end])
         start += interval
 
@@ -544,7 +569,7 @@ class Spider(object):
       interval = 1000
       while True:
         end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}...".format(start, end-1))
+        print("Recording ranks {} through {}.".format(start, end-1))
         cursor.executemany(sql, params[start:end])
         start += interval
 
@@ -566,7 +591,7 @@ class Spider(object):
       interval = 1000
       while True:
         end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}...".format(start, end-1))
+        print("Recording ranks {} through {}.".format(start, end-1))
         cursor.executemany(sql, params[start:end])
         start += interval
 
@@ -598,7 +623,7 @@ class Spider(object):
       interval = 1000
       while True:
         end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}...".format(start, end-1))
+        print("Recording ranks {} through {}.".format(start, end-1))
         cursor.executemany(sql, params[start:end])
         start += interval
 
@@ -648,7 +673,7 @@ class Spider(object):
       interval = 1000
       while True:
         end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}...".format(start, end-1))
+        print("Recording ranks {} through {}.".format(start, end-1))
         cursor.executemany(sql, params[start:end])
         start += interval
 
@@ -664,12 +689,6 @@ class Spider(object):
       cursor.execute("UPDATE articles SET abstract = %s WHERE id = %s;", (abstract, article_id))
       self.connection.db.commit()
       print("Recorded abstract for ID {}".format(article_id, abstract))
-
-  def record_articles(self, articles):
-    # return value is whether we encountered any articles we had already
-    for x in articles:
-      if not x.record(self.connection, self): return False # TODO: don't pass the whole damn spider here
-    return True
 
   def calculate_vectors(self):
     print("Calculating vectors...")
