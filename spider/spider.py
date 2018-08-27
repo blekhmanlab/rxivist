@@ -399,6 +399,13 @@ class Spider(object):
       results = defaultdict(int)
       print("Calculating download distributions for {}".format(task["name"]))
       with self.connection.db.cursor() as cursor:
+        # first, figure out the biggest bucket:
+        cursor.execute("SELECT MAX(downloads) FROM {}_ranks;".format(task["name"]))
+        biggest = cursor.fetchone()[0]
+        # then set up all the empty buckets (so they aren't missing when we draw the graph)
+        for bucket in range(0, biggest + task["bucket_size"], task["bucket_size"]):
+          results[bucket] = 0
+        # now fill in the buckets:
         cursor.execute("SELECT downloads FROM {}_ranks ORDER BY downloads ASC;".format(task["name"]))
         for entity in cursor:
           if len(entity) > 0:
