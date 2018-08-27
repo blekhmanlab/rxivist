@@ -439,9 +439,15 @@ class Spider(object):
       print("Retrieved download data.")
       sql = "INSERT INTO alltime_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-      print("Recording...")
-      cursor.executemany(sql, params)
-      self.connection.db.commit()
+      print("Recording {} entries...".format(len(params)))
+      start = 0  # TODO: Pull this progress report thing out into a helper function,
+      interval = 1000 # assuming we can pass the cursor into it without breaking everything
+      while True:
+        end = start + interval if start + interval < len(params) else len(params)
+        print("Recording ranks {} through {}...".format(start, end-1))
+        cursor.executemany(sql, params[start:end])
+        start += interval
+
     with self.connection.db.cursor() as cursor:
       print("Activating current results.")
       # once it's all done, shuffle the tables around so the new results are active
@@ -484,8 +490,15 @@ class Spider(object):
       cursor.execute("SELECT article, score FROM hotness_ranks_working ORDER BY score DESC;")
       sql = "UPDATE hotness_ranks_working SET rank=%s WHERE article=%s;"
       params = [(rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-      cursor.executemany(sql, params)
-      self.connection.db.commit()
+      print("Recording {} entries...".format(len(params)))
+      start = 0
+      interval = 1000
+      while True:
+        end = start + interval if start + interval < len(params) else len(params)
+        print("Recording ranks {} through {}...".format(start, end-1))
+        cursor.executemany(sql, params[start:end])
+        start += interval
+
     with self.connection.db.cursor() as cursor:
       print("Activating current results.")
       # once it's all done, shuffle the tables around so the new results are active
@@ -508,8 +521,14 @@ class Spider(object):
       cursor.execute(query, (category,))
       sql = "UPDATE articles SET collection_rank=%s WHERE id=%s;"
       params = [(rank, record[0]) for rank, record in enumerate(cursor, start=1)]
-      cursor.executemany(sql, params)
-      self.connection.db.commit()
+      print("Recording {} entries...".format(len(params)))
+      start = 0
+      interval = 1000
+      while True:
+        end = start + interval if start + interval < len(params) else len(params)
+        print("Recording ranks {} through {}...".format(start, end-1))
+        cursor.executemany(sql, params[start:end])
+        start += interval
 
   def _rank_articles_bouncerate(self):
     # Ranking articles by the proportion of abstract views to downloads
@@ -520,8 +539,14 @@ class Spider(object):
       cursor.execute("SELECT article, CAST (SUM(pdf) AS FLOAT)/SUM(abstract) AS bounce FROM article_traffic GROUP BY article ORDER BY bounce DESC")
       sql = "INSERT INTO bounce_ranks_working (article, rank, rate) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-      cursor.executemany(sql, params)
-      self.connection.db.commit()
+      print("Recording {} entries...".format(len(params)))
+      start = 0
+      interval = 1000
+      while True:
+        end = start + interval if start + interval < len(params) else len(params)
+        print("Recording ranks {} through {}...".format(start, end-1))
+        cursor.executemany(sql, params[start:end])
+        start += interval
 
       # once it's all done, shuffle the tables around so the new results are active
       cursor.execute("ALTER TABLE bounce_ranks RENAME TO bounce_ranks_temp")
@@ -536,8 +561,14 @@ class Spider(object):
       cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 GROUP BY article ORDER BY downloads DESC") # TODO don't hard-code the year
       sql = "INSERT INTO ytd_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-      cursor.executemany(sql, params)
-      self.connection.db.commit()
+      print("Recording {} entries...".format(len(params)))
+      start = 0
+      interval = 1000
+      while True:
+        end = start + interval if start + interval < len(params) else len(params)
+        print("Recording ranks {} through {}...".format(start, end-1))
+        cursor.executemany(sql, params[start:end])
+        start += interval
 
       # once it's all done, shuffle the tables around so the new results are active
       cursor.execute("ALTER TABLE ytd_ranks RENAME TO ytd_ranks_temp")
@@ -562,7 +593,14 @@ class Spider(object):
       cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 AND month > %s GROUP BY article ORDER BY downloads DESC", (month,)) # TODO don't hard-code the year
       sql = "INSERT INTO month_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-      cursor.executemany(sql, params)
+      print("Recording {} entries...".format(len(params)))
+      start = 0
+      interval = 1000
+      while True:
+        end = start + interval if start + interval < len(params) else len(params)
+        print("Recording ranks {} through {}...".format(start, end-1))
+        cursor.executemany(sql, params[start:end])
+        start += interval
 
       # once it's all done, shuffle the tables around so the new results are active
       cursor.execute("ALTER TABLE month_ranks RENAME TO month_ranks_temp")
@@ -605,8 +643,7 @@ class Spider(object):
         })
       sql = "INSERT INTO author_ranks_working (author, rank, downloads, tie) VALUES (%s, %s, %s, %s);"
       params = [(record["id"], record["rank"], record["downloads"], record["tie"]) for record in ranks]
-      print("Recording {} ranks...".format(len(params)))
-
+      print("Recording {} entries...".format(len(params)))
       start = 0
       interval = 1000
       while True:
@@ -643,13 +680,13 @@ class Spider(object):
 
 def full_run(spider, collection="bioinformatics"):
   spider.find_record_new_articles(collection)
-  spider.fetch_abstracts()
-  spider.calculate_vectors()
+  # spider.fetch_abstracts()
+  # spider.calculate_vectors()
 
   # TODO: We should find new articles in *all* categories before
   # refreshing stats, to make sure we know about all revisions that have happened
-  spider.refresh_article_stats(collection)
-  spider.process_rankings()
+  # spider.refresh_article_stats(collection)
+  # spider.process_rankings()
 
 if __name__ == "__main__":
   spider = Spider()
