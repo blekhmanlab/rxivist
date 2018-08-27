@@ -15,6 +15,7 @@ import config
 TESTING = False    # this is just for testing, so we don't crawl the whole site during development TODO delete
 testing_pagecount = 50
 
+polite = True # whether to add pauses at several places in the crawl
 stop_on_recognized = True # whether to stop crawling a collection once we
                            # encounter a paper that's already been indexed, or
                            # if every crawling session should look on every page
@@ -27,9 +28,10 @@ class Author(object):
 
   def name(self):
     if self.surname != "":
-      return "{} {}".format(self.given, self.surname)
-    else: # if author only has one name
-      return self.given
+      if self.given != "":
+        return "{} {}".format(self.given, self.surname)
+      return self.surname
+    return self.given
 
   def record(self, connection):
     with connection.db.cursor() as cursor:
@@ -82,21 +84,20 @@ class Article(object):
     entries = html.find(".highwire-citation-author")
     self.authors = []
     for entry in entries:
+      first = ""
+      last = ""
       # Sometimes an author's name is actually the name of a group of collaborators
       if(len(entry.find(".nlm-collab")) > 0):
         first = entry.find(".nlm-collab")[0].text
-        last = ""
       else:
         if len(entry.find(".nlm-given-names")) > 0:
           first = entry.find(".nlm-given-names")[0].text
-        else:
-          first = ""
         if len(entry.find(".nlm-surname")) > 0:
           last = entry.find(".nlm-surname")[0].text
-        else:
-          last = ""
-      if (first != last) and (first != ""): # if we have a name at all
+      if (first != "") or (last != ""): # if we have a name at all
         self.authors.append(Author(first, last))
+      else:
+        print("\n\n\nNOT adding author to list: {} {}".format(first, last))
 
   def record(self, connection, spider):
     with connection.db.cursor() as cursor:
@@ -249,8 +250,8 @@ class Spider(object):
 
     pagecount = testing_pagecount if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
     for p in range(1, pagecount): # iterate through pages
-      # print("Pausing 15 seconds before fetching next page...")
-      # time.sleep(15)
+      if polite:
+        time.sleep(3)
       print("\n---\n\nFetching page {} in {}".format(p, collection)) # pages are zero-indexed
       r = self.session.get("https://www.biorxiv.org/collection/{}?page={}".format(collection, p))
       results = pull_out_articles(r.html, collection)
@@ -278,7 +279,8 @@ class Spider(object):
         self.save_article_stats(article_id, stat_table)
 
   def get_article_abstract(self, url, retry=True):
-    time.sleep(1) # checking if we get rate limited?
+    if polite:
+      time.sleep(1)
     try:
       resp = self.session.get(url)
     except Exception as e:
