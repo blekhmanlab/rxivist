@@ -32,7 +32,7 @@ def index():
     metric = "altmetric"
 
   # make sure it's a timeframe we recognize
-  if timeframe not in ["ytd", "lastmonth", "hotness"]:
+  if timeframe not in ["ytd", "lastmonth", "weighted"]:
     timeframe = "alltime"
 
   title = "Most "
@@ -59,7 +59,7 @@ def index():
     "alltime": "all time",
     "ytd": "year to date",
     "lastmonth": "since beginning of last month",
-    "hotness": "aggregate hotness score",
+    "weighted": "time-weighted score score",
     "day": "last 24 hours"
   }
   title += printable_times[timeframe]

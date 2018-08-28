@@ -406,7 +406,7 @@ class Spider(object):
     self._rank_articles_ytd()
     self._rank_articles_month()
     # self._rank_articles_bouncerate()
-    # self._rank_articles_hotness()
+    # self._rank_articles_timeweight()
 
     for category in self.fetch_categories():
       self._rank_articles_categories(category)
@@ -485,15 +485,15 @@ class Spider(object):
       cursor.execute("ALTER TABLE alltime_ranks_temp RENAME TO alltime_ranks_working")
     self.connection.db.commit()
 
-  def _rank_articles_hotness(self):
-    print("Determining aggregate hotness scores for each paper.")
+  def _rank_articles_timeweight(self):
+    print("Determining time-weighted scores for each paper.")
     articles = []
     # get a list of all the article IDs with traffic
     with self.connection.db.cursor() as cursor:
       cursor.execute("TRUNCATE hotness_ranks_working")
       cursor.execute("SELECT DISTINCT article FROM article_traffic;")
       articles = [record[0] for record in cursor]
-    # calculate a hotness score for each article
+    # calculate a time-weighted download score for each article
     for article in articles:
       with self.connection.db.cursor() as cursor:
         cursor.execute("SELECT month, year, pdf FROM article_traffic WHERE article_traffic.article=%s;", (article,))
@@ -514,7 +514,7 @@ class Spider(object):
         sql = "INSERT INTO hotness_ranks_working (article, score) VALUES (%s, %s);"
         cursor.execute(sql, (article, score))
     # once all the scores are calculated, rank em all:
-    print("Ranking articles by hotness...")
+    print("Ranking articles by downloads, time-weighted...")
     with self.connection.db.cursor() as cursor:
       cursor.execute("SELECT article, score FROM hotness_ranks_working ORDER BY score DESC;")
       sql = "UPDATE hotness_ranks_working SET rank=%s WHERE article=%s;"
