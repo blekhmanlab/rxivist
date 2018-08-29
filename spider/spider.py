@@ -37,6 +37,11 @@ recognized_limit = 20
 # to recognize *in a row* before we assume that we've indexed
 # all the papers at that point in the chronology.
 
+progress_update_interval = 1000
+# When writing a large number of rows to the database (during
+# the ranking of authors and papers), a helper function can
+# log progress through the process. This is how many rows should
+# be written before each update.
 
 
 class Author(object):
@@ -214,6 +219,22 @@ def pull_out_articles(html, collection):
     articles.append(a)
   return articles
 
+def record_ranks(to_record, sql, db):
+  print("Recording {} entries...".format(len(to_record)))
+  start = 0
+  interval = progress_update_interval
+  db.set_session(autocommit=False)
+  with db.cursor() as cursor:
+    while True:
+      end = start + interval if start + interval < len(to_record) else len(to_record)
+      print("{} Recording ranks {} through {}.".format(datetime.now(), start, end-1))
+      cursor.executemany(sql, to_record[start:end])
+      if end == len(to_record):
+        break
+      start += interval
+  db.commit() # Note: it was hoped this bit would speed up performance; it hasn't
+  db.set_session(autocommit=True)
+
 class Spider(object):
   def __init__(self):
     self.connection = db.Connection(config.db["host"], config.db["db"], config.db["user"], config.db["password"])
@@ -240,6 +261,7 @@ class Spider(object):
       r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&doi_prefix=10.1101&page={}".format(page), headers=headers)
       results = r.json()
       for result in results["results"]:
+        found = 0
         if "doi" not in result.keys():
           continue
         with self.connection.db.cursor() as cursor:
@@ -248,13 +270,14 @@ class Spider(object):
           if article_id is None or len(article_id) == 0: # if we don't know about the article that was mentioned, bail
             continue
           article_id = article_id[0]
-          print("Found a recognized article! Paper {}, DOI {}".format(article_id, result["doi"]))
+          found += 1
           sql = "INSERT INTO altmetric_daily (article, score, day_score, week_score, tweets, altmetric_id) VALUES (%s, %s, %s, %s, %s, %s);"
           score = result.get("score", 0)
           day_score = result["history"].get("1d", 0)
           week_score = result["history"].get("1w", 0)
           tweets = result.get("cited_by_tweeters_count", 0)
           altmetric_id = result.get("altmetric_id", 0)
+          print("Recording {} recognized articles on page".format(found))
           cursor.execute(sql, (article_id, score, day_score, week_score, tweets, altmetric_id))
 
   def find_record_new_articles(self, collection):
@@ -403,8 +426,8 @@ class Spider(object):
   def process_rankings(self):
     # pulls together all the separate ranking calls
     self._rank_articles_alltime()
-    self._rank_articles_ytd()
-    self._rank_articles_month()
+    # self._rank_articles_ytd()
+    # self._rank_articles_month()
     # self._rank_articles_bouncerate()
     # self._rank_articles_timeweight()
 
@@ -469,19 +492,6 @@ class Spider(object):
     print("Retrieved download data.")
     sql = "INSERT INTO alltime_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
     record_ranks(params, sql, self.connection.db)
-    
-    self.connection.db.set_session(autocommit=False)
-    with self.connection.db.cursor() as cursor:
-      while True:
-        end = start + interval if start + interval < len(params) else len(params)
-        
-        print("{} Recording ranks {} through {}.".format(datetime.now(), start, end-1))
-        cursor.executemany(sql, params[start:end])
-        if end == len(params):
-          break
-        start += interval
-    self.connection.db.commit() # Note: it was hoped this bit would speed up performance; it hasn't
-    self.connection.db.set_session(autocommit=True)
     with self.connection.db.cursor() as cursor:
       print("Activating current results.")
       # once it's all done, shuffle the tables around so the new results are active
@@ -664,22 +674,6 @@ class Spider(object):
       cursor.execute("UPDATE articles SET title_vector = to_tsvector(coalesce(title,'')) WHERE title_vector IS NULL;")
       cursor.execute("UPDATE articles SET abstract_vector = to_tsvector(coalesce(abstract,'')) WHERE abstract_vector IS NULL;")
       self.connection.db.commit()
-
-def record_ranks(to_record, sql, db):
-  print("Recording {} entries...".format(len(to_record)))
-  start = 0
-  interval = 1000
-  db.set_session(autocommit=False)
-  with db.cursor() as cursor:
-    while True:
-      end = start + interval if start + interval < len(to_record) else len(to_record)
-      print("{} Recording ranks {} through {}.".format(datetime.now(), start, end-1))
-      cursor.executemany(sql, to_record[start:end])
-      if end == len(to_record):
-        break
-      start += interval
-  db.commit() # Note: it was hoped this bit would speed up performance; it hasn't
-  db.set_session(autocommit=True)
 
 def full_run(spider, collection=None):
   if collection is not None:
