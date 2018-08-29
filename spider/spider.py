@@ -266,7 +266,7 @@ class Spider(object):
     for x in results:
       if not x.record(self.connection, self): # TODO: don't pass the whole damn spider here
         consecutive_recognized += 1
-        if consecutive_recognized > recognized_limit: return
+        if consecutive_recognized >= recognized_limit: return
       else:
         consecutive_recognized = 0
 
@@ -280,7 +280,7 @@ class Spider(object):
       for x in results:
         if not x.record(self.connection, self):
           consecutive_recognized += 1
-          if consecutive_recognized > recognized_limit: return
+          if consecutive_recognized >= recognized_limit: return
         else:
           consecutive_recognized = 0
 
@@ -314,7 +314,7 @@ class Spider(object):
       if retry:
         print("Retrying:")
         time.sleep(3)
-        self.get_article_abstract(url, False)
+        return self.get_article_abstract(url, False)
       else:
         print("Giving up on this one for now.")
         return False # TODO: this should be an exception
@@ -465,18 +465,23 @@ class Spider(object):
     with self.connection.db.cursor() as cursor:
       cursor.execute("TRUNCATE alltime_ranks_working")
       cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic GROUP BY article ORDER BY downloads DESC")
-      print("Retrieved download data.")
-      sql = "INSERT INTO alltime_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-      print("Recording {} entries...".format(len(params)))
-      start = 0  # TODO: Pull this progress report thing out into a helper function,
-      interval = 1000 # assuming we can pass the cursor into it without breaking everything
+    print("Retrieved download data.")
+    sql = "INSERT INTO alltime_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
+    record_ranks(params, sql, self.connection.db)
+    
+    self.connection.db.set_session(autocommit=False)
+    with self.connection.db.cursor() as cursor:
       while True:
         end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}.".format(start, end-1))
+        
+        print("{} Recording ranks {} through {}.".format(datetime.now(), start, end-1))
         cursor.executemany(sql, params[start:end])
+        if end == len(params):
+          break
         start += interval
-
+    self.connection.db.commit() # Note: it was hoped this bit would speed up performance; it hasn't
+    self.connection.db.set_session(autocommit=True)
     with self.connection.db.cursor() as cursor:
       print("Activating current results.")
       # once it's all done, shuffle the tables around so the new results are active
@@ -517,17 +522,10 @@ class Spider(object):
     print("Ranking articles by downloads, time-weighted...")
     with self.connection.db.cursor() as cursor:
       cursor.execute("SELECT article, score FROM hotness_ranks_working ORDER BY score DESC;")
-      sql = "UPDATE hotness_ranks_working SET rank=%s WHERE article=%s;"
       params = [(rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-      print("Recording {} entries...".format(len(params)))
-      start = 0
-      interval = 1000
-      while True:
-        end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}.".format(start, end-1))
-        cursor.executemany(sql, params[start:end])
-        start += interval
-
+    sql = "UPDATE hotness_ranks_working SET rank=%s WHERE article=%s;"
+    record_ranks(params, sql, self.connection.db)
+  
     with self.connection.db.cursor() as cursor:
       print("Activating current results.")
       # once it's all done, shuffle the tables around so the new results are active
@@ -548,16 +546,9 @@ class Spider(object):
         ORDER BY downloads DESC
       """
       cursor.execute(query, (category,))
-      sql = "UPDATE articles SET collection_rank=%s WHERE id=%s;"
       params = [(rank, record[0]) for rank, record in enumerate(cursor, start=1)]
-      print("Recording {} entries...".format(len(params)))
-      start = 0
-      interval = 1000
-      while True:
-        end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}.".format(start, end-1))
-        cursor.executemany(sql, params[start:end])
-        start += interval
+    sql = "UPDATE articles SET collection_rank=%s WHERE id=%s;"
+    record_ranks(params, sql, self.connection.db)
 
   def _rank_articles_bouncerate(self):
     # Ranking articles by the proportion of abstract views to downloads
@@ -566,17 +557,11 @@ class Spider(object):
       cursor.execute("TRUNCATE bounce_ranks_working")
       # TODO: only calculate ranks for papers with more than some minimum number of downloads
       cursor.execute("SELECT article, CAST (SUM(pdf) AS FLOAT)/SUM(abstract) AS bounce FROM article_traffic GROUP BY article ORDER BY bounce DESC")
-      sql = "INSERT INTO bounce_ranks_working (article, rank, rate) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-      print("Recording {} entries...".format(len(params)))
-      start = 0
-      interval = 1000
-      while True:
-        end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}.".format(start, end-1))
-        cursor.executemany(sql, params[start:end])
-        start += interval
+    sql = "INSERT INTO bounce_ranks_working (article, rank, rate) VALUES (%s, %s, %s);"    
+    record_ranks(params, sql, self.connection.db)
 
+    with self.connection.db.cursor() as cursor:
       # once it's all done, shuffle the tables around so the new results are active
       cursor.execute("ALTER TABLE bounce_ranks RENAME TO bounce_ranks_temp")
       cursor.execute("ALTER TABLE bounce_ranks_working RENAME TO bounce_ranks")
@@ -588,17 +573,10 @@ class Spider(object):
     with self.connection.db.cursor() as cursor:
       cursor.execute("TRUNCATE ytd_ranks_working")
       cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 GROUP BY article ORDER BY downloads DESC") # TODO don't hard-code the year
-      sql = "INSERT INTO ytd_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-      print("Recording {} entries...".format(len(params)))
-      start = 0
-      interval = 1000
-      while True:
-        end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}.".format(start, end-1))
-        cursor.executemany(sql, params[start:end])
-        start += interval
-
+    sql = "INSERT INTO ytd_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
+    record_ranks(params, sql, self.connection.db)
+    with self.connection.db.cursor() as cursor:
       # once it's all done, shuffle the tables around so the new results are active
       cursor.execute("ALTER TABLE ytd_ranks RENAME TO ytd_ranks_temp")
       cursor.execute("ALTER TABLE ytd_ranks_working RENAME TO ytd_ranks")
@@ -620,17 +598,10 @@ class Spider(object):
       print("Ranking articles based on traffic since {}/2018".format(month))
       cursor.execute("TRUNCATE month_ranks_working")
       cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 AND month > %s GROUP BY article ORDER BY downloads DESC", (month,)) # TODO don't hard-code the year
-      sql = "INSERT INTO month_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-      print("Recording {} entries...".format(len(params)))
-      start = 0
-      interval = 1000
-      while True:
-        end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}.".format(start, end-1))
-        cursor.executemany(sql, params[start:end])
-        start += interval
-
+    sql = "INSERT INTO month_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
+    record_ranks(params, sql, self.connection.db)
+    with self.connection.db.cursor() as cursor:
       # once it's all done, shuffle the tables around so the new results are active
       cursor.execute("ALTER TABLE month_ranks RENAME TO month_ranks_temp")
       cursor.execute("ALTER TABLE month_ranks_working RENAME TO month_ranks")
@@ -670,17 +641,10 @@ class Spider(object):
           "rank": rank,
           "tie": tie
         })
-      sql = "INSERT INTO author_ranks_working (author, rank, downloads, tie) VALUES (%s, %s, %s, %s);"
-      params = [(record["id"], record["rank"], record["downloads"], record["tie"]) for record in ranks]
-      print("Recording {} entries...".format(len(params)))
-      start = 0
-      interval = 1000
-      while True:
-        end = start + interval if start + interval < len(params) else len(params)
-        print("Recording ranks {} through {}.".format(start, end-1))
-        cursor.executemany(sql, params[start:end])
-        start += interval
-
+    params = [(record["id"], record["rank"], record["downloads"], record["tie"]) for record in ranks]
+    sql = "INSERT INTO author_ranks_working (author, rank, downloads, tie) VALUES (%s, %s, %s, %s);"
+    record_ranks(params, sql, self.connection.db)
+    with self.connection.db.cursor() as cursor:
       print("Activating current results.")
       # once it's all done, shuffle the tables around so the new results are active
       cursor.execute("ALTER TABLE author_ranks RENAME TO author_ranks_temp")
@@ -701,6 +665,22 @@ class Spider(object):
       cursor.execute("UPDATE articles SET abstract_vector = to_tsvector(coalesce(abstract,'')) WHERE abstract_vector IS NULL;")
       self.connection.db.commit()
 
+def record_ranks(to_record, sql, db):
+  print("Recording {} entries...".format(len(to_record)))
+  start = 0
+  interval = 1000
+  db.set_session(autocommit=False)
+  with db.cursor() as cursor:
+    while True:
+      end = start + interval if start + interval < len(to_record) else len(to_record)
+      print("{} Recording ranks {} through {}.".format(datetime.now(), start, end-1))
+      cursor.executemany(sql, to_record[start:end])
+      if end == len(to_record):
+        break
+      start += interval
+  db.commit() # Note: it was hoped this bit would speed up performance; it hasn't
+  db.set_session(autocommit=True)
+
 def full_run(spider, collection=None):
   if collection is not None:
     spider.find_record_new_articles(collection)
@@ -710,7 +690,7 @@ def full_run(spider, collection=None):
       spider.find_record_new_articles(collection)
   spider.fetch_abstracts()
   spider.calculate_vectors()
-  spider.refresh_article_stats(collection)
+  # spider.refresh_article_stats(collection)
 
   spider.pull_altmetric_data()
 
@@ -719,7 +699,7 @@ def full_run(spider, collection=None):
 if __name__ == "__main__":
   spider = Spider()
   if len(sys.argv) == 1: # if no action is specified, do everything
-    full_run(spider) # TODO: Specify all categories
+    full_run(spider)
   elif sys.argv[1] == "rankings":
     spider.process_rankings()
   elif sys.argv[1] == "traffic":
