@@ -474,8 +474,10 @@ class Spider(object):
           results[bucket] = 0
         # now fill in the buckets:
         cursor.execute("SELECT downloads FROM {}_ranks ORDER BY downloads ASC;".format(task["name"]))
+        values = []
         for entity in cursor:
           if len(entity) > 0:
+            values.append(entity[0])
             # determine what bucket it's in:
             target = 0
             for bucket_num, bucket in enumerate(buckets):
@@ -487,6 +489,33 @@ class Spider(object):
         params = [(bucket, count, task["name"]) for bucket, count in results.items()]
         print("Recording...")
         cursor.executemany(sql, params)
+
+        print("Calculating median for {}".format(task["name"]))
+        if len(values) % 2 == 1:
+          print(len(values))
+          print((len(values) - 1) / 2)
+          print("zzzz")
+          median = values[(len(values) - 1) / 2]
+        else:
+          print(len(values))
+          print((len(values)/ 2) - 1)
+          print("aaaaa")
+          median = (values[int((len(values)/ 2) - 1)] + values[int(len(values)/ 2)]) / 2
+        print("Median is {}".format(median))
+        # HACK: This data doesn't fit in this table. Maybe move to site stats table?
+        cursor.execute("DELETE FROM download_distribution WHERE category='{}_median' AND bucket=1".format(task["name"]))
+        sql = "INSERT INTO download_distribution (category, bucket, count) VALUES ('{}_median', 1, %s);".format(task["name"])
+        cursor.execute(sql, (median,))
+
+        print("Calculating mean for {}".format(task["name"]))
+        total = 0
+        for x in values:
+          total += x
+        mean = total / len(values)
+        print("Mean is {}".format(mean))
+        cursor.execute("DELETE FROM download_distribution WHERE category='{}_mean' AND bucket=1".format(task["name"]))
+        sql = "INSERT INTO download_distribution (category, bucket, count) VALUES ('{}_mean', 1, %s);".format(task["name"])
+        cursor.execute(sql, (mean,))
 
   def _rank_articles_alltime(self):
     print("Ranking papers by popularity...")
@@ -730,10 +759,10 @@ def full_run(spider, collection=None):
       spider.find_record_new_articles(collection)
   spider.fetch_abstracts()
   spider.calculate_vectors()
-  # spider.refresh_article_stats(collection)
+  spider.refresh_article_stats(collection)
 
   spider.pull_altmetric_data()
-  # spider.process_rankings()
+  spider.process_rankings()
 
 # helper method to fill in newly added field author_vector
 def fill_in_author_vectors(spider):

@@ -124,8 +124,9 @@ def display_author_details(id):
     bottle.response.status = 500
     print(e)
     return {"error": "Server error."}
-  download_distribution = endpoints.download_distribution(connection, 'author')
-  return bottle.template('author_details', author=author, download_distribution=download_distribution)
+  download_distribution, averages = endpoints.download_distribution(connection, 'author')
+  return bottle.template('author_details', author=author,
+    download_distribution=download_distribution, averages=averages)
 
 # ---- Paper details page
 @bottle.get('/papers/<id:int>')
@@ -140,8 +141,9 @@ def display_paper_details(id):
     bottle.response.status = 500
     print(e)
     return {"error": "Server error."}
-  download_distribution = endpoints.download_distribution(connection, 'alltime')
-  return bottle.template('paper_details', paper=paper, download_distribution=download_distribution)
+  download_distribution, averages = endpoints.download_distribution(connection, 'alltime')
+  return bottle.template('paper_details', paper=paper,
+    download_distribution=download_distribution, averages=averages)
 
 # ---- DB convenience endpoint
 @bottle.get('/db')

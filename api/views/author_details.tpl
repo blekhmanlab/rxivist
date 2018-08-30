@@ -56,7 +56,7 @@
           <h3>Downloads per author, site-wide</h3>
           <canvas id="downloadsDistribution"></canvas>
         </div>
-        %include("components/download_distribution", entity=author, entity_name="author", download_distribution=download_distribution)
+        %include("components/download_distribution", entity=author, entity_name="author", download_distribution=download_distribution, averages=averages)
       </div>
     </div>
     %include("components/footer")

@@ -46,7 +46,7 @@
             <h3>Distribution of downloads per paper, site-wide</h3>
             <canvas id="downloadsDistribution"></canvas>
           </div>
-          %include("components/download_distribution", entity=paper,  entity_name="paper", download_distribution=download_distribution)
+          %include("components/download_distribution", entity=paper,  entity_name="paper", download_distribution=download_distribution, averages=averages)
         % end
       </div>
       %include("components/download_graph", paper=paper)

@@ -218,4 +218,9 @@ def paper_details(connection, id):
 def download_distribution(connection, category):
   data = connection.read("SELECT bucket, count FROM download_distribution WHERE category=%s ORDER BY bucket", (category,))
   results = [(entry[0], entry[1]) for entry in data]
-  return results
+  averages = {}
+  for avg in ["mean", "median"]:
+    cat = "{}_{}".format(category, avg)
+    answer = connection.read("SELECT count FROM download_distribution WHERE category=%s", (cat,))
+    averages[avg] = answer[0][0]
+  return results, averages

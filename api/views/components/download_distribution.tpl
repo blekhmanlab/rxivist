@@ -1,24 +1,27 @@
 <script>
+function findBucket(entity, buckets) {
+  for(var i=0; i < buckets.length; i++) {
+    if(entity < buckets[i]) {
+      return buckets[i];
+      // NOTE: The entity isn't put into the i-1 bucket, as it should be, because
+      // the line is drawn to the left of the bar in question and ends up looking
+      // like it's in the wrong spot.
+    }
+  }
+  return 0;
+}
+
 window.onload = function() {
   var ctx1 = document.getElementById("downloadsDistribution").getContext('2d');
-
-  // determine which bucket the entity is in:
-  downloads = {{ entity.downloads }};
   bucket_list = [
     % for entry in download_distribution:
       {{entry[0]}},
     % end
   ];
-  entityBucket = 0;
-  for(var i=0; i < bucket_list.length; i++) {
-    if(downloads < bucket_list[i]) {
-      entityBucket = bucket_list[i];
-      // NOTE: The entity isn't put into the i-1 bucket, as it should be, because
-      // the line is drawn to the left of the bar in question and ends up looking
-      // like it's in the wrong spot.
-      break;
-    }
-  }
+  // determine which bucket the entity is in:
+  entityBucket = findBucket({{ entity.downloads }}, bucket_list)
+  meanBucket = findBucket({{ averages["mean"] }}, bucket_list)
+  medianBucket = findBucket({{ averages["median"] }}, bucket_list)
 
   var myChart = new Chart(ctx1, {
     type: 'bar',
@@ -69,8 +72,32 @@ window.onload = function() {
               content: "{{ helpers.formatNumber(entity.downloads) }}",
               enabled: true,
               position: "middle"
+            },
+          },
+          /*{
+            type: "line",
+            mode: "vertical",
+            scaleID: "x-axis-0",
+            value: meanBucket,
+            borderColor: "red",
+            label: {
+              content: "mean",
+              enabled: true,
+              position: "top"
             }
-          }
+          },*/
+          {
+            type: "line",
+            mode: "vertical",
+            scaleID: "x-axis-0",
+            value: medianBucket,
+            borderColor: "red",
+            label: {
+              content: "median",
+              enabled: true,
+              position: "bottom"
+            }
+          },
         ]
       },
       scales: {
