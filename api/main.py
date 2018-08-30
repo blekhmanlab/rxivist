@@ -74,7 +74,7 @@ def index():
   return bottle.template('index', results=results,
     query=query, category_filter=category_filter, title=title,
     error=error, stats=stats, category_list=category_list,
-    timeframe=timeframe, metric=metric)
+    timeframe=timeframe, metric=metric, querystring=bottle.request.query_string)
 
 # ---- full display thing
 @bottle.get('/table')

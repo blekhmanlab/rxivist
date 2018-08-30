@@ -76,6 +76,11 @@
           </div>
           %if len(results) == 0:
             <div><h3>No results found for "{{ query.replace("&", " ") }}"</h3></div>
+            % if metric == "altmetric":
+            %  # just adding a new "metric" param at the end of the query string overrides
+            %  # any that appear earlier in the query, once bottle gets it
+              <div><p>Search was based on articles with Altmetric data&mdash;redo search <a href="/?{{querystring}}&metric=downloads">with download data</a> instead?</p></div>
+            % end
           %else:
             <h2>{{title}}</h2>
           %end
