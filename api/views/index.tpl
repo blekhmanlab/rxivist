@@ -64,6 +64,7 @@
                   %end
                   >time-weighted score</option>
                 </select>
+                <input type="hidden" name="view" value="{{ view }}"></input>
                 <div class="input-group-append">
                   <button type="submit" class="btn btn-altcolor">Search</button>
                 </div>
@@ -82,7 +83,11 @@
               <div><p>Search was based on articles with Altmetric data&mdash;redo search <a href="/?{{querystring}}&metric=downloads">with download data</a> instead?</p></div>
             % end
           %else:
-            <h2>{{title}}</h2>
+            % if view == "news":
+              <p><em>{{ title }}.</em>
+            % else:
+              <h2>{{title}}</h2>
+            % end
           %end
           %if len(category_filter) > 0:
             <h4 style="padding-left: 20px;">in categor{{ "ies:" if len(category_filter) > 1 else "y" }}
@@ -93,13 +98,14 @@
           %end
 
           % if metric == "altmetric":
-            <p><em>Note: Currently, the only timeframe available for Altmetric searches is "last 24 hours."</em></p>
+            <em>Note: Currently, the only timeframe available for Altmetric searches is "last 24 hours."</em></p>
           % end
           % if len(results) > 0:
             % if view == "table":
               <h3>burps</h3>
               % include("components/results_table", results=results)
-              
+            % elif view == "news":
+              % include("components/results_news", results=results)
             % else:
               % include("components/results_standard", results=results)
             % end
