@@ -658,6 +658,7 @@ class Spider(object):
     # method, so that one should be called first.
     print("Ranking authors by popularity...")
     with self.connection.db.cursor() as cursor:
+      cursor.execute("TRUNCATE author_ranks_working")
       cursor.execute("""
       SELECT article_authors.author, SUM(alltime_ranks.downloads) as downloads
       FROM article_authors
@@ -687,47 +688,8 @@ class Spider(object):
           "rank": rank,
           "tie": tie
         })
-    print("Determined {} new ranks".format(len(ranks)))
-    with self.connection.db.cursor() as cursor:
-      cursor.execute("""
-      SELECT author, downloads, rank, tie
-      FROM author_ranks
-      ORDER BY downloads DESC, author DESC
-      """)
-      current = []
-      print("Building out list of current ranks")
-      for record in cursor:
-        current.append({
-          "id": record[0],
-          "downloads": record[1],
-          "rank": record[2],
-          "tie": record[3]
-        })
-    print("Fetched {} records".format(len(current)))
-    done = False
-    first_new_record = len(current)
-    print("Building out list of unchanged ranks")
-    for i, new in enumerate(ranks):
-      for key in ["id", "downloads", "rank", "tie"]:
-        if new[key] != current[i][key]:
-          print("{} doesn't equal {} at position {}".format(new[key], current[i][key], i))
-          done = True
-          break
-      if done:
-        first_new_record = i
-        break
-    print("First new record is at position {}".format(first_new_record))
-
-    with self.connection.db.cursor() as cursor:
-      print("Clearing out temp table")
-      cursor.execute("DROP TABLE author_ranks_working")
-      print("Copying prod data")
-      cursor.execute("SELECT * into author_ranks_working from author_ranks")
-      print("Removing data to be revised starting with {}".format(first_new_record))
-      cursor.execute("DELETE FROM author_ranks_working WHERE rank > %s", (first_new_record,))
-
-    params = [(record["id"], record["rank"], record["downloads"], record["tie"]) for record in ranks[first_new_record:]]
-    sql = "INSERT INTO author_ranks (author, rank, downloads, tie) VALUES (%s, %s, %s, %s);"
+    params = [(record["id"], record["rank"], record["downloads"], record["tie"]) for record in ranks]
+    sql = "INSERT INTO author_ranks_working (author, rank, downloads, tie) VALUES (%s, %s, %s, %s);"
     record_ranks(params, sql, self.connection.db)
     with self.connection.db.cursor() as cursor:
       print("Activating current results.")

@@ -88,7 +88,7 @@ def most_popular(connection, q, categories, timeframe, metric):
     if metric == "altmetric":
       query += " AND "
   if metric == "altmetric":
-      query += "r.crawled > now() - interval '2 days'"
+      query += "r.crawled > now() - interval '1 days'"
   query += " ORDER BY "
   if metric == "downloads":
     query += "r.rank ASC"
