@@ -56,7 +56,6 @@
           % end
           % if len(results) > 0:
             % if view == "table":
-              <h3>burps</h3>
               % include("components/results_table", results=results)
             % elif view == "news":
               % include("components/results_news", results=results)

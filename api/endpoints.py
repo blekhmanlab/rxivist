@@ -129,7 +129,7 @@ def table_results(connection, q):
     coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'C') || setweight(a.author_vector, 'D')) totalvector
     WHERE query @@ totalvector
     """
-  query += ";"
+  query += " LIMIT 400;"
   with connection.db.cursor() as cursor:
     cursor.execute(query, params)
     results = [models.TableSearchResultArticle(a, connection) for a in cursor]

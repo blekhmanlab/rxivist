@@ -85,7 +85,7 @@ window.onload = function() {
               enabled: true,
               position: "top"
             }
-          },*/
+          },
           {
             type: "line",
             mode: "vertical",
@@ -97,7 +97,7 @@ window.onload = function() {
               enabled: true,
               position: "bottom"
             }
-          },
+          },*/
         ]
       },
       scales: {
