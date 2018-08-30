@@ -69,8 +69,8 @@ def most_popular(connection, q, categories, timeframe, metric):
   query += " AS r ON r.article=a.id"
 
   if q != "":
-    query += """, to_tsquery(%s) query,
-    coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'D')) totalvector
+    query += """, plainto_tsquery(%s) query,
+    coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'C') || setweight(a.author_vector, 'D')) totalvector
     """
   if q != "" or len(categories) > 0 or metric == "altmetric":
     query += " WHERE "
@@ -125,8 +125,8 @@ def table_results(connection, q):
   """
 
   if q != "":
-    query += """, to_tsquery(%s) query,
-    coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'D')) totalvector
+    query += """, plainto_tsquery(%s) query,
+    coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'C') || setweight(a.author_vector, 'D')) totalvector
     WHERE query @@ totalvector
     """
   query += ";"

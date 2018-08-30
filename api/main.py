@@ -23,7 +23,7 @@ def index():
     bottle.response.status = 421
     return "Database is initializing."
 
-  query = bottle.request.query.q.replace(" ", "&") # postgres doesn't like spaces
+  query = bottle.request.query.q
   timeframe = bottle.request.query.timeframe
   category_filter = bottle.request.query.getall('category') # multiple params possible
   metric = bottle.request.query.metric
@@ -52,7 +52,7 @@ def index():
   results = {}
 
   if query != "":
-    title += " papers related to \"{},\" ".format(query.replace("&", " "))
+    title += " papers related to \"{},\" ".format(query)
   else:
     title += " bioRxiv papers, "
   printable_times = {

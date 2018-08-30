@@ -147,8 +147,10 @@ class Article(object):
         connection.db.commit() # Needed to end the botched transaction TODO (this may not be true with autocommit now)
       self.id = cursor.fetchone()[0]
 
-      author_ids = self._record_authors(connection)
+      author_ids, author_string = self._record_authors(connection)
       self._link_authors(author_ids, connection)
+
+      cursor.execute("UPDATE articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, self.id))
       print("Recorded article {}".format(self.title))
 
       # fetch traffic stats for the new article
@@ -170,10 +172,13 @@ class Article(object):
 
   def _record_authors(self, connection):
     author_ids = []
+    author_string = "" # For calculating a searchable vector
     for a in self.authors:
+      author_string += "{}, ".format(a.name())
       a.record(connection)
       author_ids.append(a.id)
-    return author_ids
+
+    return (author_ids, author_string)
 
   def _link_authors(self, author_ids, connection):
     try:
@@ -426,8 +431,8 @@ class Spider(object):
   def process_rankings(self):
     # pulls together all the separate ranking calls
     self._rank_articles_alltime()
-    # self._rank_articles_ytd()
-    # self._rank_articles_month()
+    self._rank_articles_ytd()
+    self._rank_articles_month()
     # self._rank_articles_bouncerate()
     # self._rank_articles_timeweight()
 
@@ -687,8 +692,30 @@ def full_run(spider, collection=None):
   # spider.refresh_article_stats(collection)
 
   spider.pull_altmetric_data()
+  # spider.process_rankings()
 
-  spider.process_rankings()
+# helper method to fill in newly added field author_vector
+def fill_in_author_vectors(spider):
+  print("Filling in empty author_vector fields for all articles.")
+  article_ids = []
+  with spider.connection.db.cursor() as cursor:
+    cursor.execute("SELECT id FROM articles WHERE author_vector IS NULL;")
+    for record in cursor:
+      if len(record) > 0:
+        article_ids.append(record[0])
+
+  to_do = len(article_ids)
+  print("Obtained {} article IDs.".format(to_do))
+  with spider.connection.db.cursor() as cursor:
+    for article in article_ids:
+      author_string = ""
+      cursor.execute("SELECT authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s;", (article,))
+      for record in cursor:
+        author_string += "{} {}, ".format(record[0], record[1])
+      cursor.execute("UPDATE articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, article))
+      to_do -= 1
+      if to_do % 100 == 0:
+        print("{} - {} left to go.".format(datetime.now(), to_do))
 
 if __name__ == "__main__":
   spider = Spider()
@@ -705,5 +732,7 @@ if __name__ == "__main__":
     spider._calculate_download_distributions()
   elif sys.argv[1] == "altmetric":
     spider.pull_altmetric_data()
+  elif sys.argv[1] == "authorvector":
+    fill_in_author_vectors(spider)
   else:
     full_run(spider, sys.argv[1])
