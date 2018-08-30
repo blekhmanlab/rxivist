@@ -1,6 +1,6 @@
 % import helpers
 <!doctype html>
-<html lang="en">
+<html lang="en" ng-app="app">
   <head>
     %include("components/metadata.tpl")
     <title>Rxivist: Popular biology pre-print papers ranked</title>
@@ -8,7 +8,7 @@
   <body>
     <div class="container" id="main">
 
-      %include("components/header", stats=stats) # TODO: Figure out how this works
+      %include("components/header", stats=stats)
 
       <div class="row">
         <div class="col">
@@ -96,43 +96,13 @@
             <p><em>Note: Currently, the only timeframe available for Altmetric searches is "last 24 hours."</em></p>
           % end
           % if len(results) > 0:
-            <div class="accordion" id="alltime">
-              % for i, result in enumerate(results):
-                <div class="card">
-                  <div class="card-header context" id="heading{{result.id}}"  data-toggle="collapse" data-target="#collapse{{result.id}}" aria-expanded="true" aria-controls="collapse{{result.id}}">
-                    <strong>{{i+1}}:</strong> {{result.title}}
-                    <br>
-                    <span class="badge badge-secondary" style="margin-left: 10px;">
-                      % if metric == "downloads":
-                        {{ helpers.formatNumber(result.downloads) }} downloads
-                      % elif metric == "altmetric":
-                        Score today: {{ helpers.formatNumber(result.downloads) }}
-                      % end
-                    </span>
-                    % if len(category_filter) != 1:
-                      <span class="badge badge-secondary" style="margin-left: 10px;">{{ helpers.formatCategory(result.collection) }}</span>
-                    % end
-                    % if result.date.month is not None:
-                      <span class="badge badge-secondary" style="margin-left: 10px;">{{result.date.monthname}} {{result.date.year}}</span>
-                    % end
-                  </div>
-                  <div id="collapse{{result.id}}" class="collapse" aria-labelledby="heading{{result.id}}" data-parent="#alltime">
-                    <div class="card-body">
-                      <div class="float-right">
-                        <a href="/papers/{{result.id}}" class="btn btn-altcolor " role="button">more details</a>
-                        <a href="{{result.url}}" target="_blank" class="btn btn-altcolor " role="button">view paper</a>
-                      </div>
-                      <p>
-                      % for i, author in enumerate(result.authors):
-                        <a href="/authors/{{author.id}}">{{ author.full }}</a>{{", " if i < (len(result.authors) - 1) else ""}}
-                      % end
-
-                      <p>{{result.abstract}}
-                    </div>
-                  </div>
-                </div>
-              % end
-            </div>
+            % if view == "table":
+              <h3>burps</h3>
+              % include("components/results_table", results=results)
+              
+            % else:
+              % include("components/results_standard", results=results)
+            % end
           % end
         </div>
       </div>

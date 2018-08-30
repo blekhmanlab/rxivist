@@ -27,6 +27,7 @@ def index():
   timeframe = bottle.request.query.timeframe
   category_filter = bottle.request.query.getall('category') # multiple params possible
   metric = bottle.request.query.metric
+  view = bottle.request.query.view # which format to display results
 
   if metric not in ["downloads", "altmetric"]:
     metric = "altmetric"
@@ -65,7 +66,11 @@ def index():
   title += printable_times[timeframe]
 
   try:
-    results = endpoints.most_popular(connection, query, category_filter, timeframe, metric)
+    if view == "table":
+      results = endpoints.table_results(connection, query)
+      print("Prepping table view \n\n\n")
+    else:
+      results = endpoints.most_popular(connection, query, category_filter, timeframe, metric)
   except Exception as e:
     print(e)
     error = "There was a problem with the submitted query."
@@ -74,7 +79,8 @@ def index():
   return bottle.template('index', results=results,
     query=query, category_filter=category_filter, title=title,
     error=error, stats=stats, category_list=category_list,
-    timeframe=timeframe, metric=metric, querystring=bottle.request.query_string)
+    timeframe=timeframe, metric=metric, querystring=bottle.request.query_string,
+    view=view)
 
 # ---- full display thing
 @bottle.get('/table')
