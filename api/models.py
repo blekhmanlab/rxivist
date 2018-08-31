@@ -83,7 +83,7 @@ class Article:
       a list of Author objects.
 
     """
-    author_data = connection.read("SELECT authors.id, authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s;", (self.id,))
+    author_data = connection.read("SELECT authors.id, authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s ORDER BY aa.id;", (self.id,))
     self.authors = [Author(a[0], a[1], a[2]) for a in author_data]
 
   def GetDetailedTraffic(self, connection):
