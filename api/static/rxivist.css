@@ -16,9 +16,10 @@ body {
 
 #main {
   background-color: #fff;
-  border-radius: 10px;
+  border-radius: 0px;
   padding: 15px;
-  margin-top: 25px;
+  padding-top: 20px;
+  /* margin-top: 20px; */
 }
 
 #footer {   /* "Blekhman Lab" logo */

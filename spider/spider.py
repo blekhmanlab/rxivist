@@ -4,6 +4,7 @@ import re
 import sys
 import time
 import math
+import json
 
 import psycopg2
 from requests_html import HTMLSession
@@ -248,6 +249,13 @@ class Spider(object):
 
   def pull_altmetric_data(self):
     headers = {'user-agent': 'rxivist web crawler (rxivist.org)'}
+    print("Removing earlier data from same day")
+    # (If we have multiple results for the same 24-hour period, the
+    # query that displays the most popular displays the same articles
+    # multiple times, and the aggregation function to clean that up
+    # would be too complicated to bother with right now.)
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("DELETE FROM altmetric_daily WHERE crawled > now() - interval '1 days';")
     print("Fetching Altmetric data")
     r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&doi_prefix=10.1101&page=1", headers=headers)
     if r.status_code != 200:
@@ -259,14 +267,18 @@ class Spider(object):
     last_page = math.ceil(result_count / 100)
     print("Total results are {}, meaning {} pages".format(result_count, last_page))
     for page in range(1, last_page + 1):
+      found = 0
       time.sleep(1) # 1 per second limit
       print("Fetching page {}".format(page))
       # TODO: Validate that DOI prefix 10.1101 is bioRxiv, and that we won't miss
       # papers that somehow get another prefix.
-      r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&doi_prefix=10.1101&page={}".format(page), headers=headers)
-      results = r.json()
+      try:
+        r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&doi_prefix=10.1101&page={}".format(page), headers=headers)
+        results = r.json()
+      except json.decoder.JSONDecodeError:
+        print("Error encountered; bailing.")
+        break
       for result in results["results"]:
-        found = 0
         if "doi" not in result.keys():
           continue
         with self.connection.db.cursor() as cursor:

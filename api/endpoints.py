@@ -94,6 +94,7 @@ def most_popular(connection, q, categories, timeframe, metric):
     query += "r.rank ASC"
   elif metric == "altmetric":
     query += "r.day_score DESC, r.week_score DESC"
+
   query += " LIMIT 20;"
   with connection.db.cursor() as cursor:
     cursor.execute(query, params)

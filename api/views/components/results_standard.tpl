@@ -2,7 +2,12 @@
   % for i, result in enumerate(results):
     <div class="card">
       <div class="card-header context" id="heading{{result.id}}"  data-toggle="collapse" data-target="#collapse{{result.id}}" aria-expanded="true" aria-controls="collapse{{result.id}}">
-        <strong>{{i+1}}:</strong> {{result.title}}
+        <strong>{{i+1}}:</strong>
+        % if metric == "altmetric" and result.downloads > 80:
+          <i class="fab fa-hotjar text-danger" style="font-size: 2em;"></i>
+        % end
+        {{result.title}}
+
         <br>
         <span class="badge badge-secondary" style="margin-left: 10px;">
           % if metric == "downloads":
@@ -12,7 +17,7 @@
           % end
         </span>
         % if len(category_filter) != 1:
-          <span class="badge badge-secondary" style="margin-left: 10px;">{{ helpers.formatCategory(result.collection) }}</span>
+          <span class="badge {{ result.collection.replace("-", "") }}" style="margin-left: 10px;">{{ helpers.formatCategory(result.collection) }}</span>
         % end
         % if result.date.month is not None:
           <span class="badge badge-secondary" style="margin-left: 10px;">{{result.date.monthname}} {{result.date.year}}</span>
