@@ -17,11 +17,19 @@
         <div class="col-sm-12">
           <h1>Author: {{author.full}}</h1>
           <ul>
-            <li>All-time downloads: {{ helpers.formatNumber(author.downloads) }} (rank: <strong>{{ helpers.formatNumber(author.rank.rank) }}</strong>
-            %if author.rank.tie:
+            <li>All-time downloads: {{ helpers.formatNumber(author.alltime_rank.downloads) }} (rank: <strong>{{ helpers.formatNumber(author.alltime_rank.rank) }}</strong>
+            %if author.alltime_rank.tie:
               (tie)
             %end
-            out of {{ helpers.formatNumber(author.rank.out_of) }})
+            out of {{ helpers.formatNumber(author.alltime_rank.out_of) }})
+
+            % if len(author.categories) > 0:
+              <li>Categories:<ul>
+              % for entry in author.categories:
+                <li>{{ entry.category }}: {{ helpers.formatNumber(entry.downloads) }} downloads (rank: <strong>{{ helpers.formatNumber(entry.rank) }}</strong>{{ ", tie)" if entry.tie else ")" }}
+              % end
+              </ul>
+            % end
           </ul>
         </div>
       </div>

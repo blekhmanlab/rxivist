@@ -39,7 +39,8 @@ class Author(object):
     else:
       self.full = self.given
     self.downloads = 0
-    self.rank = RankEntry()
+    self.alltime_rank = RankEntry()
+    self.categories = []
 
 class DateEntry(object):
   "Stores paper publication date info."
@@ -52,7 +53,9 @@ class RankEntry(object):
   """Stores data about a paper's rank within a
   single corpus.
   """
-  def __init__(self, rank=0, out_of=0, tie=False):
+  def __init__(self, rank=0, out_of=0, tie=False, downloads=0, category="alltime"):
+    self.category = category
+    self.downloads = downloads
     self.rank = rank
     self.out_of = out_of
     self.tie = tie

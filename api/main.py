@@ -168,9 +168,6 @@ def callback():
 @bottle.route('/robots.txt')
 def callback():
   return bottle.static_file(filename='robots.txt', root='./static/')
-@bottle.route('/sitemaps/<path:path>')
-def callback(path):
-  return bottle.static_file(path, root='./static/sitemaps/')
 
 # ---- Errors
 @bottle.error(404)

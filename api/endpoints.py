@@ -156,14 +156,17 @@ def author_details(connection, id):
     raise ValueError("Multiple authors found with id {}".format(id))
   authorq = authorq[0]
   result = models.Author(authorq[0], authorq[1], authorq[2])
-
-  downloadsq = connection.read("SELECT rank, downloads, tie FROM author_ranks WHERE author = %s;", (id,))
+  # TODO: Just make the "alltime" ranks stored as another category
+  downloadsq = connection.read("SELECT rank, tie, downloads FROM author_ranks WHERE author=%s;", (id,))
   if len(downloadsq) == 1:
     author_count = connection.read("SELECT COUNT(author) FROM author_ranks;")
     author_count = author_count[0][0]
+    result.alltime_rank = models.RankEntry(downloadsq[0][0], author_count, downloadsq[0][1], downloadsq[0][2])
 
-    result.downloads = downloadsq[0][1]
-    result.rank = models.RankEntry(downloadsq[0][0], author_count, downloadsq[0][2])
+  categoryq = connection.read("SELECT rank, tie, downloads, category FROM author_ranks_category WHERE author = %s;", (id,))
+  if len(categoryq) > 0:
+    result.categories = [models.RankEntry(cat[0], 0, cat[1], cat[2], cat[3]) for cat in categoryq]
+
   sql = db.queries()["article_ranks"] + "WHERE article_authors.author=%s ORDER BY alltime_ranks.rank"
   articles = connection.read(sql, (id,))
 

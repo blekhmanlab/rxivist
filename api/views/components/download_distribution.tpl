@@ -18,8 +18,9 @@ window.onload = function() {
       {{entry[0]}},
     % end
   ];
+  % downloads = entity.downloads or entity.alltime_rank.downloads
   // determine which bucket the entity is in:
-  entityBucket = findBucket({{ entity.downloads }}, bucket_list)
+  entityBucket = findBucket({{ downloads }}, bucket_list)
   meanBucket = findBucket({{ averages["mean"] }}, bucket_list)
   medianBucket = findBucket({{ averages["median"] }}, bucket_list)
 
@@ -69,7 +70,7 @@ window.onload = function() {
             value: entityBucket,
             borderColor: "none",
             label: {
-              content: "{{ helpers.formatNumber(entity.downloads) }}",
+              content: "{{ helpers.formatNumber(downloads) }}",
               enabled: true,
               position: "middle"
             },

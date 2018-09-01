@@ -710,6 +710,52 @@ class Spider(object):
       cursor.execute("ALTER TABLE author_ranks_working RENAME TO author_ranks")
       cursor.execute("ALTER TABLE author_ranks_temp RENAME TO author_ranks_working")
 
+  def _rank_authors_category(self, category):
+    print("Ranking authors by popularity, category {}...".format(category))
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("DELETE FROM author_ranks_category_working WHERE category=%s", (category,))
+      cursor.execute("""
+      SELECT article_authors.author, SUM(alltime_ranks.downloads) as downloads
+      FROM article_authors
+      LEFT JOIN alltime_ranks ON article_authors.article=alltime_ranks.article
+      LEFT JOIN articles ON article_authors.article=articles.id
+      WHERE downloads > 0 AND
+      articles.collection=%s
+      GROUP BY article_authors.author
+      ORDER BY downloads DESC, article_authors.author DESC
+      LIMIT 10000
+      """, (category,))
+      print("Retrieved download data for category {}.".format(category))
+      ranks = []
+      rankNum = 0
+      for record in cursor:
+        rankNum = rankNum + 1
+        tie = False
+        rank = rankNum # changes if it's a tie
+
+        # if the author has the same download count as the
+        # previous author in the list, record a tie:
+        if len(ranks) > 0:
+          if record[1] == ranks[len(ranks) - 1]["downloads"]:
+            ranks[len(ranks) - 1]["tie"] = True
+            tie = True
+            rank = ranks[len(ranks) - 1]["rank"]
+        ranks.append({
+          "id": record[0],
+          "downloads": record[1],
+          "rank": rank,
+          "tie": tie
+        })
+    params = [(record["id"], category, record["rank"], record["downloads"], record["tie"]) for record in ranks]
+    sql = "INSERT INTO author_ranks_category_working (author, category, rank, downloads, tie) VALUES (%s, %s, %s, %s, %s);"
+    record_ranks(params, sql, self.connection.db)
+    with self.connection.db.cursor() as cursor:
+      print("Activating current results.")
+      # once it's all done, shuffle the tables around so the new results are active
+      cursor.execute("ALTER TABLE author_ranks_category RENAME TO author_ranks_category_temp")
+      cursor.execute("ALTER TABLE author_ranks_category_working RENAME TO author_ranks_category")
+      cursor.execute("ALTER TABLE author_ranks_category_temp RENAME TO author_ranks_category_working")
+
   def update_article(self, article_id, abstract):
     # TODO: seems like this thing should be in the Article class maybe?
     with self.connection.db.cursor() as cursor:
@@ -818,5 +864,7 @@ if __name__ == "__main__":
     fill_in_author_vectors(spider)
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
+  elif sys.argv[1] == "test": # placeholder for temporary commands
+    spider._rank_authors_category('bioinformatics')
   else:
     full_run(spider, sys.argv[1])
