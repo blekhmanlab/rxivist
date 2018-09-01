@@ -724,6 +724,22 @@ class Spider(object):
       cursor.execute("UPDATE articles SET abstract_vector = to_tsvector(coalesce(abstract,'')) WHERE abstract_vector IS NULL;")
       self.connection.db.commit()
 
+  def build_sitemap(self):
+    print("Building sitemap...")
+    with self.connection.db.cursor() as cursor, open('sitemap.txt', 'w') as f:
+      # find abstracts for any articles without them
+      cursor.execute("SELECT id FROM articles ORDER BY id;")
+      print("Recording papers.")
+      for a in cursor:
+        f.write('https://rxivist.org/papers/{}\n'.format(a[0]))
+      print("Papers complete.")
+      cursor.execute("SELECT id FROM authors ORDER BY id;")
+      print("Recording authors.")
+      for a in cursor:
+        f.write('https://rxivist.org/authors/{}\n'.format(a[0]))
+      print("Authors complete.")
+    print("Sitemap complete.")
+
 def full_run(spider, collection=None):
   if collection is not None:
     spider.find_record_new_articles(collection)
@@ -778,5 +794,7 @@ if __name__ == "__main__":
     spider.pull_altmetric_data()
   elif sys.argv[1] == "authorvector":
     fill_in_author_vectors(spider)
+  elif sys.argv[1] == "sitemap":
+    spider.build_sitemap()
   else:
     full_run(spider, sys.argv[1])

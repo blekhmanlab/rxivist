@@ -161,14 +161,16 @@ def get_articles_table(table=None):
   return bottle.template('db', current=table, tables=table_names,
     headers=column_names, results=data)
 
-# Google validation
+# Search engine stuff
 @bottle.route('/google3d18e8a680b87e67.html')
 def callback():
   return bottle.static_file(filename='google3d18e8a680b87e67.html', root='./static/')
-
 @bottle.route('/robots.txt')
 def callback():
   return bottle.static_file(filename='robots.txt', root='./static/')
+@bottle.route('/sitemap.txt')
+def callback():
+  return bottle.static_file(filename='sitemap.txt', root='./static/')
 
 # ---- Errors
 @bottle.error(404)
