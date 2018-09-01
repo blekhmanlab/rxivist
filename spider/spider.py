@@ -726,19 +726,41 @@ class Spider(object):
 
   def build_sitemap(self):
     print("Building sitemap...")
-    with self.connection.db.cursor() as cursor, open('sitemap.txt', 'w') as f:
+    filecount = 0
+    f = open('sitemaps/sitemap00.txt', 'w')
+    with self.connection.db.cursor() as cursor:
       # find abstracts for any articles without them
       cursor.execute("SELECT id FROM articles ORDER BY id;")
       print("Recording papers.")
+      lines = 0
       for a in cursor:
         f.write('https://rxivist.org/papers/{}\n'.format(a[0]))
+        lines += 1
+        if lines >= 48000:
+          lines = 0
+          f.close()
+          filecount += 1
+          append = ""
+          if filecount < 10:
+            append = "0".format(filecount)
+          f = open("sitemaps/sitemap{}{}.txt".format(append, filecount), 'w')
       print("Papers complete.")
       cursor.execute("SELECT id FROM authors ORDER BY id;")
       print("Recording authors.")
       for a in cursor:
         f.write('https://rxivist.org/authors/{}\n'.format(a[0]))
+        lines += 1
+        if lines >= 48000:
+          lines = 0
+          f.close()
+          filecount += 1
+          append = ""
+          if filecount < 10:
+            append = "0".format(filecount)
+          f = open("sitemaps/sitemap{}{}.txt".format(append, filecount), 'w')
       print("Authors complete.")
-    print("Sitemap complete.")
+    f.close()
+    print("Sitemapping complete.")
 
 def full_run(spider, collection=None):
   if collection is not None:
