@@ -191,6 +191,11 @@ def author_details(connection, id):
   categoryq = connection.read("SELECT rank, tie, downloads, category FROM author_ranks_category WHERE author = %s;", (id,))
   if len(categoryq) > 0:
     result.categories = [models.RankEntry(cat[0], 0, cat[1], cat[2], cat[3]) for cat in categoryq]
+  for entry in result.categories:
+    query = "SELECT COUNT(author) FROM author_ranks_category WHERE category=%s AND downloads > 0"
+    author_in_category = connection.read(query, (entry.category,))
+    entry.out_of = author_in_category[0][0]
+
 
   sql = db.queries()["article_ranks"] + "WHERE article_authors.author=%s ORDER BY alltime_ranks.rank"
   articles = connection.read(sql, (id,))

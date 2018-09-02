@@ -26,7 +26,11 @@
             % if len(author.categories) > 0:
               <li>Categories:<ul>
               % for entry in author.categories:
-                <li>{{ entry.category }}: {{ helpers.formatNumber(entry.downloads) }} downloads (rank: <strong>{{ helpers.formatNumber(entry.rank) }}</strong>{{ ", tie)" if entry.tie else ")" }}
+                <li>{{ entry.category }}: {{ helpers.formatNumber(entry.downloads) }} (rank: <strong>{{ helpers.formatNumber(entry.rank) }}</strong>
+                %if entry.tie:
+                  (tie)
+                %end
+                out of {{ helpers.formatNumber(entry.out_of) }})
               % end
               </ul>
             % end
@@ -40,7 +44,7 @@
         % for result in author.articles:
           <div class="col-md-6">
             <h2 style="font-size: 1.2em; padding-top: 20px; margin-bottom: 0;">{{result.title}}</h2>
-            <a href="/?metric=downloads&category={{result.collection}}"><span class="badge btn-secondary" style="margin-left: 10px;">{{ helpers.formatCategory(result.collection) }}</span></a>
+            <a href="/?metric=downloads&timeframe=alltime&category={{result.collection}}"><span class="badge btn-secondary" style="margin-left: 10px;">{{ helpers.formatCategory(result.collection) }}</span></a>
             <a href="/papers/{{result.id}}"><span class="badge btn-altcolor">more details</span></a>
             <a href="{{result.url}}" target="_blank"><span class="badge btn-altcolor">view paper</span></a>
             <ul>

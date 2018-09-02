@@ -19,7 +19,7 @@
         <div class="col">
           <h1>{{paper.title}}</h1>
           <div>
-            <a href="/?metric=downloads&category={{paper.collection}}" class="btn btn-secondary " role="button">{{ helpers.formatCategory(paper.collection) }}</a>
+            <a href="/?metric=downloads&timeframe=alltime&category={{paper.collection}}" class="btn btn-secondary " role="button">{{ helpers.formatCategory(paper.collection) }}</a>
             <a href="{{paper.url}}" target="_blank" class="btn btn-altcolor " role="button">view paper</a>
           </div>
           <p>By

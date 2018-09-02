@@ -38,7 +38,7 @@ recognized_limit = 20
 # to recognize *in a row* before we assume that we've indexed
 # all the papers at that point in the chronology.
 
-progress_update_interval = 1000
+progress_update_interval = 10000
 # When writing a large number of rows to the database (during
 # the ranking of authors and papers), a helper function can
 # log progress through the process. This is how many rows should
@@ -723,8 +723,7 @@ class Spider(object):
       articles.collection=%s
       GROUP BY article_authors.author
       ORDER BY downloads DESC, article_authors.author DESC
-      LIMIT 10000
-      """, (category,))
+      """, (category,)) # NOTE: This used to have a "LIMIT 10000" on it, consider putting it back
       print("Retrieved download data for category {}.".format(category))
       ranks = []
       rankNum = 0

@@ -97,11 +97,7 @@ function fixForm(changed) {
           >{{ helpers.formatCategory(cat) }}</option>
         %end
       </select>
-      <select class="form-control  col-sm-4" id="timeframe" name="timeframe" onchange="fixForm('timeframe');"
-        % if entity == "authors":
-          disabled
-        % end
-      >
+      <select class="form-control  col-sm-4" id="timeframe" name="timeframe" onchange="fixForm('timeframe');">
         <option value="alltime"
         %if timeframe == "alltime":
           selected

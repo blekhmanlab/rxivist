@@ -113,7 +113,7 @@ window.onload = function() {
         xAxes: [{
           scaleLabel: {
             display: true,
-            labelString: 'Downloads, all-time'
+            labelString: 'Downloads, all-time (log scale)'
           }
         }],
       }
