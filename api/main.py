@@ -28,20 +28,40 @@ def index():
   category_filter = bottle.request.query.getall('category') # multiple params possible
   metric = bottle.request.query.metric
   view = bottle.request.query.view # which format to display results
+  entity = bottle.request.query.entity
 
   if metric not in ["downloads", "altmetric"]:
     metric = "altmetric"
+
+  if entity not in ["papers", "authors"]:
+    entity = "papers"
 
   # make sure it's a timeframe we recognize
   if timeframe not in ["ytd", "lastmonth", "weighted"]:
     timeframe = "alltime"
 
-  title = "Most "
-  if metric == "altmetric":
-    timeframe = "day" # only option for now
-    title += "discussed"
-  elif metric == "downloads":
-    title += "downloaded"
+
+  if entity == "papers":
+    title = "Most "
+    if metric == "altmetric":
+      timeframe = "day" # only option for now
+      title += "discussed"
+    elif metric == "downloads":
+      title += "downloaded"
+    if query != "":
+      title += " papers related to \"{},\" ".format(query)
+    else:
+      title += " bioRxiv papers, "
+    printable_times = {
+      "alltime": "all time",
+      "ytd": "year to date",
+      "lastmonth": "since beginning of last month",
+      "weighted": "time-weighted score score",
+      "day": "last 24 hours"
+    }
+    title += printable_times[timeframe]
+  elif entity == "authors":
+    title = "Authors with most downloads, all-time"
 
   # Get rid of a category filter that's just one empty parameter:
   if len(category_filter) == 1 and category_filter[0] == "":
@@ -52,27 +72,15 @@ def index():
   error = ""
   results = {}
 
-  if query != "":
-    title += " papers related to \"{},\" ".format(query)
-  else:
-    title += " bioRxiv papers, "
-  printable_times = {
-    "alltime": "all time",
-    "ytd": "year to date",
-    "lastmonth": "since beginning of last month",
-    "weighted": "time-weighted score score",
-    "day": "last 24 hours"
-  }
-  title += printable_times[timeframe]
-
   try:
-    if view == "table":
-      results = endpoints.table_results(connection, query)
-      print("Prepping table view \n\n\n")
-    elif view == "authors":
+    if entity == "authors":
       results = endpoints.author_rankings(connection)
-    else:
-      results = endpoints.most_popular(connection, query, category_filter, timeframe, metric)
+    elif entity == "papers":
+      if view == "table":
+        results = endpoints.table_results(connection, query)
+        print("Prepping table view \n\n\n")
+      else:
+        results = endpoints.most_popular(connection, query, category_filter, timeframe, metric)
   except Exception as e:
     print(e)
     error = "There was a problem with the submitted query."
@@ -82,7 +90,7 @@ def index():
     query=query, category_filter=category_filter, title=title,
     error=error, stats=stats, category_list=category_list,
     timeframe=timeframe, metric=metric, querystring=bottle.request.query_string,
-    view=view)
+    view=view, entity=entity)
 
 # ---- full display thing
 @bottle.get('/table')

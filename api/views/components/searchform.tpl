@@ -4,6 +4,18 @@
       <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here (optional)" value="{{ query.replace("&", " ") }}">
     </div>
     <div class="input-group mb-3 col-md-9">
+     <select class="form-control  col-sm-4" id="entity" name="entity">
+        <option value="papers"
+        %if entity == "papers":
+          selected
+        %end
+        >papers</option>
+        <option value="authors"
+        %if entity == "authors":
+          selected
+        %end
+        >authors</option>
+      </select>
       <select class="form-control  col-sm-4" id="metric" name="metric">
         <option value="downloads"
         %if metric == "downloads":

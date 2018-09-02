@@ -31,11 +31,6 @@
           </div>
           %if len(results) == 0:
             <div><h3>No results found for "{{ query.replace("&", " ") }}"</h3></div>
-            % if metric == "altmetric":
-            %  # just adding a new "metric" param at the end of the query string overrides
-            %  # any that appear earlier in the query, once bottle gets it
-              <div><p>Search was based on articles with Altmetric data&mdash;redo search <a href="/?{{querystring}}&metric=downloads">with download data</a> instead?</p></div>
-            % end
           %else:
             % if view == "news":
               <p><em>{{ title }}.</em>
@@ -50,19 +45,26 @@
               %end
             </h4>
           %end
+          % if len(results) == 0 and metric == "altmetric":
+          %  # just adding a new "metric" param at the end of the query string overrides
+          %  # any that appear earlier in the query, once bottle gets it
+            <div><p>Search was based on articles with Altmetric data&mdash;redo search <a href="/?{{querystring}}&metric=downloads">with download data</a> instead?</p></div>
+          % end
 
-          % if metric == "altmetric":
+          % if metric == "altmetric" and entity == "papers":
             <em>Note: Currently, the only timeframe available for Altmetric searches is "last 24 hours."</em></p>
           % end
           % if len(results) > 0:
-            % if view == "table":
-              % include("components/results_table", results=results)
-            % elif view == "news":
-              % include("components/results_news", results=results)
-            % elif view == "authors":
-              % include("components/author_ranks", results=results)
-            % else:
-              % include("components/results_standard", results=results)
+            % if entity == "authors":
+                % include("components/author_ranks", results=results)
+            % elif entity == "papers":
+              % if view == "table":
+                % include("components/results_table", results=results)
+              % elif view == "news":
+                % include("components/results_news", results=results)
+              % else:
+                % include("components/results_standard", results=results)
+              % end
             % end
           % end
         </div>
