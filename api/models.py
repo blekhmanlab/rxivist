@@ -111,6 +111,18 @@ class SearchResultArticle(Article):
     self.date = DateEntry(sql_entry[6], sql_entry[7])
     self.get_authors(connection)
 
+class SearchResultAuthor(object):
+  "An author as displayed on the main results page."
+  def __init__(self, id, first, last, rank, downloads, tie):
+    self.id = id
+    self.given = first
+    self.surname = last
+    if self.surname != "":
+      self.full = "{} {}".format(self.given, self.surname)
+    else: # TODO: There's one author with only a surname(?), so we should check this logic
+      self.full = self.given
+    self.rank = RankEntry(rank, 0, tie, downloads)
+
 class TableSearchResultArticle(Article):
   "An article as displayed on the table-based main results page."
   def __init__(self, sql_entry, connection):

@@ -101,6 +101,31 @@ def most_popular(connection, q, categories, timeframe, metric):
     results = [models.SearchResultArticle(a, connection) for a in cursor]
   return results
 
+def author_rankings(connection, category="alltime"):
+  """Returns a list of the 20 authors with the most cumulative downloads
+
+  Arguments:
+    - connection: a database connection object.
+    - category: can specify a single bioRxiv collection to base download rankings on.
+  Returns:
+    - An ordered list of Author objects that meet the search criteria.
+
+  """
+
+  # TODO: validate that the category filters passed in are actual categories
+  if category == "alltime":
+    query = """
+      SELECT a.id, a.given, a.surname, r.rank, r.downloads, r.tie
+      FROM authors AS a
+      INNER JOIN author_ranks r ON a.id=r.author
+      ORDER BY r.rank
+      LIMIT 20
+    """
+  with connection.db.cursor() as cursor:
+    cursor.execute(query)
+    results = [models.SearchResultAuthor(*a) for a in cursor]
+  return results
+
 def table_results(connection, q):
   """Returns data about every paper in the db and makes the browser sort em out.
 

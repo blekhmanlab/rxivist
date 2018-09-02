@@ -20,7 +20,7 @@
             </p>
             <div class="collapse" id="searchform">
           % end
- 
+
           %include("components/searchform", category_list=category_list, view=view, query=query)
           % if view == "news":
             </div>
@@ -59,6 +59,8 @@
               % include("components/results_table", results=results)
             % elif view == "news":
               % include("components/results_news", results=results)
+            % elif view == "authors":
+              % include("components/author_ranks", results=results)
             % else:
               % include("components/results_standard", results=results)
             % end

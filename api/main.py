@@ -69,6 +69,8 @@ def index():
     if view == "table":
       results = endpoints.table_results(connection, query)
       print("Prepping table view \n\n\n")
+    elif view == "authors":
+      results = endpoints.author_rankings(connection)
     else:
       results = endpoints.most_popular(connection, query, category_filter, timeframe, metric)
   except Exception as e:
