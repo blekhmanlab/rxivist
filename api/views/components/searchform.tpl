@@ -1,10 +1,46 @@
+<script>
+function fixForm(changed) {
+  entityField = document.getElementById("entity");
+  metricField = document.getElementById("metric");
+  timeField = document.getElementById("timeframe");
+  searchField = document.getElementById("basicsearchtext");
+  entity = entityField.options[entityField.selectedIndex].value;
+  metric = metricField.options[metricField.selectedIndex].value;
+  timeframe = timeField.options[timeField.selectedIndex].value;
+
+  switch(changed) {
+    case "entity":
+      if(entity == "authors") {
+        timeField.disabled = true;
+        timeField.selectedIndex = 0; // downloads
+        metricField.disabled = true;
+        metricField.selectedIndex = 0; // all time
+        searchField.disabled = true;
+      } else { // papers
+        timeField.disabled = false;
+        metricField.disabled = false;
+        searchField.disabled = false;
+      }
+      break;
+    case "metric":
+      if(metric == "altmetric") {
+        timeField.disabled = true;
+        timeField.selectedIndex = 0; // all time
+      } else {
+        timeField.disabled = false;
+      }
+      break;
+  }
+}
+</script>
+
 <div id="searchform">
   <form action="/" method="get">
     <div class="input-group mb-3 col-sm-9">
       <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here (optional)" value="{{ query.replace("&", " ") }}">
     </div>
     <div class="input-group mb-3 col-md-9">
-     <select class="form-control  col-sm-4" id="entity" name="entity">
+     <select class="form-control  col-sm-4" id="entity" name="entity" onchange="fixForm('entity');">
         <option value="papers"
         %if entity == "papers":
           selected
@@ -16,7 +52,7 @@
         %end
         >authors</option>
       </select>
-      <select class="form-control  col-sm-4" id="metric" name="metric">
+      <select class="form-control  col-sm-4" id="metric" name="metric" onchange="fixForm('metric');">
         <option value="downloads"
         %if metric == "downloads":
           selected
@@ -38,7 +74,7 @@
           >{{ helpers.formatCategory(cat) }}</option>
         %end
       </select>
-      <select class="form-control  col-sm-4" id="timeframe" name="timeframe">
+      <select class="form-control  col-sm-4" id="timeframe" name="timeframe" onchange="fixForm('timeframe');">
         <option value="alltime"
         %if timeframe == "alltime":
           selected

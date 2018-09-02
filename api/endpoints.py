@@ -119,7 +119,7 @@ def author_rankings(connection, category="alltime"):
       FROM authors AS a
       INNER JOIN author_ranks r ON a.id=r.author
       ORDER BY r.rank
-      LIMIT 20
+      LIMIT 200
     """
   with connection.db.cursor() as cursor:
     cursor.execute(query)
