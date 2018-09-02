@@ -36,21 +36,20 @@
           %include("components/paper_stats", paper=paper)
         </div>
       </div>
-      <div class="row">
-        <div class="col-md-6">
-          <h3>Downloads over time</h3>
-          <canvas id="downloadsOverTime"></canvas>
-        </div>
-        % if paper.downloads is not None:
+      % if paper.downloads is not None:
+        <div class="row">
+          <div class="col-md-6">
+            <h3>Downloads over time</h3>
+            <canvas id="downloadsOverTime"></canvas>
+          </div>
           <div class="col-md-6">
             <h3>Distribution of downloads per paper, site-wide</h3>
             <canvas id="downloadsDistribution"></canvas>
           </div>
           %include("components/download_distribution", entity=paper,  entity_name="paper", download_distribution=download_distribution, averages=averages)
-        % end
-      </div>
-      %include("components/download_graph", paper=paper)
-
+          %include("components/download_graph", paper=paper)
+        </div>
+       % end
     </div>
 
     %include("components/footer")

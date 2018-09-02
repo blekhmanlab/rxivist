@@ -1,4 +1,9 @@
 % import helpers
+
+% if paper.downloads is None:
+<p><em>No bioRxiv download data for this paper yet.</em></p>
+% else:
+
 {{ helpers.formatNumber(paper.downloads) }} downloads
   %if paper.date.monthname != "":
     since {{paper.date.monthname}} {{paper.date.year}}
@@ -22,3 +27,4 @@
     </ul>
   </li>
 </ul>
+% end
