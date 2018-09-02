@@ -30,21 +30,23 @@ def index():
   view = bottle.request.query.view # which format to display results
   entity = bottle.request.query.entity
 
-  if metric not in ["downloads", "altmetric"]:
-    metric = "altmetric"
-
+  # set defaults, throw out bogus values
   if entity not in ["papers", "authors"]:
     entity = "papers"
-
-  # make sure it's a timeframe we recognize
-  if timeframe not in ["ytd", "lastmonth", "weighted"]:
+  if entity == "papers":
+    if metric not in ["downloads", "altmetric"]:
+      metric = "altmetric"
+    if timeframe not in ["alltime", "ytd", "lastmonth", "daily", "weighted"]:
+      timeframe = "daily"
+  elif entity == "authors":
+    metric = "downloads"
     timeframe = "alltime"
 
-
+  # figure out the page title
   if entity == "papers":
     title = "Most "
     if metric == "altmetric":
-      timeframe = "day" # only option for now
+      timeframe = "daily" # only option for now
       title += "discussed"
     elif metric == "downloads":
       title += "downloaded"
@@ -57,7 +59,7 @@ def index():
       "ytd": "year to date",
       "lastmonth": "since beginning of last month",
       "weighted": "time-weighted score score",
-      "day": "last 24 hours"
+      "daily": "last 24 hours"
     }
     title += printable_times[timeframe]
   elif entity == "authors":

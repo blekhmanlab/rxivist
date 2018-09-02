@@ -1,12 +1,17 @@
 <script>
 function fixForm(changed) {
   entityField = document.getElementById("entity");
-  metricField = document.getElementById("metric");
-  timeField = document.getElementById("timeframe");
-  searchField = document.getElementById("basicsearchtext");
   entity = entityField.options[entityField.selectedIndex].value;
+
+  metricField = document.getElementById("metric");
+  metricOptions = metricField.getElementsByTagName("option");
   metric = metricField.options[metricField.selectedIndex].value;
+
+  timeField = document.getElementById("timeframe");
+  timeOptions = timeField.getElementsByTagName("option");
   timeframe = timeField.options[timeField.selectedIndex].value;
+
+  searchField = document.getElementById("basicsearchtext");
 
   switch(changed) {
     case "entity":
@@ -18,6 +23,12 @@ function fixForm(changed) {
         searchField.disabled = true;
       } else { // papers
         timeField.disabled = false;
+        timeOptions[0].disabled = false; // all time
+        timeOptions[1].disabled = false; // year to date
+        timeOptions[2].disabled = false; // last month
+        timeOptions[3].disabled = true; // 24 hours
+        timeOptions[4].disabled = false; // time-weighted score
+
         metricField.disabled = false;
         searchField.disabled = false;
       }
@@ -25,9 +36,17 @@ function fixForm(changed) {
     case "metric":
       if(metric == "altmetric") {
         timeField.disabled = true;
-        timeField.selectedIndex = 0; // all time
+        timeField.selectedIndex = 3; // daily
       } else {
         timeField.disabled = false;
+        if(timeField.selectedIndex == 3) { // daily
+          timeField.selectedIndex = 0;
+        }
+        timeOptions[0].disabled = false; // all time
+        timeOptions[1].disabled = false; // year to date
+        timeOptions[2].disabled = false; // last month
+        timeOptions[3].disabled = true; // 24 hours
+        timeOptions[4].disabled = false; // time-weighted score
       }
       break;
   }
@@ -52,7 +71,11 @@ function fixForm(changed) {
         %end
         >authors</option>
       </select>
-      <select class="form-control  col-sm-4" id="metric" name="metric" onchange="fixForm('metric');">
+      <select class="form-control  col-sm-4" id="metric" name="metric" onchange="fixForm('metric');"
+        % if entity == "authors":
+          disabled
+        % end
+      >
         <option value="downloads"
         %if metric == "downloads":
           selected
@@ -74,15 +97,25 @@ function fixForm(changed) {
           >{{ helpers.formatCategory(cat) }}</option>
         %end
       </select>
-      <select class="form-control  col-sm-4" id="timeframe" name="timeframe" onchange="fixForm('timeframe');">
+      <select class="form-control  col-sm-4" id="timeframe" name="timeframe" onchange="fixForm('timeframe');"
+        % if entity == "authors":
+          disabled
+        % end
+      >
         <option value="alltime"
         %if timeframe == "alltime":
           selected
+        %end
+        %if metric != "downloads":
+          disabled
         %end
         >all time</option>
         <option value="ytd"
         %if timeframe == "ytd":
           selected
+        %end
+        %if metric != "downloads":
+          disabled
         %end
         >year to date</option>
 
@@ -90,11 +123,26 @@ function fixForm(changed) {
         %if timeframe == "lastmonth":
           selected
         %end
+        %if metric != "downloads":
+          disabled
+        %end
         >since last month</option>
+
+        <option value="daily"
+        %if timeframe == "daily":
+          selected
+        %end
+        %if metric != "altmetric":
+          disabled
+        %end
+        >last 24 hours</option>
 
         <option value="weighted"
         %if timeframe == "weighted":
           selected
+        %end
+        %if metric != "downloads":
+          disabled
         %end
         >time-weighted score</option>
       </select>
