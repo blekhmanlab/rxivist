@@ -504,10 +504,7 @@ class Spider(object):
 
         print("Calculating median for {}".format(task["name"]))
         if len(values) % 2 == 1:
-          print(len(values))
-          print((len(values) - 1) / 2)
-          print("zzzz")
-          median = values[(len(values) - 1) / 2]
+          median = values[int((len(values) - 1) / 2)]
         else:
           print(len(values))
           print((len(values)/ 2) - 1)
