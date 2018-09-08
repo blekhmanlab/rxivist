@@ -4,6 +4,6 @@
 # so the user can begin running commands immediately
 # TODO: Bake this into the image?
 cd /app
-pip install -r requirements.txt
-python spider.py
+pip3 install -r requirements.txt
+python3 spider.py
 bash
