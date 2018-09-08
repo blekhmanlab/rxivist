@@ -454,6 +454,7 @@ class Spider(object):
         "ALTER TABLE alltime_ranks_working RENAME TO alltime_ranks",
         "ALTER TABLE alltime_ranks_temp RENAME TO alltime_ranks_working"
       ]
+      to_delete = "alltime_ranks_working.csv"
     elif batch == "all_authors":
       print("Activating tables for all-time author ranks.")
       queries = [
@@ -461,6 +462,7 @@ class Spider(object):
         "ALTER TABLE author_ranks_working RENAME TO author_ranks;",
         "ALTER TABLE author_ranks_temp RENAME TO author_ranks_working;"
       ]
+      to_delete = "author_ranks_working.csv"
     elif batch == "category_authors":
       print("Activating tables for category author ranks.")
       queries = [
@@ -468,9 +470,12 @@ class Spider(object):
         "ALTER TABLE author_ranks_category_working RENAME TO author_ranks_category;",
         "ALTER TABLE author_ranks_category_temp RENAME TO author_ranks_category_working;"
       ]
+      to_delete = "author_ranks_category_working.csv"
     with self.connection.db.cursor() as cursor:
       for query in queries:
         cursor.execute(query)
+    if config.delete_csv == True:
+      os.remove(to_delete)
 
   def _calculate_download_distributions(self):
     print("Calculating distribution of download counts with logarithmic scales.")
