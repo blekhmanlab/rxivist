@@ -9,6 +9,7 @@ import bottle
 import db
 import helpers
 import models
+import config
 
 class NotFoundError(Exception):
   def __init__(self, id):
@@ -30,7 +31,7 @@ def get_categories(connection):
       results.append(cat[0])
   return results
 
-def most_popular(connection, q, categories, timeframe, metric):
+def most_popular(connection, q, categories, timeframe, metric, page=0):
   """Returns a list of the 20 most downloaded papers that meet a given set of constraints.
 
   Arguments:
@@ -95,7 +96,10 @@ def most_popular(connection, q, categories, timeframe, metric):
   elif metric == "altmetric":
     query += "r.day_score DESC, r.week_score DESC"
 
-  query += " LIMIT 20;"
+  query += " LIMIT {}".format(config.page_size)
+  if page > 0:
+    query += " OFFSET {}".format(page * config.page_size)
+  query += ";"
   with connection.db.cursor() as cursor:
     cursor.execute(query, params)
     results = [models.SearchResultArticle(a, connection) for a in cursor]
