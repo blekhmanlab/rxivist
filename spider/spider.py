@@ -316,14 +316,17 @@ class Spider(object):
         if abstract: self.update_article(article_id, abstract)
 
   def refresh_article_stats(self, collection):
-    print("Refreshing article download stats...")
+    print("Refreshing article download stats for collection {}...".format(collection))
     with self.connection.db.cursor() as cursor:
       cursor.execute("SELECT id, url FROM articles WHERE collection=%s AND last_crawled < now() - interval '3 weeks';", (collection,))
+      updated = 0
       for article in cursor:
         url = article[1]
         article_id = article[0]
         stat_table = self.get_article_stats(url)
         self.save_article_stats(article_id, stat_table)
+        updated += 1
+      print("{} articles refreshed in {}.".format(updated, collection))
 
   def get_article_abstract(self, url, retry=True):
     if config.polite:
@@ -375,17 +378,13 @@ class Spider(object):
       # associate each year with which months are already recorded
       done = defaultdict(lambda: [])
       for record in cursor:
-        print(record[0], record[1])
         done[record[1]].append(record[0])
       # make a list that excludes the records we already know about
       to_record = []
       for i, record in enumerate(stats):
-        print(record)
         month = record[0]
         year = record[1]
-        if year in done.keys() and month in done[year]:
-          print("Found, not recording")
-        else:
+        if year not in done.keys() or month not in done[year]:
           to_record.append(record)
       # save the remaining ones in the DB
       sql = "INSERT INTO article_traffic (article, month, year, abstract, pdf) VALUES (%s, %s, %s, %s, %s);"
@@ -776,11 +775,11 @@ def full_run(spider, collection=None):
     print("No collection specified, iterating through all known categories.")
     for collection in spider.fetch_categories():
       spider.find_record_new_articles(collection)
+      spider.refresh_article_stats(collection)
   spider.fetch_abstracts()
   spider.pull_altmetric_data()
 
   spider.calculate_vectors()
-  spider.refresh_article_stats(collection)
   spider.process_rankings()
 
 # helper method to fill in newly added field author_vector
