@@ -46,8 +46,8 @@ class Connection(object):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS hotness_ranks_working  (article integer PRIMARY KEY, rank integer, score integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks           (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_working   (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_category   (author integer PRIMARY KEY, category text NOT NULL, rank integer NOT NULL, tie boolean, downloads integer NOT NULL, UNIQUE (author, category));")
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_category_working   (author integer PRIMARY KEY, category text NOT NULL,  rank integer NOT NULL, tie boolean, downloads integer NOT NULL, UNIQUE (author, category));")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_category   (id SERIAL PRIMARY KEY, author integer, category text NOT NULL, rank integer NOT NULL, tie boolean, downloads integer NOT NULL, UNIQUE (author, category));") # TODO: can we ditch the SERIAL id and do a composite key here?
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_category_working   (id SERIAL PRIMARY KEY, author integer, category text NOT NULL,  rank integer NOT NULL, tie boolean, downloads integer NOT NULL, UNIQUE (author, category));")
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS download_distribution (id SERIAL PRIMARY KEY, bucket integer NOT NULL, count integer NOT NULL, category text NOT NULL);")
     self.db.commit()

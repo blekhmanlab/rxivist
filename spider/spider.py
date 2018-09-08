@@ -1,10 +1,12 @@
 from collections import defaultdict
 from datetime import datetime
+import json
+import math
+import os
 import re
+import subprocess
 import sys
 import time
-import math
-import json
 
 import psycopg2
 from requests_html import HTMLSession
@@ -12,38 +14,6 @@ import requests
 
 import db
 import config
-
-TESTING = False
-# this is just for testing, so we don't crawl
-# the whole site during development TODO delete
-
-testing_pagecount = 50
-# how many pages to grab from a single collection
-# before bailing, if TESTING is True
-
-polite = True
-# whether to add pauses at several places in the crawl
-
-stop_on_recognized = True
-# whether to stop crawling once we've encountered a set
-# number of papers that we've already recorded. setting this
-# to 0 would make sense, except if papers are added to a
-# collection WHILE you're indexing it, the crawler dies early.
-# (if this is set to False, the crawler will go through every
-# single page of results for a collection, which is probably
-# wasteful.)
-
-recognized_limit = 20
-# if stop_on_recognized is True, how many papers we have
-# to recognize *in a row* before we assume that we've indexed
-# all the papers at that point in the chronology.
-
-progress_update_interval = 10000
-# When writing a large number of rows to the database (during
-# the ranking of authors and papers), a helper function can
-# log progress through the process. This is how many rows should
-# be written before each update.
-
 
 class Author(object):
   def __init__(self, given, surname):
@@ -225,10 +195,10 @@ def pull_out_articles(html, collection):
     articles.append(a)
   return articles
 
-def record_ranks(to_record, sql, db):
+def record_ranks_db(to_record, sql, db):
   print("Recording {} entries...".format(len(to_record)))
   start = 0
-  interval = progress_update_interval
+  interval = config.progress_update_interval
   db.set_session(autocommit=False)
   with db.cursor() as cursor:
     while True:
@@ -238,8 +208,19 @@ def record_ranks(to_record, sql, db):
       if end == len(to_record):
         break
       start += interval
-  db.commit() # Note: it was hoped this bit would speed up performance; it hasn't
+  db.commit()
   db.set_session(autocommit=True)
+
+def record_ranks_file(to_record, filename):
+  with open("{}.csv".format(filename), 'w') as f:
+    for entry in to_record:
+      to_write = ""
+      for i, field in enumerate(entry):
+        to_write += "{}".format(field)
+        if i < len(entry) - 1:
+          to_write += ","
+      to_write += "\n"
+      f.write(to_write)
 
 class Spider(object):
   def __init__(self):
@@ -306,13 +287,13 @@ class Spider(object):
     for x in results:
       if not x.record(self.connection, self): # TODO: don't pass the whole damn spider here
         consecutive_recognized += 1
-        if consecutive_recognized >= recognized_limit: return
+        if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
       else:
         consecutive_recognized = 0
 
-    pagecount = testing_pagecount if TESTING else determine_page_count(r.html) # Also just for testing TODO delete
+    pagecount = config.testing_pagecount if config.TESTING else determine_page_count(r.html) # Also just for testing TODO delete
     for p in range(1, pagecount): # iterate through pages
-      if polite:
+      if config.polite:
         time.sleep(3)
       print("\n---\n\nFetching page {} in {}".format(p, collection)) # pages are zero-indexed
       r = self.session.get("https://www.biorxiv.org/collection/{}?page={}".format(collection, p))
@@ -320,7 +301,7 @@ class Spider(object):
       for x in results:
         if not x.record(self.connection, self):
           consecutive_recognized += 1
-          if consecutive_recognized >= recognized_limit: return
+          if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
         else:
           consecutive_recognized = 0
 
@@ -345,7 +326,7 @@ class Spider(object):
         self.save_article_stats(article_id, stat_table)
 
   def get_article_abstract(self, url, retry=True):
-    if polite:
+    if config.polite:
       time.sleep(1)
     try:
       resp = self.session.get(url)
@@ -442,17 +423,54 @@ class Spider(object):
 
   def process_rankings(self):
     # pulls together all the separate ranking calls
+    start = datetime.now()
+    print("{} - Starting full ranking process.".format(start))
     self._rank_articles_alltime()
     self._rank_articles_ytd()
     self._rank_articles_month()
-    # self._rank_articles_bouncerate()
-    # self._rank_articles_timeweight()
+    self._rank_articles_bouncerate()
 
-    for category in self.fetch_categories():
-      self._rank_articles_categories(category)
+    load_rankings_from_files("all_articles")
+    self.activate_tables("all_articles")
 
     self._rank_authors_alltime()
+    load_rankings_from_files("all_authors")
+    self.activate_tables("all_authors")
+    for category in self.fetch_categories():
+      self._rank_articles_categories(category)
+      self._rank_authors_category(category)
+      load_rankings_from_files("category_authors")
+    self.activate_tables("category_authors")
+
     self._calculate_download_distributions()
+    end = datetime.now()
+    print("{} - Full ranking process complete after {}.".format(end, end-start))
+
+  def activate_tables(self, batch):
+    if batch == "all_articles":
+      print("Activating tables for all-time article ranks.")
+      queries = [
+        "ALTER TABLE alltime_ranks RENAME TO alltime_ranks_temp",
+        "ALTER TABLE alltime_ranks_working RENAME TO alltime_ranks",
+        "ALTER TABLE alltime_ranks_temp RENAME TO alltime_ranks_working"
+      ]
+    elif batch == "all_authors":
+      print("Activating tables for all-time author ranks.")
+      queries = [
+        "ALTER TABLE author_ranks RENAME TO author_ranks_temp;",
+        "ALTER TABLE author_ranks_working RENAME TO author_ranks;",
+        "ALTER TABLE author_ranks_temp RENAME TO author_ranks_working;"
+      ]
+    elif batch == "category_authors":
+      print("Activating tables for category author ranks.")
+      queries = [
+        "ALTER TABLE author_ranks_category RENAME TO author_ranks_category_temp;",
+        "ALTER TABLE author_ranks_category_working RENAME TO author_ranks_category;",
+        "ALTER TABLE author_ranks_category_temp RENAME TO author_ranks_category_working;"
+      ]
+    with self.connection.db.cursor() as cursor:
+      for query in queries:
+        cursor.execute(query)
 
   def _calculate_download_distributions(self):
     print("Calculating distribution of download counts with logarithmic scales.")
@@ -533,59 +551,7 @@ class Spider(object):
       cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic GROUP BY article ORDER BY downloads DESC")
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
     print("Retrieved download data.")
-    sql = "INSERT INTO alltime_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
-    record_ranks(params, sql, self.connection.db)
-    with self.connection.db.cursor() as cursor:
-      print("Activating current results.")
-      # once it's all done, shuffle the tables around so the new results are active
-      cursor.execute("ALTER TABLE alltime_ranks RENAME TO alltime_ranks_temp")
-      cursor.execute("ALTER TABLE alltime_ranks_working RENAME TO alltime_ranks")
-      cursor.execute("ALTER TABLE alltime_ranks_temp RENAME TO alltime_ranks_working")
-    self.connection.db.commit()
-
-  def _rank_articles_timeweight(self):
-    print("Determining time-weighted scores for each paper.")
-    articles = []
-    # get a list of all the article IDs with traffic
-    with self.connection.db.cursor() as cursor:
-      cursor.execute("TRUNCATE hotness_ranks_working")
-      cursor.execute("SELECT DISTINCT article FROM article_traffic;")
-      articles = [record[0] for record in cursor]
-    # calculate a time-weighted download score for each article
-    for article in articles:
-      with self.connection.db.cursor() as cursor:
-        cursor.execute("SELECT month, year, pdf FROM article_traffic WHERE article_traffic.article=%s;", (article,))
-        downloads = defaultdict(lambda: defaultdict(int))
-        for record in cursor:
-          downloads[record[1]][record[0]] = record[2]
-        score = 0
-        multiplier = 100
-        backoff = 0.2
-        year = datetime.now().year
-        for month in range(datetime.now().month, 0, -1):
-          score += downloads[year][month] * multiplier
-          multiplier = multiplier * (1.0 - backoff)
-        for year in range(datetime.now().year-1, 2009, -1):
-          for month in range(12, 0, -1):
-            score += downloads[year][month] * multiplier
-            multiplier = multiplier * (1.0 - backoff)
-        sql = "INSERT INTO hotness_ranks_working (article, score) VALUES (%s, %s);"
-        cursor.execute(sql, (article, score))
-    # once all the scores are calculated, rank em all:
-    print("Ranking articles by downloads, time-weighted...")
-    with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT article, score FROM hotness_ranks_working ORDER BY score DESC;")
-      params = [(rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-    sql = "UPDATE hotness_ranks_working SET rank=%s WHERE article=%s;"
-    record_ranks(params, sql, self.connection.db)
-
-    with self.connection.db.cursor() as cursor:
-      print("Activating current results.")
-      # once it's all done, shuffle the tables around so the new results are active
-      cursor.execute("ALTER TABLE hotness_ranks RENAME TO hotness_ranks_temp")
-      cursor.execute("ALTER TABLE hotness_ranks_working RENAME TO hotness_ranks")
-      cursor.execute("ALTER TABLE hotness_ranks_temp RENAME TO hotness_ranks")
-    self.connection.db.commit()
+    record_ranks_file(params, "alltime_ranks_working")
 
   def _rank_articles_categories(self, category):
     print("Ranking papers by popularity in category {}...".format(category))
@@ -601,7 +567,7 @@ class Spider(object):
       cursor.execute(query, (category,))
       params = [(rank, record[0]) for rank, record in enumerate(cursor, start=1)]
     sql = "UPDATE articles SET collection_rank=%s WHERE id=%s;"
-    record_ranks(params, sql, self.connection.db)
+    record_ranks_db(params, sql, self.connection.db)
 
   def _rank_articles_bouncerate(self):
     # Ranking articles by the proportion of abstract views to downloads
@@ -611,15 +577,14 @@ class Spider(object):
       # TODO: only calculate ranks for papers with more than some minimum number of downloads
       cursor.execute("SELECT article, CAST (SUM(pdf) AS FLOAT)/SUM(abstract) AS bounce FROM article_traffic GROUP BY article ORDER BY bounce DESC")
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-    sql = "INSERT INTO bounce_ranks_working (article, rank, rate) VALUES (%s, %s, %s);"
-    record_ranks(params, sql, self.connection.db)
+
+    record_ranks_file(params, "bounce_ranks_working")
 
     with self.connection.db.cursor() as cursor:
       # once it's all done, shuffle the tables around so the new results are active
       cursor.execute("ALTER TABLE bounce_ranks RENAME TO bounce_ranks_temp")
       cursor.execute("ALTER TABLE bounce_ranks_working RENAME TO bounce_ranks")
       cursor.execute("ALTER TABLE bounce_ranks_temp RENAME TO bounce_ranks_working")
-    self.connection.db.commit()
 
   def _rank_articles_ytd(self):
     print("Ranking papers by popularity, year to date...")
@@ -627,14 +592,14 @@ class Spider(object):
       cursor.execute("TRUNCATE ytd_ranks_working")
       cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 GROUP BY article ORDER BY downloads DESC") # TODO don't hard-code the year
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-    sql = "INSERT INTO ytd_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
-    record_ranks(params, sql, self.connection.db)
+
+    record_ranks_file(params, "ytd_ranks_working")
+
     with self.connection.db.cursor() as cursor:
       # once it's all done, shuffle the tables around so the new results are active
       cursor.execute("ALTER TABLE ytd_ranks RENAME TO ytd_ranks_temp")
       cursor.execute("ALTER TABLE ytd_ranks_working RENAME TO ytd_ranks")
       cursor.execute("ALTER TABLE ytd_ranks_temp RENAME TO ytd_ranks_working")
-    self.connection.db.commit()
 
   def _rank_articles_month(self):
     print("Ranking papers by popularity, since last month...")
@@ -650,16 +615,16 @@ class Spider(object):
     with self.connection.db.cursor() as cursor:
       print("Ranking articles based on traffic since {}/2018".format(month))
       cursor.execute("TRUNCATE month_ranks_working")
-      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 AND month > %s GROUP BY article ORDER BY downloads DESC", (month,)) # TODO don't hard-code the year
+      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 AND month >= %s GROUP BY article ORDER BY downloads DESC", (month,)) # TODO don't hard-code the year
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-    sql = "INSERT INTO month_ranks_working (article, rank, downloads) VALUES (%s, %s, %s);"
-    record_ranks(params, sql, self.connection.db)
+
+    record_ranks_file(params, "month_ranks_working")
+
     with self.connection.db.cursor() as cursor:
       # once it's all done, shuffle the tables around so the new results are active
       cursor.execute("ALTER TABLE month_ranks RENAME TO month_ranks_temp")
       cursor.execute("ALTER TABLE month_ranks_working RENAME TO month_ranks")
       cursor.execute("ALTER TABLE month_ranks_temp RENAME TO month_ranks_working")
-    self.connection.db.commit()
 
   def _rank_authors_alltime(self):
     # NOTE: The main query of this function (three lines down from here)
@@ -698,14 +663,8 @@ class Spider(object):
           "tie": tie
         })
     params = [(record["id"], record["rank"], record["downloads"], record["tie"]) for record in ranks]
-    sql = "INSERT INTO author_ranks_working (author, rank, downloads, tie) VALUES (%s, %s, %s, %s);"
-    record_ranks(params, sql, self.connection.db)
-    with self.connection.db.cursor() as cursor:
-      print("Activating current results.")
-      # once it's all done, shuffle the tables around so the new results are active
-      cursor.execute("ALTER TABLE author_ranks RENAME TO author_ranks_temp")
-      cursor.execute("ALTER TABLE author_ranks_working RENAME TO author_ranks")
-      cursor.execute("ALTER TABLE author_ranks_temp RENAME TO author_ranks_working")
+
+    record_ranks_file(params, "author_ranks_working")
 
   def _rank_authors_category(self, category):
     print("Ranking authors by popularity, category {}...".format(category))
@@ -742,15 +701,10 @@ class Spider(object):
           "rank": rank,
           "tie": tie
         })
-    params = [(record["id"], category, record["rank"], record["downloads"], record["tie"]) for record in ranks]
-    sql = "INSERT INTO author_ranks_category_working (author, category, rank, downloads, tie) VALUES (%s, %s, %s, %s, %s);"
-    record_ranks(params, sql, self.connection.db)
-    with self.connection.db.cursor() as cursor:
-      print("Activating current results.")
-      # once it's all done, shuffle the tables around so the new results are active
-      cursor.execute("ALTER TABLE author_ranks_category RENAME TO author_ranks_category_temp")
-      cursor.execute("ALTER TABLE author_ranks_category_working RENAME TO author_ranks_category")
-      cursor.execute("ALTER TABLE author_ranks_category_temp RENAME TO author_ranks_category_working")
+
+    params = [(record["id"], "'{}'".format(category), record["rank"], record["downloads"], record["tie"]) for record in ranks]
+
+    record_ranks_file(params, "author_ranks_category_working")
 
   def update_article(self, article_id, abstract):
     # TODO: seems like this thing should be in the Article class maybe?
@@ -804,6 +758,26 @@ class Spider(object):
     f.close()
     print("Sitemapping complete.")
 
+def load_rankings_from_files(batch):
+  os.environ["PGPASSWORD"] = config.db["password"]
+  if batch == "all_articles":
+    print("Loading alltime_ranks from file.")
+    queries = [
+      "\copy alltime_ranks_working (article, rank, downloads) FROM 'alltime_ranks_working.csv' with (format csv);",
+      "\copy ytd_ranks_working (article, rank, downloads) FROM 'ytd_ranks_working.csv' with (format csv);",
+      "\copy month_ranks_working (article, rank, downloads) FROM 'month_ranks_working.csv' with (format csv);"
+    ]
+  elif batch == "all_authors":
+    queries = [
+      "\copy author_ranks_working (author, rank, downloads, tie) FROM 'author_ranks_working.csv' with (format csv);",
+    ]
+  elif batch == "category_authors":
+    queries = [
+      "\copy author_ranks_category_working (author, category, rank, downloads, tie) FROM 'author_ranks_category_working.csv' with (format csv);",
+    ]
+  for query in queries:
+    subprocess.run(["psql", "-h", config.db["host"], "-U", config.db["user"], "-d", config.db["db"], "-c", query], check=True)
+
 def full_run(spider, collection=None):
   if collection is not None:
     spider.find_record_new_articles(collection)
@@ -812,10 +786,10 @@ def full_run(spider, collection=None):
     for collection in spider.fetch_categories():
       spider.find_record_new_articles(collection)
   spider.fetch_abstracts()
+  spider.pull_altmetric_data()
+
   spider.calculate_vectors()
   spider.refresh_article_stats(collection)
-
-  spider.pull_altmetric_data()
   spider.process_rankings()
 
 # helper method to fill in newly added field author_vector
@@ -841,6 +815,16 @@ def fill_in_author_vectors(spider):
       if to_do % 100 == 0:
         print("{} - {} left to go.".format(datetime.now(), to_do))
 
+def concat_abstracts(spider):
+  done = 0
+  with spider.connection.db.cursor() as cursor, open('abstracts.txt', 'w') as f:
+    cursor.execute("SELECT abstract FROM articles;")
+    for record in cursor:
+      f.write('{}\n'.format(record[0]))
+      done += 1
+      if done % 10000 == 0:
+        print("DONE {} so far".format(done))
+
 if __name__ == "__main__":
   spider = Spider()
   if len(sys.argv) == 1: # if no action is specified, do everything
@@ -861,6 +845,6 @@ if __name__ == "__main__":
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   elif sys.argv[1] == "test": # placeholder for temporary commands
-    spider._rank_authors_category('bioinformatics')
+    spider._rank_articles_alltime()
   else:
     full_run(spider, sys.argv[1])
