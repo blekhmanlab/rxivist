@@ -2,7 +2,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    %include("components/metadata.tpl")
+    %include("components/metadata.tpl", google_tag=google_tag)
     <title>{{author.full}} author profile – Rxivist</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.5/chartjs-plugin-annotation.js"></script>

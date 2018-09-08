@@ -92,7 +92,7 @@ def index():
     query=query, category_filter=category_filter, title=title,
     error=error, stats=stats, category_list=category_list,
     timeframe=timeframe, metric=metric, querystring=bottle.request.query_string,
-    view=view, entity=entity)
+    view=view, entity=entity, google_tag=config.google_tag)
 
 # ---- full display thing
 @bottle.get('/table')
@@ -121,7 +121,7 @@ def table():
   return bottle.template('table', results=results,
     query=query, title=title,
     error=error, stats=stats,
-    category_list=category_list)
+    category_list=category_list, google_tag=config.google_tag)
 
 # ---- Author details page
 @bottle.get('/authors/<id:int>')
@@ -138,7 +138,8 @@ def display_author_details(id):
     return {"error": "Server error."}
   download_distribution, averages = endpoints.download_distribution(connection, 'author')
   return bottle.template('author_details', author=author,
-    download_distribution=download_distribution, averages=averages)
+    download_distribution=download_distribution, averages=averages,
+    google_tag=config.google_tag)
 
 # ---- Paper details page
 @bottle.get('/papers/<id:int>')
@@ -155,7 +156,8 @@ def display_paper_details(id):
     return {"error": "Server error."}
   download_distribution, averages = endpoints.download_distribution(connection, 'alltime')
   return bottle.template('paper_details', paper=paper,
-    download_distribution=download_distribution, averages=averages)
+    download_distribution=download_distribution, averages=averages,
+    google_tag=config.google_tag)
 
 # ---- DB convenience endpoint
 @bottle.get('/db')
@@ -185,7 +187,7 @@ def callback():
 @bottle.error(404)
 @bottle.view('error')
 def error404(error):
-  return bottle.template("error")
+  return bottle.template("error", google_tag=config.google_tag)
 
 # - SERVER -
 @bottle.route('/static/<path:path>')
