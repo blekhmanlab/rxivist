@@ -105,7 +105,7 @@ def most_popular(connection, q, categories, timeframe, metric, page=0):
     results = [models.SearchResultArticle(a, connection) for a in cursor]
   return results
 
-def author_rankings(connection, category="alltime"):
+def author_rankings(connection, category_list=[]):
   """Returns a list of the 20 authors with the most cumulative downloads
 
   Arguments:
@@ -115,20 +115,33 @@ def author_rankings(connection, category="alltime"):
     - An ordered list of Author objects that meet the search criteria.
 
   """
+  if len(category_list) == 0:
+    category = ""
+  else:
+    category = category_list[0] # only one category at a time for author searches
 
   # TODO: validate that the category filters passed in are actual categories
-  if category == "alltime":
-    query = """
-      SELECT a.id, a.given, a.surname, r.rank, r.downloads, r.tie
-      FROM authors AS a
-      INNER JOIN author_ranks r ON a.id=r.author
-      ORDER BY r.rank
-      LIMIT 200
-    """
+
+  if category == "": # all time, all categories
+    table = "author_ranks" # TODO: just make a category called "alltime"
+    where = ""
+    params = ()
+  else:
+    table = "author_ranks_category"
+    where = "WHERE r.category=%s"
+    params = (category,)
+  query = """
+    SELECT a.id, a.given, a.surname, r.rank, r.downloads, r.tie
+    FROM authors AS a
+    INNER JOIN {} r ON a.id=r.author
+    {}
+    ORDER BY r.rank
+    LIMIT 200
+  """.format(table, where)
+
   with connection.db.cursor() as cursor:
-    cursor.execute(query)
-    results = [models.SearchResultAuthor(*a) for a in cursor]
-  return results
+    cursor.execute(query, params)
+    return [models.SearchResultAuthor(*a) for a in cursor]
 
 def table_results(connection, q):
   """Returns data about every paper in the db and makes the browser sort em out.

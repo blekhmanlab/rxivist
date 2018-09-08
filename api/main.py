@@ -76,7 +76,7 @@ def index():
 
   try:
     if entity == "authors":
-      results = endpoints.author_rankings(connection)
+      results = endpoints.author_rankings(connection, category_filter)
     elif entity == "papers":
       if view == "table":
         results = endpoints.table_results(connection, query)

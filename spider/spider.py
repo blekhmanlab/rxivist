@@ -681,7 +681,7 @@ class Spider(object):
           "tie": tie
         })
 
-    params = [(record["id"], "'{}'".format(category), record["rank"], record["downloads"], record["tie"]) for record in ranks]
+    params = [(record["id"], category, record["rank"], record["downloads"], record["tie"]) for record in ranks]
 
     record_ranks_file(params, "author_ranks_category_working")
 
