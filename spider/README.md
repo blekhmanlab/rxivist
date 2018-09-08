@@ -1,17 +1,20 @@
 # rxivist spider
 
 ## Running the spider for real
-The web crawler is designed to be run from local machines that connect remotely to the Rxivist database. Doing this is not as bad as it sounds:
+The web crawler is designed to be run from local machines that connect remotely to the Rxivist database. It now runs in a lightly customized Docker container.
 
 1. `git clone https://github.com/rabdill/rxivist.git`
 1. `cd rxivist/spider`
+1. `docker build . -t rxspider:0.1.0` (Replace the "0.1.0" with whatever tag you want to use for this particular version that you're building.)
 1. Put accurate database credentials into `config.py`
-1. `docker run -it --rm --name rxspider -v "$(pwd)":/app python bash /app/prep.sh`
+1. `docker run -it --rm --name rxspider -v "$(pwd)":/app rxspider:0.1.0`
 
 ## Development
 ### Using Docker
 
-For local development, the spider can also be run locally, against a fake Postgres database deployed in a fresh container. A helper script takes care of the details:
+**Note: This section has changed significantly; the local database no longer works as described, but this will be updated soon.**
+
+For local development, the spider can also be run against a fake Postgres database deployed in a fresh container. A helper script takes care of the details:
 
 1. `git clone https://github.com/rabdill/rxivist.git`
 1. `cd rxivist/spider`
@@ -34,16 +37,3 @@ docker kill rxdb
 docker kill rxspider
 ./launch_containers.sh
 ```
-
-### On a local machine
-
-Running this setup locally might be a pain because the script requires a Postgres database to store its data. If you have one running locally or there's one accessible over a network/the internet, edit `config.py` to point at its hostname or IP address rather than "rxdb" and follow these instructions. If your Python environment isn't all messed up and you only have one version of Python, the commands to do this (`python` vs `python3`, `pip` vs `pip3`, etc.) may be a little different.
-
-1. `git clone https://github.com/rabdill/rxivist.git`
-1. `cd rxivist/spider`
-1. `python3 -m venv .`
-1. `source bin/activate`
-1. `pip3 install -r requirements.txt`
-1. `python3 spider.py`
-
-When you're done, be sure to run `deactivate` to exit the virtual environment. Once the dependencies are installed with pip, you can skip most of these steps and just run `source bin/activate && python3 spider.py`
