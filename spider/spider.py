@@ -431,51 +431,48 @@ class Spider(object):
     self._rank_articles_bouncerate()
 
     load_rankings_from_files("all_articles")
-    self.activate_tables("all_articles")
+    self.activate_tables("alltime_ranks")
+    self.activate_tables("ytd_ranks")
+    self.activate_tables("month_ranks")
 
     self._rank_authors_alltime()
     load_rankings_from_files("all_authors")
-    self.activate_tables("all_authors")
+    self.activate_tables("author_ranks")
+
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("TRUNCATE author_ranks_category_working")
+      cursor.execute("TRUNCATE category_ranks_working")
     for category in self.fetch_categories():
       self._rank_articles_categories(category)
+      load_rankings_from_files("category_articles")
       self._rank_authors_category(category)
       load_rankings_from_files("category_authors")
-    self.activate_tables("category_authors")
+    # we wait until all the categories have been loaded before
+    # swapping in the fresh batch
+    self.activate_tables("category_ranks")
+    self.activate_tables("author_ranks_category")
 
     self._calculate_download_distributions()
     end = datetime.now()
     print("{} - Full ranking process complete after {}.".format(end, end-start))
 
-  def activate_tables(self, batch):
-    if batch == "all_articles":
-      print("Activating tables for all-time article ranks.")
-      queries = [
-        "ALTER TABLE alltime_ranks RENAME TO alltime_ranks_temp",
-        "ALTER TABLE alltime_ranks_working RENAME TO alltime_ranks",
-        "ALTER TABLE alltime_ranks_temp RENAME TO alltime_ranks_working"
-      ]
-      to_delete = "alltime_ranks_working.csv"
-    elif batch == "all_authors":
-      print("Activating tables for all-time author ranks.")
-      queries = [
-        "ALTER TABLE author_ranks RENAME TO author_ranks_temp;",
-        "ALTER TABLE author_ranks_working RENAME TO author_ranks;",
-        "ALTER TABLE author_ranks_temp RENAME TO author_ranks_working;"
-      ]
-      to_delete = "author_ranks_working.csv"
-    elif batch == "category_authors":
-      print("Activating tables for category author ranks.")
-      queries = [
-        "ALTER TABLE author_ranks_category RENAME TO author_ranks_category_temp;",
-        "ALTER TABLE author_ranks_category_working RENAME TO author_ranks_category;",
-        "ALTER TABLE author_ranks_category_temp RENAME TO author_ranks_category_working;"
-      ]
-      to_delete = "author_ranks_category_working.csv"
+  def activate_tables(self, table):
+    print("Activating tables for {}".format(table))
+    queries = [
+      "ALTER TABLE {0} RENAME TO {0}_temp".format(table),
+      "ALTER TABLE {0}_working RENAME TO {0}".format(table),
+      "ALTER TABLE {0}_temp RENAME TO {0}_working".format(table)
+    ]
+    to_delete = "{}_working.csv".format(table)
     with self.connection.db.cursor() as cursor:
       for query in queries:
         cursor.execute(query)
     if config.delete_csv == True:
-      os.remove(to_delete)
+      print("Deleting {}".format(to_delete))
+      try:
+        os.remove(to_delete)
+      except Exception as e:
+        print("Problem deleting {}: {}".format(to_delete, e))
 
   def _calculate_download_distributions(self):
     print("Calculating distribution of download counts with logarithmic scales.")
@@ -529,9 +526,6 @@ class Spider(object):
         if len(values) % 2 == 1:
           median = values[int((len(values) - 1) / 2)]
         else:
-          print(len(values))
-          print((len(values)/ 2) - 1)
-          print("aaaaa")
           median = (values[int((len(values)/ 2) - 1)] + values[int(len(values)/ 2)]) / 2
         print("Median is {}".format(median))
         # HACK: This data doesn't fit in this table. Maybe move to site stats table?
@@ -570,9 +564,8 @@ class Spider(object):
         ORDER BY downloads DESC
       """
       cursor.execute(query, (category,))
-      params = [(rank, record[0]) for rank, record in enumerate(cursor, start=1)]
-    sql = "UPDATE articles SET collection_rank=%s WHERE id=%s;"
-    record_ranks_db(params, sql, self.connection.db)
+      params = [(record[0], rank) for rank, record in enumerate(cursor, start=1)]
+    record_ranks_file(params, "category_ranks_working")
 
   def _rank_articles_bouncerate(self):
     # Ranking articles by the proportion of abstract views to downloads
@@ -585,12 +578,6 @@ class Spider(object):
 
     record_ranks_file(params, "bounce_ranks_working")
 
-    with self.connection.db.cursor() as cursor:
-      # once it's all done, shuffle the tables around so the new results are active
-      cursor.execute("ALTER TABLE bounce_ranks RENAME TO bounce_ranks_temp")
-      cursor.execute("ALTER TABLE bounce_ranks_working RENAME TO bounce_ranks")
-      cursor.execute("ALTER TABLE bounce_ranks_temp RENAME TO bounce_ranks_working")
-
   def _rank_articles_ytd(self):
     print("Ranking papers by popularity, year to date...")
     with self.connection.db.cursor() as cursor:
@@ -599,12 +586,6 @@ class Spider(object):
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
 
     record_ranks_file(params, "ytd_ranks_working")
-
-    with self.connection.db.cursor() as cursor:
-      # once it's all done, shuffle the tables around so the new results are active
-      cursor.execute("ALTER TABLE ytd_ranks RENAME TO ytd_ranks_temp")
-      cursor.execute("ALTER TABLE ytd_ranks_working RENAME TO ytd_ranks")
-      cursor.execute("ALTER TABLE ytd_ranks_temp RENAME TO ytd_ranks_working")
 
   def _rank_articles_month(self):
     print("Ranking papers by popularity, since last month...")
@@ -624,12 +605,6 @@ class Spider(object):
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
 
     record_ranks_file(params, "month_ranks_working")
-
-    with self.connection.db.cursor() as cursor:
-      # once it's all done, shuffle the tables around so the new results are active
-      cursor.execute("ALTER TABLE month_ranks RENAME TO month_ranks_temp")
-      cursor.execute("ALTER TABLE month_ranks_working RENAME TO month_ranks")
-      cursor.execute("ALTER TABLE month_ranks_temp RENAME TO month_ranks_working")
 
   def _rank_authors_alltime(self):
     # NOTE: The main query of this function (three lines down from here)
@@ -674,7 +649,6 @@ class Spider(object):
   def _rank_authors_category(self, category):
     print("Ranking authors by popularity, category {}...".format(category))
     with self.connection.db.cursor() as cursor:
-      cursor.execute("DELETE FROM author_ranks_category_working WHERE category=%s", (category,))
       cursor.execute("""
       SELECT article_authors.author, SUM(alltime_ranks.downloads) as downloads
       FROM article_authors
@@ -765,6 +739,7 @@ class Spider(object):
 
 def load_rankings_from_files(batch):
   os.environ["PGPASSWORD"] = config.db["password"]
+  to_delete = None
   if batch == "all_articles":
     print("Loading alltime_ranks from file.")
     queries = [
@@ -780,8 +755,19 @@ def load_rankings_from_files(batch):
     queries = [
       "\copy author_ranks_category_working (author, category, rank, downloads, tie) FROM 'author_ranks_category_working.csv' with (format csv);",
     ]
+    to_delete = "author_ranks_category_working.csv"
+  elif batch == "category_articles":
+    queries = [
+      "\copy category_ranks_working (article, rank) FROM 'category_ranks_working.csv' with (format csv);",
+    ]
+    to_delete = "category_ranks_working.csv"
   for query in queries:
     subprocess.run(["psql", "-h", config.db["host"], "-U", config.db["user"], "-d", config.db["db"], "-c", query], check=True)
+  # Some files get rewritten a bunch of times; if we encounter one of those,
+  # delete it before the next iteration starts.
+  if to_delete is not None:
+    os.remove(to_delete)
+
 
 def full_run(spider, collection=None):
   if collection is not None:
