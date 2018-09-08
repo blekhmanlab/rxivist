@@ -1,7 +1,7 @@
 % import helpers
 <div class="row" id="header">
   <div class="col col-md-7 col-sm-12" style="padding-bottom: 15px;">
-    <a href="/"><img src="/static/rxivist_logo7.png" alt="Rxivist logo" title="It's pronounced 'Archivist.'" width="450"></a>
+    <a href="/"><img src="/static/rxivist_logo8.png" alt="Rxivist logo" title="It's pronounced 'Archivist.'" width="450"></a>
 
     <!-- <span class="social-logo"><a href="https://www.github.com/rabdill/rxivist"><img src="static/github.png" ></a></span>
 	  <span class="social-logo"><a href="https://twitter.com/rxivist"><img src="static/twitter.png"></a></span> -->
