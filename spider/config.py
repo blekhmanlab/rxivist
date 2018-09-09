@@ -1,6 +1,53 @@
+import os
+
 db = {
-  "host": "rxdb",
-  "db": "postgres",
-  "user": "postgres",
-  "password": "mysecretpassword"
+  "host": os.environ['RX_DBHOST'],
+  "db": "rxdb",
+  "user": "root",
+  "password": os.environ['RX_DBPASSWORD']
 }
+
+log_level = "debug"
+
+# this is just for testing, so we don't crawl
+# the whole site during development TODO delete
+TESTING = False
+
+# how many pages to grab from a single collection
+# before bailing, if TESTING is True
+testing_pagecount = 50
+
+# whether to add pauses at several places in the crawl
+polite = True
+
+# whether to stop crawling once we've encountered a set
+# number of papers that we've already recorded. setting this
+# to 0 would make sense, except if papers are added to a
+# collection WHILE you're indexing it, the crawler dies early.
+# (if this is set to False, the crawler will go through every
+# single page of results for a collection, which is probably
+# wasteful.)
+stop_on_recognized = True
+
+# if stop_on_recognized is True, how many papers we have
+# to recognize *in a row* before we assume that we've indexed
+# all the papers at that point in the chronology.
+recognized_limit = 18
+
+# When writing a large number of rows to the database (during
+# the ranking of authors and papers), a helper function can
+# log progress through the process. This is how many rows should
+# be written before each update.
+progress_update_interval = 10000
+
+# The crawler uses temporary files to speed up database writes.
+# Setting this flag to True will delete them after they're processed.
+delete_csv = True
+
+# When updating the statistics of papers that probably have new
+# download information ready, we don't have to get every single
+# outdated paper in one run of the spider. limit_refresh caps
+# how many "refresh download stats" calls are made before the
+# crawler just leaves the rest for next time.
+limit_refresh = True
+refresh_session_cap = 200
