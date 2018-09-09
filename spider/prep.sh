@@ -5,5 +5,5 @@
 # TODO: Bake this into the image?
 cd /app
 pip3 install -r requirements.txt
-python3 spider.py
+# python3 spider.py
 bash
