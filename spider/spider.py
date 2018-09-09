@@ -176,7 +176,7 @@ def log(message, level="info"):
   levels = ["debug", "info", "warn", "error", "fatal"]
   if levels.index(level) >= levels.index(config.log_level):
     with open("spider.log", "a+") as f:
-      f.write("{} {}: {}\n".format(datetime.now(), level.upper(), message))
+      f.write("{} {}: {}\n".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), level.upper(), message))
 
 def determine_page_count(html):
   # takes a biorxiv results page and
@@ -235,6 +235,7 @@ class Spider(object):
     self.session.headers['User-Agent'] = "rxivist web crawler (rxivist.org)"
 
   def pull_altmetric_data(self):
+    log("Beginning retrieval of Altmetric data")
     headers = {'user-agent': 'rxivist web crawler (rxivist.org)'}
     # (If we have multiple results for the same 24-hour period, the
     # query that displays the most popular displays the same articles
@@ -243,7 +244,7 @@ class Spider(object):
     with self.connection.db.cursor() as cursor:
       log("Removing earlier data from same day")
       cursor.execute("DELETE FROM altmetric_daily WHERE crawled > now() - interval '1 days';")
-    log("Fetching Altmetric data")
+    log("Sending request to Altmetric")
     r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&doi_prefix=10.1101&page=1", headers=headers)
     if r.status_code != 200:
       log("ERROR: Got weird status code: {}. {}".format(r.status_code, r.text()), "error")
