@@ -48,7 +48,7 @@
           % if len(results) == 0 and metric == "altmetric":
           %  # just adding a new "metric" param at the end of the query string overrides
           %  # any that appear earlier in the query, once bottle gets it
-            <div><p>Search was based on articles with Altmetric data&mdash;redo search <a href="/?{{querystring}}&metric=downloads">with download data</a> instead?</p></div>
+            <div><p>Search was based on articles with Altmetric data&mdash;redo search <a href="/?{{querystring}}&timeframe=alltime&metric=downloads">with download data</a> instead?</p></div>
           % end
 
           % if metric == "altmetric" and entity == "papers":
