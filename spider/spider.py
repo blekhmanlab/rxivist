@@ -240,6 +240,7 @@ class Spider(object):
     print("Fetching Altmetric data")
     r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&doi_prefix=10.1101&page=1", headers=headers)
     if r.status_code != 200:
+      print("ERROR: Got weird status code: {}. {}".format(r.status_code, r.text()))
       return
     results = r.json()
     result_count = 1
@@ -315,18 +316,25 @@ class Spider(object):
         abstract = self.get_article_abstract(url)
         if abstract: self.update_article(article_id, abstract)
 
-  def refresh_article_stats(self, collection):
+  def refresh_article_stats(self, collection, cap=100000):
     print("Refreshing article download stats for collection {}...".format(collection))
+    print(cap)
     with self.connection.db.cursor() as cursor:
       cursor.execute("SELECT id, url FROM articles WHERE collection=%s AND last_crawled < now() - interval '3 weeks';", (collection,))
       updated = 0
       for article in cursor:
+        if config.polite:
+          time.sleep(1)
         url = article[1]
         article_id = article[0]
         stat_table = self.get_article_stats(url)
         self.save_article_stats(article_id, stat_table)
         updated += 1
-      print("{} articles refreshed in {}.".format(updated, collection))
+        if updated >= cap:
+          print("Maximum articles reached for this session. Returning.")
+          break
+    print("{} articles refreshed in {}.".format(updated, collection))
+    return updated
 
   def get_article_abstract(self, url, retry=True):
     if config.polite:
@@ -773,9 +781,14 @@ def full_run(spider, collection=None):
     spider.find_record_new_articles(collection)
   else:
     print("No collection specified, iterating through all known categories.")
+    refreshed = 0
     for collection in spider.fetch_categories():
       spider.find_record_new_articles(collection)
-      spider.refresh_article_stats(collection)
+      if config.limit_refresh:
+        if refreshed < config.refresh_session_cap:
+          refreshed += spider.refresh_article_stats(collection, config.refresh_session_cap - refreshed)
+      else:
+        spider.refresh_article_stats(collection) # TODO: There's probably a more succinct way to do this rather than two different calls to refresh_article_stats
   spider.fetch_abstracts()
   spider.pull_altmetric_data()
 
