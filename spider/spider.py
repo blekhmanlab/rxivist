@@ -281,13 +281,13 @@ class Spider(object):
     self._rank_articles_month()
     self._rank_articles_bouncerate()
 
-    load_rankings_from_files("all_articles")
+    load_rankings_from_files("all_articles", self.log)
     self.activate_tables("alltime_ranks")
     self.activate_tables("ytd_ranks")
     self.activate_tables("month_ranks")
 
     self._rank_authors_alltime()
-    load_rankings_from_files("all_authors")
+    load_rankings_from_files("all_authors", self.log)
     self.activate_tables("author_ranks")
 
     with self.connection.db.cursor() as cursor:
@@ -295,9 +295,9 @@ class Spider(object):
       cursor.execute("TRUNCATE category_ranks_working")
     for category in self.fetch_categories():
       self._rank_articles_categories(category)
-      load_rankings_from_files("category_articles")
+      load_rankings_from_files("category_articles", self.log)
       self._rank_authors_category(category)
-      load_rankings_from_files("category_authors")
+      load_rankings_from_files("category_authors", self.log)
     # we wait until all the categories have been loaded before
     # swapping in the fresh batch
     self.activate_tables("category_ranks")
@@ -587,11 +587,11 @@ class Spider(object):
     f.close()
     self.log.record("Sitemapping complete.")
 
-def load_rankings_from_files(batch, logger):
+def load_rankings_from_files(batch, log):
   os.environ["PGPASSWORD"] = config.db["password"]
   to_delete = None
   if batch == "all_articles":
-    logger.log.record("Loading alltime_ranks from file.")
+    log.record("Loading alltime_ranks from file.")
     queries = [
       "\copy alltime_ranks_working (article, rank, downloads) FROM 'alltime_ranks_working.csv' with (format csv);",
       "\copy ytd_ranks_working (article, rank, downloads) FROM 'ytd_ranks_working.csv' with (format csv);",
