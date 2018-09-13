@@ -27,7 +27,6 @@ function fixForm(changed) {
         timeOptions[1].disabled = false; // year to date
         timeOptions[2].disabled = false; // last month
         timeOptions[3].disabled = true; // 24 hours
-        timeOptions[4].disabled = false; // time-weighted score
 
         metricField.disabled = false;
         searchField.disabled = false;
@@ -46,7 +45,6 @@ function fixForm(changed) {
         timeOptions[1].disabled = false; // year to date
         timeOptions[2].disabled = false; // last month
         timeOptions[3].disabled = true; // 24 hours
-        timeOptions[4].disabled = false; // time-weighted score
       }
       break;
   }
@@ -136,15 +134,6 @@ function fixForm(changed) {
           disabled
         %end
         >last 24 hours</option>
-
-        <option value="weighted"
-        %if timeframe == "weighted":
-          selected
-        %end
-        %if metric != "downloads":
-          disabled
-        %end
-        >time-weighted score</option>
       </select>
       <input type="hidden" name="view" value="{{ view }}"></input>
       <div class="input-group-append">

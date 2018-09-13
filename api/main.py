@@ -36,7 +36,7 @@ def index():
   if entity == "papers":
     if metric not in ["downloads", "altmetric"]:
       metric = "altmetric"
-    if timeframe not in ["alltime", "ytd", "lastmonth", "daily", "weighted"]:
+    if timeframe not in ["alltime", "ytd", "lastmonth", "daily"]:
       timeframe = "daily"
   elif entity == "authors":
     metric = "downloads"
@@ -58,7 +58,6 @@ def index():
       "alltime": "all time",
       "ytd": "year to date",
       "lastmonth": "since beginning of last month",
-      "weighted": "time-weighted score score",
       "daily": "last 24 hours"
     }
     title += printable_times[timeframe]

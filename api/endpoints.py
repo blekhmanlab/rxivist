@@ -64,7 +64,6 @@ def most_popular(connection, q, categories, timeframe, metric, page=0):
       "alltime": "alltime_ranks",
       "ytd": "ytd_ranks",
       "lastmonth": "month_ranks",
-      "weighted": "hotness_ranks",
     }
     query += query_times[timeframe]
   query += " AS r ON r.article=a.id"

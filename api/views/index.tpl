@@ -51,9 +51,6 @@
             <div><p>Search was based on articles with Altmetric data&mdash;redo search <a href="/?{{querystring}}&timeframe=alltime&metric=downloads">with download data</a> instead?</p></div>
           % end
 
-          % if metric == "altmetric" and entity == "papers":
-            <em>Note: Currently, the only timeframe available for Altmetric searches is "last 24 hours."</em></p>
-          % end
           % if len(results) > 0:
             % if entity == "authors":
                 % include("components/author_ranks", results=results)
