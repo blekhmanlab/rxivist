@@ -631,7 +631,7 @@ def full_run(spider, collection=None):
         if refreshed < config.refresh_session_cap:
           refreshed += spider.refresh_article_stats(collection, config.refresh_session_cap - refreshed)
         else:
-          spider.log.record("Not updating download stats for category {} - session max reached alreay.".format(collection), "debug")
+          spider.log.record("Not updating download stats for category {} - session max reached already.".format(collection), "debug")
       else:
         spider.refresh_article_stats(collection) # TODO: There's probably a more succinct way to do this rather than two different calls to refresh_article_stats
   spider.fetch_abstracts()
