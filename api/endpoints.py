@@ -105,7 +105,7 @@ def most_popular(connection, q, categories, timeframe, metric, page=0):
   return results
 
 def author_rankings(connection, category_list=[]):
-  """Returns a list of the 20 authors with the most cumulative downloads
+  """Returns a list of authors with the most cumulative downloads
 
   Arguments:
     - connection: a database connection object.
@@ -135,8 +135,8 @@ def author_rankings(connection, category_list=[]):
     INNER JOIN {} r ON a.id=r.author
     {}
     ORDER BY r.rank
-    LIMIT 200
-  """.format(table, where)
+    LIMIT {}
+  """.format(table, where, author_ranks_limit)
 
   with connection.db.cursor() as cursor:
     cursor.execute(query, params)
@@ -171,7 +171,7 @@ def table_results(connection, q):
     coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'C') || setweight(a.author_vector, 'D')) totalvector
     WHERE query @@ totalvector
     """
-  query += " LIMIT 400;"
+  query += " LIMIT 400;" # TODO: Paginate this response like the standard one
   with connection.db.cursor() as cursor:
     cursor.execute(query, params)
     results = [models.TableSearchResultArticle(a, connection) for a in cursor]

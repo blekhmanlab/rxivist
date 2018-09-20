@@ -7,7 +7,8 @@ elements.
 import time
 
 import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+
+import config
 
 def queries(): # TODO: This doesn't need to be a function
   """ Returns a dict of strings containing complex queries
@@ -37,27 +38,27 @@ class Connection(object):
   def __init__(self, host, db, user, password):
     self.db = None
     dbname = db
-    params = 'host={} dbname={} user={} password={} connect_timeout=3'.format(host, dbname, user, password)
-    connect = self._attempt_connect(params, 3, 10)
+    params = 'host={} dbname={} user={} password={} connect_timeout={}'.format(host, dbname, user, password, config.db["connection"]["timeout"])
+    connect = self._attempt_connect(params, config.db["connection"]["attempt_pause"], config.db["connection"]["max_attempts"])
     print("Connected!")
     self.cursor = self.db.cursor()
 
   # TODO: This thing is just for demo purposes. If the API starts
   # but there's no DB, it dies and won't restart. This is probably
   # not good.
-  def _attempt_connect(self, params, pause, max_tries, attempts=0):
+  def _attempt_connect(self, params, pause, max_attempts, attempts=0):
     attempts += 1
-    print("Connecting. Attempt {} of {}.".format(attempts, max_tries))
+    print("Connecting. Attempt {} of {}.".format(attempts, max_attempts))
     try:
       self.db = psycopg2.connect(params)
       self.db.set_session(autocommit=True)
     except:
-      if attempts >= max_tries:
+      if attempts >= max_attempts:
         print("Giving up.")
-        exit(1)
+        exit(1) # TODO: this should probably be an exception.
       print("Connection to DB failed. Retrying in {} seconds.".format(pause))
       time.sleep(pause)
-      self._attempt_connect(params, pause, max_tries, attempts)
+      self._attempt_connect(params, pause, max_attempts, attempts)
 
   def fetch_db_tables(self):
     """Utility function that lists out all tables in the Rxivist database;
@@ -92,19 +93,16 @@ class Connection(object):
     headers = []
     data = []
     with self.db.cursor() as cursor:
-      try:
-        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='{}';".format(table))
-        for result in cursor:
-          headers.append(result[0])
-        extra = ""
-        if table == "articles":
-          extra = " ORDER BY last_crawled DESC"
-        cursor.execute("SELECT * FROM {}{} LIMIT 100;".format(table, extra))
-        for result in cursor: # can't just return the cursor; it's closed when this function returns
-          data.append(result)
-      finally:
-        self.db.commit()
-      return headers, data
+      cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='{}';".format(table))
+      for result in cursor:
+        headers.append(result[0])
+      extra = ""
+      if table == "articles":
+        extra = " ORDER BY last_crawled DESC"
+      cursor.execute("SELECT * FROM {}{} LIMIT {};".format(table, extra, config.db_admin_return_limit))
+      for result in cursor: # can't just return the cursor; it's closed when this function returns
+        data.append(result)
+    return headers, data
 
   def read(self, query, params=None):
     """Helper function that converts results returned stored in a

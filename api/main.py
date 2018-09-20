@@ -163,6 +163,9 @@ def display_paper_details(id):
 @bottle.get('/db/<table>')
 @bottle.view('db')
 def get_articles_table(table=None):
+  if not config.allow_db_dashboard:
+    bottle.response.status = 403
+    return "Database debugging dashboard is restricted."
   if connection is None:
     bottle.response.status = 421
     return "Database is initializing."
@@ -175,9 +178,9 @@ def get_articles_table(table=None):
     headers=column_names, results=data)
 
 # Search engine stuff
-@bottle.route('/google3d18e8a680b87e67.html')
+@bottle.route('/{}'.format(config.google_validation_file))
 def callback():
-  return bottle.static_file(filename='google3d18e8a680b87e67.html', root='./static/')
+  return bottle.static_file(filename=config.google_validation_file, root='./static/')
 @bottle.route('/robots.txt')
 def callback():
   return bottle.static_file(filename='robots.txt', root='./static/')
@@ -193,5 +196,7 @@ def error404(error):
 def callback(path):
   return bottle.static_file(path, root='./static/')
 
-bottle.run(host='0.0.0.0', port=80, debug=True, reloader=True)
-# bottle.run(host='0.0.0.0', port=80, server="gunicorn")
+if config.use_prod_webserver:
+  bottle.run(host='0.0.0.0', port=80, server="gunicorn")
+else:
+  bottle.run(host='0.0.0.0', port=80, debug=True, reloader=True)
