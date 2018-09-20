@@ -13,14 +13,6 @@ log_level = "debug"
 # to sites such as bioRxiv and altmetric
 user_agent = "rxivist web crawler (rxivist.org)"
 
-# this is just for testing, so we don't crawl
-# the whole site during development TODO delete
-TESTING = False
-
-# how many pages to grab from a single collection
-# before bailing, if TESTING is True
-testing_pagecount = 50
-
 # whether to add pauses at several places in the crawl
 polite = True
 

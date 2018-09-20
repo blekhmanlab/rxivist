@@ -1,5 +1,5 @@
 import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT # TODO: Was this the reason changing autocommit didn't speed up queries?
 
 class Connection(object):
   def __init__(self, host, db, user, password):
