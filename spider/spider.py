@@ -303,10 +303,10 @@ class Spider(object):
     for category in self.fetch_categories():
       if config.perform_ranks["article_categories"] is not False:
         self._rank_articles_categories(category)
-        load_rankings_from_files("category_ranks", self.log)
+        load_rankings_from_file("category_ranks", self.log)
       if config.perform_ranks["author_categories"] is not False:
         self._rank_authors_category(category)
-        load_rankings_from_files("author_ranks_category", self.log)
+        load_rankings_from_file("author_ranks_category", self.log)
     # we wait until all the categories have been loaded before
     # swapping in the fresh batch
     if config.perform_ranks["article_categories"] is not False:

@@ -6,4 +6,4 @@
 cd /app
 pip install -r requirements.txt
 python main.py
-bash # if someone kills the server, drop them into a shell
+bash # if someone kills the server, drop them into a shell TODO: Don't do this in prod

@@ -128,7 +128,7 @@ def table():
 def display_author_details(id):
   try:
     author = endpoints.author_details(connection, id)
-  except endpoints.NotFoundError as e:
+  except helpers.NotFoundError as e:
     bottle.response.status = 404
     return e.message
   except ValueError as e:
@@ -146,7 +146,7 @@ def display_author_details(id):
 def display_paper_details(id):
   try:
     paper = endpoints.paper_details(connection, id)
-  except endpoints.NotFoundError as e:
+  except helpers.NotFoundError as e:
     bottle.response.status = 404
     return e.message
   except ValueError as e:

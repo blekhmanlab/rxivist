@@ -11,10 +11,6 @@ import helpers
 import models
 import config
 
-class NotFoundError(Exception):
-  def __init__(self, id):
-    self.message = "Entity could not be found with id {}".format(id)
-
 def get_categories(connection):
   """Returns a list of all known bioRxiv categories.
 
@@ -192,7 +188,7 @@ def author_details(connection, id):
 
   authorq = connection.read("SELECT id, given, surname FROM authors WHERE id = %s;", (id,))
   if len(authorq) == 0:
-    raise NotFoundError(id)
+    raise helpers.NotFoundError(id)
   if len(authorq) > 1:
     raise ValueError("Multiple authors found with id {}".format(id))
   authorq = authorq[0]
@@ -249,9 +245,7 @@ def paper_details(connection, id):
   sql = db.queries()["article_ranks"] + "WHERE articles.id=%s"
   paperq = connection.read(sql, (id,))
   if len(paperq) == 0:
-    raise NotFoundError(id)
-  # if len(paperq) > 1:
-    # raise ValueError("Multiple papers found with id {}".format(id))
+    raise helpers.NotFoundError(id)
   paperq = paperq[0]
   # TODO: Figure out which join clause in the query makes a bunch of
   # identical responses come back for this

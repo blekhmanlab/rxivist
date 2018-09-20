@@ -51,8 +51,7 @@ class DateEntry(object):
 
 class RankEntry(object):
   """Stores data about a paper's rank within a
-  single corpus.
-  """
+  single corpus."""
   def __init__(self, rank=0, out_of=0, tie=False, downloads=0, category="alltime"):
     self.category = category
     self.downloads = downloads
@@ -75,6 +74,7 @@ class Article:
   are presented throughout the site.
   """
   def __init(self):
+    self.id = None
     pass
 
   def get_authors(self, connection):
