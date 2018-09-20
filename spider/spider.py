@@ -44,7 +44,6 @@ def record_ranks_db(to_record, sql, db):
   log("Recording {} entries...".format(len(to_record)))
   start = 0
   interval = config.progress_update_interval
-  db.set_session(autocommit=False)
   with db.cursor() as cursor:
     while True:
       end = start + interval if start + interval < len(to_record) else len(to_record)
@@ -53,8 +52,6 @@ def record_ranks_db(to_record, sql, db):
       if end == len(to_record):
         break
       start += interval
-  db.commit()
-  db.set_session(autocommit=True)
 
 def record_ranks_file(to_record, filename):
   with open("{}.csv".format(filename), 'w') as f:
@@ -71,12 +68,12 @@ class Spider(object):
   def __init__(self):
     self.connection = db.Connection(config.db["host"], config.db["db"], config.db["user"], config.db["password"])
     self.session = HTMLSession(mock_browser=False)
-    self.session.headers['User-Agent'] = "rxivist web crawler (rxivist.org)"
+    self.session.headers['User-Agent'] = config.user_agent
     self.log = Logger()
 
   def pull_altmetric_data(self):
     self.log.record("Beginning retrieval of Altmetric data")
-    headers = {'user-agent': 'rxivist web crawler (rxivist.org)'}
+    headers = {'user-agent': config.user_agent}
     # (If we have multiple results for the same 24-hour period, the
     # query that displays the most popular displays the same articles
     # multiple times, and the aggregation function to clean that up
@@ -85,7 +82,7 @@ class Spider(object):
       self.log.record("Removing earlier data from same day")
       cursor.execute("DELETE FROM altmetric_daily WHERE crawled=CURRENT_DATE;")
     self.log.record("Sending request to Altmetric")
-    r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&doi_prefix=10.1101&page=1", headers=headers)
+    r = requests.get("{}?num_results=100&doi_prefix={}&page=1".format(config.altmetric["endpoints"]["daily"], config.altmetric["doi_prefix"]), headers=headers)
     if r.status_code != 200:
       self.log.record("ERROR: Got weird status code: {}. {}".format(r.status_code, r.text()), "error")
       return # TODO: retry logic in here
@@ -99,10 +96,8 @@ class Spider(object):
       found = 0
       time.sleep(1) # 1 per second limit
       self.log.record("Fetching page {}".format(page))
-      # TODO: Validate that DOI prefix 10.1101 is bioRxiv, and that we won't miss
-      # papers that somehow get another prefix.
       try:
-        r = requests.get("https://api.altmetric.com/v1/citations/1d?num_results=100&doi_prefix=10.1101&page={}".format(page), headers=headers)
+        r = requests.get("{}?num_results=100&doi_prefix={}&page={}".format(config.altmetric["endpoints"]["daily"], config.altmetric["doi_prefix"], page), headers=headers)
         results = r.json()
       except json.decoder.JSONDecodeError:
         self.log.record("Error encountered; bailing.", "error")
@@ -130,7 +125,7 @@ class Spider(object):
   def find_record_new_articles(self, collection):
     # we need to grab the first page to figure out how many pages there are
     self.log.record("Fetching page 0 in {}".format(collection))
-    r = self.session.get("https://www.biorxiv.org/collection/{}".format(collection))
+    r = self.session.get("{}/{}".format(config.biorxiv["endpoints"]["collection"], collection))
     results = pull_out_articles(r.html, collection, self.log)
     consecutive_recognized = 0
     for x in results:
@@ -140,12 +135,11 @@ class Spider(object):
       else:
         consecutive_recognized = 0
 
-    pagecount = config.testing_pagecount if config.TESTING else determine_page_count(r.html) # Also just for testing TODO delete
-    for p in range(1, pagecount): # iterate through pages
+    for p in range(1, determine_page_count(r.html)): # iterate through each page of results
       if config.polite:
         time.sleep(3)
       self.log.record("Fetching page {} in {}".format(p, collection)) # pages are zero-indexed
-      r = self.session.get("https://www.biorxiv.org/collection/{}?page={}".format(collection, p))
+      r = self.session.get("{}/{}?page={}".format(config.biorxiv["endpoints"]["collection"], collection, p))
       results = pull_out_articles(r.html, collection, self.log)
       for x in results:
         if not x.record(self.connection, self):
@@ -167,7 +161,7 @@ class Spider(object):
   def refresh_article_stats(self, collection, cap=100000):
     self.log.record("Refreshing article download stats for collection {}...".format(collection))
     with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT id, url FROM articles WHERE collection=%s AND last_crawled < now() - interval '3 weeks';", (collection,))
+      cursor.execute("SELECT id, url FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
       updated = 0
       for article in cursor:
         if config.polite:
@@ -221,9 +215,11 @@ class Spider(object):
     # First, delete the most recently fetched month, because it was probably recorded before
     # that month was complete:
     with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT MAX(month) FROM article_traffic WHERE year = 2018 AND article=%s;", (article_id,))
+      cursor.execute("SELECT MAX(month) FROM article_traffic WHERE year = 2018 AND article=%s;", (article_id,)) # TODO: don't hardcode the date, good luck
       month = cursor.fetchone()
       if month is not None and len(month) > 0:
+        # TODO: Select all the months and work backward from the max, for a configurable amount
+        # of months. This will allow for the refresh_interval to stretch out over more than a single month.
         cursor.execute("DELETE FROM article_traffic WHERE year = 2018 AND article=%s AND month = %s", (article_id, month[0]))
     with self.connection.db.cursor() as cursor:
       # we check for which ones are already recorded because
@@ -276,32 +272,47 @@ class Spider(object):
     # pulls together all the separate ranking calls
     start = datetime.now()
     self.log.record("{} - Starting full ranking process.".format(start))
-    self._rank_articles_alltime()
-    self._rank_articles_ytd()
-    self._rank_articles_month()
-    self._rank_articles_bouncerate()
+    # "not False" is used here because we want these to process if the flag
+    # is set to True OR not set at all ("None is not False" evaluates True)
 
-    load_rankings_from_files("all_articles", self.log)
-    self.activate_tables("alltime_ranks")
-    self.activate_tables("ytd_ranks")
-    self.activate_tables("month_ranks")
+    if config.perform_ranks["alltime"] is not False:
+      self._rank_articles_alltime()
+      load_rankings_from_file("alltime_ranks", self.log)
+      self.activate_tables("alltime_ranks")
+    if config.perform_ranks["ytd"] is not False:
+      self._rank_articles_ytd()
+      load_rankings_from_file("ytd_ranks", self.log)
+      self.activate_tables("ytd_ranks")
+    if config.perform_ranks["month"] is not False:
+      self._rank_articles_month()
+      load_rankings_from_file("month_ranks", self.log)
+      self.activate_tables("month_ranks")
+    # if config.perform_ranks["bouncerate"] is not False:
+    #   self._rank_articles_bouncerate()
+    #   load_rankings_from_file("bounce_ranks", self.log)
+    #   self.activate_tables("bounce_ranks")
 
-    self._rank_authors_alltime()
-    load_rankings_from_files("all_authors", self.log)
-    self.activate_tables("author_ranks")
+    if config.perform_ranks["authors"] is not False:
+      self._rank_authors_alltime()
+      load_rankings_from_file("author_ranks", self.log)
+      self.activate_tables("author_ranks")
 
     with self.connection.db.cursor() as cursor:
       cursor.execute("TRUNCATE author_ranks_category_working")
       cursor.execute("TRUNCATE category_ranks_working")
     for category in self.fetch_categories():
-      self._rank_articles_categories(category)
-      load_rankings_from_files("category_articles", self.log)
-      self._rank_authors_category(category)
-      load_rankings_from_files("category_authors", self.log)
+      if config.perform_ranks["article_categories"] is not False:
+        self._rank_articles_categories(category)
+        load_rankings_from_files("category_ranks", self.log)
+      if config.perform_ranks["author_categories"] is not False:
+        self._rank_authors_category(category)
+        load_rankings_from_files("author_ranks_category", self.log)
     # we wait until all the categories have been loaded before
     # swapping in the fresh batch
-    self.activate_tables("category_ranks")
-    self.activate_tables("author_ranks_category")
+    if config.perform_ranks["article_categories"] is not False:
+      self.activate_tables("category_ranks")
+    if config.perform_ranks["author_categories"] is not False:
+      self.activate_tables("author_ranks_category")
 
     self._calculate_download_distributions()
     end = datetime.now()
@@ -330,11 +341,11 @@ class Spider(object):
     tasks = [
       {
         "name": "alltime",
-        "scale_power": 1.5
+        "scale_power": config.distribution_log_articles
       },
       {
         "name": "author",
-        "scale_power": 1.5
+        "scale_power": config.distribution_log_authors
       },
     ]
     for task in tasks:
@@ -509,7 +520,7 @@ class Spider(object):
       articles.collection=%s
       GROUP BY article_authors.author
       ORDER BY downloads DESC, article_authors.author DESC
-      """, (category,)) # NOTE: This used to have a "LIMIT 10000" on it, consider putting it back
+      """, (category,))
       ranks = []
       rankNum = 0
       for record in cursor:
@@ -550,6 +561,8 @@ class Spider(object):
       self.connection.db.commit()
 
   def build_sitemap(self):
+    """Utility function used to pull together a list of all pages on the site.
+    Not used for day-to-day operations."""
     self.log.record("Building sitemap...")
     filecount = 0
     f = open('sitemaps/sitemap00.txt', 'w')
@@ -587,32 +600,25 @@ class Spider(object):
     f.close()
     self.log.record("Sitemapping complete.")
 
-def load_rankings_from_files(batch, log):
+def load_rankings_from_file(batch, log):
   os.environ["PGPASSWORD"] = config.db["password"]
   to_delete = None
-  if batch == "all_articles":
-    log.record("Loading alltime_ranks from file.")
-    queries = [
-      "\copy alltime_ranks_working (article, rank, downloads) FROM 'alltime_ranks_working.csv' with (format csv);",
-      "\copy ytd_ranks_working (article, rank, downloads) FROM 'ytd_ranks_working.csv' with (format csv);",
-      "\copy month_ranks_working (article, rank, downloads) FROM 'month_ranks_working.csv' with (format csv);"
-    ]
-  elif batch == "all_authors":
-    queries = [
-      "\copy author_ranks_working (author, rank, downloads, tie) FROM 'author_ranks_working.csv' with (format csv);",
-    ]
-  elif batch == "category_authors":
-    queries = [
-      "\copy author_ranks_category_working (author, category, rank, downloads, tie) FROM 'author_ranks_category_working.csv' with (format csv);",
-    ]
+  log.record("Loading {} from file.".format(batch))
+  if batch in ["alltime_ranks", "ytd_ranks", "month_ranks"]:
+    query = "\copy {0}_working (article, rank, downloads) FROM '{0}_working.csv' with (format csv);".format(batch)
+  elif batch == "author_ranks":
+    query = "\copy author_ranks_working (author, rank, downloads, tie) FROM 'author_ranks_working.csv' with (format csv);"
+  elif batch == "author_ranks_category":
+    query = "\copy author_ranks_category_working (author, category, rank, downloads, tie) FROM 'author_ranks_category_working.csv' with (format csv);"
     to_delete = "author_ranks_category_working.csv"
-  elif batch == "category_articles":
-    queries = [
-      "\copy category_ranks_working (article, rank) FROM 'category_ranks_working.csv' with (format csv);",
-    ]
+  elif batch == "category_ranks":
+    query = "\copy category_ranks_working (article, rank) FROM 'category_ranks_working.csv' with (format csv);"
     to_delete = "category_ranks_working.csv"
-  for query in queries:
-    subprocess.run(["psql", "-h", config.db["host"], "-U", config.db["user"], "-d", config.db["db"], "-c", query], check=True)
+  else:
+    log.record("Unrecognized rankings source passed to load_rankings_from_file: {}".format(batch), "warn")
+    return # TODO: Should this be an exception?
+
+  subprocess.run(["psql", "-h", config.db["host"], "-U", config.db["user"], "-d", config.db["db"], "-c", query], check=True)
   # Some files get rewritten a bunch of times; if we encounter one of those,
   # delete it before the next iteration starts.
   if to_delete is not None:
@@ -662,16 +668,6 @@ def fill_in_author_vectors(spider):
       to_do -= 1
       if to_do % 100 == 0:
         spider.log.record("{} - {} left to go.".format(datetime.now(), to_do))
-
-def concat_abstracts(spider): # TODO delete this
-  done = 0
-  with spider.connection.db.cursor() as cursor, open('abstracts.txt', 'w') as f:
-    cursor.execute("SELECT abstract FROM articles;")
-    for record in cursor:
-      f.write('{}\n'.format(record[0]))
-      done += 1
-      if done % 10000 == 0:
-        spider.log.record("DONE {} so far".format(done), "debug")
 
 if __name__ == "__main__":
   spider = Spider()
