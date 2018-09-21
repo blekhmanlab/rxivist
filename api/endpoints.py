@@ -132,7 +132,7 @@ def author_rankings(connection, category_list=[]):
     {}
     ORDER BY r.rank
     LIMIT {}
-  """.format(table, where, author_ranks_limit)
+  """.format(table, where, config.author_ranks_limit)
 
   with connection.db.cursor() as cursor:
     cursor.execute(query, params)
