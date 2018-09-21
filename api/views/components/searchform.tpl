@@ -1,42 +1,40 @@
 % if entity == "papers":
+  <script>
+    function fixForm(changed) {
+      metricField = document.getElementById("metric");
+      metricOptions = metricField.getElementsByTagName("option");
+      metric = metricField.options[metricField.selectedIndex].value;
 
-<script>
-function fixForm(changed) {
-  entityField = document.getElementById("entity");
-  entity = entityField.options[entityField.selectedIndex].value;
+      timeField = document.getElementById("timeframe");
+      timeOptions = timeField.getElementsByTagName("option");
+      timeframe = timeField.options[timeField.selectedIndex].value;
 
-  metricField = document.getElementById("metric");
-  metricOptions = metricField.getElementsByTagName("option");
-  metric = metricField.options[metricField.selectedIndex].value;
+      searchField = document.getElementById("basicsearchtext");
 
-  timeField = document.getElementById("timeframe");
-  timeOptions = timeField.getElementsByTagName("option");
-  timeframe = timeField.options[timeField.selectedIndex].value;
-
-  searchField = document.getElementById("basicsearchtext");
-
-  switch(changed) {
-    case "metric":
-      if(metric == "altmetric") {
-        timeField.disabled = true;
-        timeField.selectedIndex = 3; // daily
-      } else {
-        timeField.disabled = false;
-        if(timeField.selectedIndex == 3) { // daily
-          timeField.selectedIndex = 0;
-        }
-        timeOptions[0].disabled = false; // all time
-        timeOptions[1].disabled = false; // year to date
-        timeOptions[2].disabled = false; // last month
-        timeOptions[3].disabled = true; // 24 hours
+      switch(changed) {
+        case "metric":
+          if(metric == "altmetric") {
+            timeField.disabled = true;
+            timeField.selectedIndex = 3; // daily
+          } else { // downloads
+            timeField.disabled = false;
+            if(timeField.selectedIndex == 3) { // daily
+              timeField.selectedIndex = 0;
+            }
+            timeOptions[0].disabled = false; // all time
+            timeOptions[1].disabled = false; // year to date
+            timeOptions[2].disabled = false; // last month
+            timeOptions[3].disabled = true; // 24 hours
+          }
+          break;
       }
-      break;
-  }
-}
-</script>
+    }
+    </script>
+% end
 
 <div id="searchform">
   <form action="/" method="get">
+  % if entity == "papers":
     <div class="input-group mb-3 col-sm-9">
       <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here (optional)" value="{{ query.replace("&", " ") }}">
     </div>
@@ -104,13 +102,8 @@ function fixForm(changed) {
         <button type="submit" class="btn btn-altcolor">Search</button>
       </div>
     </div>
-  </form>
-</div>
 
-
-% else:   # if it's a search form for authors, not papers
-<div id="searchform">
-  <form action="/" method="get">
+  % else:   # if it's a search form for authors, not papers
     <div class="input-group mb-3 col-md-9">
       <select class="form-control col-sm-4" id="category" name="category" onchange="this.form.submit()">
         <option value="">all categories</option>
@@ -128,7 +121,21 @@ function fixForm(changed) {
         <button type="submit" class="btn btn-altcolor">Search</button>
       </div>
     </div>
+  % end
+
   </form>
 </div>
+<div class="col-md-2
 
+% if entity == "papers":
+  offset-md-6
 % end
+">
+  <a class="badge badge-secondary" href=
+  % if entity == "papers":
+    "/?entity=authors">switch to author rankings
+  % else:
+    "/">switch to paper rankings
+  % end
+  </a>
+</div>
