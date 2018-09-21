@@ -2,7 +2,7 @@
   % for i, result in enumerate(results):
     <div class="card">
       <div class="card-header context" id="heading{{result.id}}"  data-toggle="collapse" data-target="#collapse{{result.id}}" aria-expanded="true" aria-controls="collapse{{result.id}}">
-        <strong>{{i+1}}:</strong>
+        <strong>{{i+1 + (page * page_size)}}:</strong>
         % if metric == "altmetric" and result.downloads > 80:
           <i class="fab fa-hotjar text-danger" style="font-size: 2em;"></i>
         % end
@@ -40,3 +40,6 @@
     </div>
   % end
 </div>
+% if len(results) == page_size:
+  <a href="{{ next_page_link }}" class="btn btn-altcolor">Next {{ page_size }}</a>
+% end

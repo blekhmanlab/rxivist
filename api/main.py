@@ -3,8 +3,10 @@
 This is the entrypoint for the application, the script called
 when the server is started and the router for all user requests.
 """
+import re
 
 import bottle
+
 import db
 import helpers
 import endpoints
@@ -29,6 +31,7 @@ def index():
   metric = bottle.request.query.metric
   view = bottle.request.query.view # which format to display results
   entity = bottle.request.query.entity
+  page = bottle.request.query.page
 
   # set defaults, throw out bogus values
   if entity not in ["papers", "authors"]:
@@ -67,6 +70,10 @@ def index():
   # Get rid of a category filter that's just one empty parameter:
   if len(category_filter) == 1 and category_filter[0] == "":
     category_filter = []
+  if page == "":
+    page = 0
+  else:
+    page = int(page)
 
   category_list = endpoints.get_categories(connection) # list of all article categories
   stats = models.SiteStats(connection) # site-wide metrics (paper count, etc)
@@ -81,17 +88,24 @@ def index():
         results = endpoints.table_results(connection, query)
         print("Prepping table view \n\n\n")
       else:
-        results = endpoints.most_popular(connection, query, category_filter, timeframe, metric)
+        results = endpoints.most_popular(connection, query, category_filter, timeframe, metric, page)
   except Exception as e:
     print(e)
     error = "There was a problem with the submitted query."
     bottle.response.status = 500
 
+  if "page=" in bottle.request.query_string:
+    next_page_link = re.sub(r"page=\d*", "page={}".format(page + 1), bottle.request.query_string)
+  else:
+    next_page_link = "{}&page={}".format(bottle.request.query_string, page + 1)
+  next_page_link = "/?{}".format(next_page_link)
+
   return bottle.template('index', results=results,
     query=query, category_filter=category_filter, title=title,
     error=error, stats=stats, category_list=category_list,
     timeframe=timeframe, metric=metric, querystring=bottle.request.query_string,
-    view=view, entity=entity, google_tag=config.google_tag)
+    view=view, entity=entity, google_tag=config.google_tag, page=page,
+    page_size=config.page_size, next_page_link=next_page_link)
 
 # ---- full display thing
 @bottle.get('/table')
