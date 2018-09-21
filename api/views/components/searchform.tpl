@@ -1,3 +1,5 @@
+% if entity == "papers":
+
 <script>
 function fixForm(changed) {
   entityField = document.getElementById("entity");
@@ -14,24 +16,6 @@ function fixForm(changed) {
   searchField = document.getElementById("basicsearchtext");
 
   switch(changed) {
-    case "entity":
-      if(entity == "authors") {
-        timeField.disabled = true;
-        timeField.selectedIndex = 0; // downloads
-        metricField.disabled = true;
-        metricField.selectedIndex = 0; // all time
-        searchField.disabled = true;
-      } else { // papers
-        timeField.disabled = false;
-        timeOptions[0].disabled = false; // all time
-        timeOptions[1].disabled = false; // year to date
-        timeOptions[2].disabled = false; // last month
-        timeOptions[3].disabled = true; // 24 hours
-
-        metricField.disabled = false;
-        searchField.disabled = false;
-      }
-      break;
     case "metric":
       if(metric == "altmetric") {
         timeField.disabled = true;
@@ -57,23 +41,7 @@ function fixForm(changed) {
       <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here (optional)" value="{{ query.replace("&", " ") }}">
     </div>
     <div class="input-group mb-3 col-md-9">
-     <select class="form-control  col-sm-4" id="entity" name="entity" onchange="fixForm('entity');">
-        <option value="papers"
-        %if entity == "papers":
-          selected
-        %end
-        >papers</option>
-        <option value="authors"
-        %if entity == "authors":
-          selected
-        %end
-        >authors</option>
-      </select>
-      <select class="form-control  col-sm-4" id="metric" name="metric" onchange="fixForm('metric');"
-        % if entity == "authors":
-          disabled
-        % end
-      >
+      <select class="form-control  col-sm-4" id="metric" name="metric" onchange="fixForm('metric');">
         <option value="downloads"
         %if metric == "downloads":
           selected
@@ -95,11 +63,7 @@ function fixForm(changed) {
           >{{ helpers.formatCategory(cat) }}</option>
         %end
       </select>
-      <select class="form-control  col-sm-4" id="timeframe" name="timeframe" onchange="fixForm('timeframe');"
-      %if entity == "authors":
-        disabled
-      %end
-      >
+      <select class="form-control  col-sm-4" id="timeframe" name="timeframe" onchange="fixForm('timeframe');">
         <option value="alltime"
         %if timeframe == "alltime":
           selected
@@ -142,3 +106,29 @@ function fixForm(changed) {
     </div>
   </form>
 </div>
+
+
+% else:   # if it's a search form for authors, not papers
+<div id="searchform">
+  <form action="/" method="get">
+    <div class="input-group mb-3 col-md-9">
+      <select class="form-control col-sm-4" id="category" name="category" onchange="this.form.submit()">
+        <option value="">all categories</option>
+        % for cat in category_list:
+          <option value="{{cat}}"
+          % if cat in category_filter:
+            selected
+          % end
+          >{{ helpers.formatCategory(cat) }}</option>
+        %end
+      </select>
+      <input type="hidden" name="view" value="{{ view }}"></input>
+      <input type="hidden" name="entity" value="authors"></input>
+      <div class="input-group-append">
+        <button type="submit" class="btn btn-altcolor">Search</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+% end
