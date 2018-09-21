@@ -632,19 +632,45 @@ def full_run(spider, collection=None):
     spider.log.record("No collection specified, iterating through all known categories.")
     refreshed = 0
     for collection in spider.fetch_categories():
-      spider.find_record_new_articles(collection)
-      if config.limit_refresh:
-        if refreshed < config.refresh_session_cap:
-          refreshed += spider.refresh_article_stats(collection, config.refresh_session_cap - refreshed)
-        else:
-          spider.log.record("Not updating download stats for category {} - session max reached already.".format(collection), "debug")
+      # we update articles without any traffic data BEFORE fetching new articles
+      # to avoid crawling the same article twice in like two minutes.
+      if config.crawl["first_stats"] is not False:
+        spider._fetch_first_article_stats(collection)
       else:
-        spider.refresh_article_stats(collection) # TODO: There's probably a more succinct way to do this rather than two different calls to refresh_article_stats
-  spider.fetch_abstracts()
-  spider.pull_altmetric_data()
+        spider.log.record("Skipping search for download data for articles without any: disabled in configuration file.")
+
+      if config.crawl["fetch_new"] is not False:
+        spider.find_record_new_articles(collection)
+      else:
+        spider.log.record("Skipping search for new articles: disabled in configuration file.")
+
+      if config.crawl["refresh_stats"] is not False:
+        if config.limit_refresh:
+          if refreshed < config.refresh_session_cap:
+            refreshed += spider.refresh_article_stats(collection, config.refresh_session_cap - refreshed)
+          else:
+            spider.log.record("Not updating download stats for category {} - session max reached already.".format(collection), "debug")
+        else:
+          spider.refresh_article_stats(collection) # TODO: There's probably a more succinct way to do this rather than two different calls to refresh_article_stats
+      else:
+        spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.")
+  if config.crawl["fetch_abstracts"] is not False:
+    spider.fetch_abstracts()
+  else:
+    spider.log.record("Skipping step to fetch unknown abstracts: disabled in configuration file.")
+
+  if config.crawl["fetch_altmetric"] is not False:
+    spider.pull_altmetric_data()
+  else:
+    spider.log.record("Skipping call to fetch Altmetric data: disabled in configuration file.")
+
 
   spider.calculate_vectors()
-  spider.process_rankings()
+
+  if config.perform_ranks["enabled"] is not False:
+    spider.process_rankings()
+  else:
+    spider.log.record("Skipping all ranking steps: disabled in configuration file.")
 
 # helper method to fill in newly added field author_vector
 def fill_in_author_vectors(spider):

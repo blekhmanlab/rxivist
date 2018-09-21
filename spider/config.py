@@ -70,7 +70,16 @@ biorxiv = {
   }
 }
 
+crawl = {
+  "fetch_new": False,
+  "fetch_abstracts": False,
+  "fetch_altmetric": True,
+  "refresh_stats": False,
+  "first_stats": True, # look for download info for papers that didn't have any when they were first recorded
+}
+
 perform_ranks = {
+  "enabled": False,  # set to False to disable all below
   "alltime": True,
   "ytd": True,
   "month": True,
