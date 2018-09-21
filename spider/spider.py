@@ -148,6 +148,42 @@ class Spider(object):
         else:
           consecutive_recognized = 0
 
+  def _fetch_first_article_stats(self, collection):
+    self.log.record("Refreshing article download stats for papers without traffic data in category {}...".format(collection))
+
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT id, url FROM articles WHERE collection=%s AND origin_month IS NULL;", (collection,))
+      updated = 0
+      articles = [x for x in cursor]
+
+      for article in articles:
+        if config.polite:
+          time.sleep(1)
+        url = article[1]
+        article_id = article[0]
+        stat_table = self.get_article_stats(url)
+
+        if len(stat_table) == 0:
+          # if we didn't find any thing, update the last_crawled date anyway
+          cursor.execute("UPDATE articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
+          continue
+
+        self.save_article_stats(article_id, stat_table)
+        try:
+          cursor.execute("SELECT MIN(year) FROM article_traffic WHERE article=%s", (article_id,))
+          year = cursor.fetchone()[0]
+          if year is not None: # this should never be None since if we're here we know we found stats
+            cursor.execute("SELECT MIN(month) FROM article_traffic WHERE article=%s AND year=%s", (article_id,year))
+            month = cursor.fetchone()[0]
+            if month is not None:
+              cursor.execute("UPDATE articles SET origin_month = %s, origin_year = %s, last_crawled = CURRENT_DATE WHERE id=%s", (month, year, article_id))
+              updated += 1
+              self.log.record("Origin determined for ID {}: {}-{}".format(article_id, month, year), "debug")
+        except Exception as e:
+          self.log.record("ERROR determining age of article: {}".format(e), "warn")
+    self.log.record("{} articles updated in {}, out of {} missing traffic data.".format(updated, collection, len(articles)))
+    return updated
+
   def fetch_abstracts(self):
     with self.connection.db.cursor() as cursor:
       # find abstracts for any articles without them
