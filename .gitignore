@@ -1,7 +1,7 @@
 */include/*
 */lib/*
 */bin/*
-
+*/__pycache__/*
 *.log
 
 pip*

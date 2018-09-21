@@ -35,30 +35,33 @@ class Connection(object):
   connection and perform queries.
 
   """
-  def __init__(self, host, db, user, password):
+  def __init__(self, host, dbname, user, password):
     self.db = None
-    dbname = db
-    params = 'host={} dbname={} user={} password={} connect_timeout={}'.format(host, dbname, user, password, config.db["connection"]["timeout"])
-    connect = self._attempt_connect(params, config.db["connection"]["attempt_pause"], config.db["connection"]["max_attempts"])
+    self.host = host
+    self.dbname = dbname
+    self.user = user
+    self.password = password
+    self._attempt_connect()
     print("Connected!")
     self.cursor = self.db.cursor()
 
   # TODO: This thing is just for demo purposes. If the API starts
   # but there's no DB, it dies and won't restart. This is probably
   # not good.
-  def _attempt_connect(self, params, pause, max_attempts, attempts=0):
+  def _attempt_connect(self, attempts=0):
     attempts += 1
-    print("Connecting. Attempt {} of {}.".format(attempts, max_attempts))
+    print("Connecting. Attempt {} of {}.".format(attempts, config.db["connection"]["max_attempts"]))
+    params = 'host={} dbname={} user={} password={} connect_timeout={}'.format(self.host, self.dbname, self.user, self.password, config.db["connection"]["timeout"])
     try:
       self.db = psycopg2.connect(params)
       self.db.set_session(autocommit=True)
     except:
-      if attempts >= max_attempts:
+      if attempts >= config.db["connection"]["max_attempts"]:
         print("Giving up.")
         exit(1) # TODO: this should probably be an exception.
-      print("Connection to DB failed. Retrying in {} seconds.".format(pause))
-      time.sleep(pause)
-      self._attempt_connect(params, pause, max_attempts, attempts)
+      print("Connection to DB failed. Retrying in {} seconds.".format(config.db["connection"]["attempt_pause"]))
+      time.sleep(config.db["connection"]["attempt_pause"])
+      self._attempt_connect(attempts)
 
   def fetch_db_tables(self):
     """Utility function that lists out all tables in the Rxivist database;
@@ -118,15 +121,21 @@ class Connection(object):
 
     """
     results = []
-    with self.db.cursor() as cursor:
-      if params is not None:
-        cursor.execute(query, params)
-      else:
-        cursor.execute(query)
-      for result in cursor:
-        results.append(result)
-      self.db.commit()
-    return results
+    try:
+      with self.db.cursor() as cursor:
+        if params is not None:
+          cursor.execute(query, params)
+        else:
+          cursor.execute(query)
+        for result in cursor:
+          results.append(result)
+      return results
+    except psycopg2.OperationalError as e:
+      print("ERROR with db query execution: {}".format(e))
+      print("Reconnecting.")
+      self._attempt_connect()
+      print("Sending query again.")
+      return self.read(query, params)
 
   def __del__(self):
     if self.db is not None:
