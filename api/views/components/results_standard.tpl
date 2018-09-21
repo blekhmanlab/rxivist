@@ -40,6 +40,10 @@
     </div>
   % end
 </div>
+
+% if "prev" in links.keys():
+  <a href="{{ links["prev"] }}" class="btn btn-altcolor">Previous {{ page_size }}</a>
+% end
 % if len(results) == page_size:
-  <a href="{{ next_page_link }}" class="btn btn-altcolor">Next {{ page_size }}</a>
+  <a href="{{ links["next"] }}" class="btn btn-altcolor">Next {{ page_size }}</a>
 % end

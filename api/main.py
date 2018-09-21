@@ -95,17 +95,21 @@ def index():
     bottle.response.status = 500
 
   if "page=" in bottle.request.query_string:
-    next_page_link = re.sub(r"page=\d*", "page={}".format(page + 1), bottle.request.query_string)
+    links = {
+      "next": "/?{}".format(re.sub(r"page=\d*", "page={}".format(page + 1), bottle.request.query_string)),
+      "prev": "/?{}".format(re.sub(r"page=\d*", "page={}".format(page - 1), bottle.request.query_string))
+    }
   else:
-    next_page_link = "{}&page={}".format(bottle.request.query_string, page + 1)
-  next_page_link = "/?{}".format(next_page_link)
+    links = {
+      "next": "/?{}&page={}".format(bottle.request.query_string, page + 1)
+    }
 
   return bottle.template('index', results=results,
     query=query, category_filter=category_filter, title=title,
     error=error, stats=stats, category_list=category_list,
     timeframe=timeframe, metric=metric, querystring=bottle.request.query_string,
     view=view, entity=entity, google_tag=config.google_tag, page=page,
-    page_size=config.page_size, next_page_link=next_page_link)
+    page_size=config.page_size, links=links)
 
 # ---- full display thing
 @bottle.get('/table')
