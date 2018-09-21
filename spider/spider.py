@@ -257,6 +257,12 @@ class Spider(object):
         # TODO: Select all the months and work backward from the max, for a configurable amount
         # of months. This will allow for the refresh_interval to stretch out over more than a single month.
         cursor.execute("DELETE FROM article_traffic WHERE year = 2018 AND article=%s AND month = %s", (article_id, month[0]))
+
+      # TODO: This delete query should be removed by the end of October 2018. It removes data that may have been
+      # pulled in June and July, before we'd added code to prevent fetching incomplete data for a month
+      # that hadn't ended yet. This makes sure we get the right numbers.
+      cursor.execute("DELETE FROM article_traffic WHERE month = 6 OR month = 7")
+
     with self.connection.db.cursor() as cursor:
       # we check for which ones are already recorded because
       # the postgres UPSERT feature is bananas
