@@ -261,7 +261,7 @@ class Spider(object):
       # TODO: This delete query should be removed by the end of October 2018. It removes data that may have been
       # pulled in June and July, before we'd added code to prevent fetching incomplete data for a month
       # that hadn't ended yet. This makes sure we get the right numbers.
-      cursor.execute("DELETE FROM article_traffic WHERE month = 6 OR month = 7")
+      cursor.execute("DELETE FROM article_traffic WHERE year=2018 AND (month = 6 OR month = 7)")
 
     with self.connection.db.cursor() as cursor:
       # we check for which ones are already recorded because
