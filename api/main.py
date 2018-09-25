@@ -202,6 +202,9 @@ def callback():
 @bottle.route('/robots.txt')
 def callback():
   return bottle.static_file(filename='robots.txt', root='./static/')
+@bottle.route('/favicon.ico')
+def callback():
+  return bottle.static_file(filename='favicon.ico', root='./static/')
 
 # ---- Errors
 @bottle.error(404)
