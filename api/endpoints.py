@@ -201,7 +201,7 @@ def author_details(connection, id):
   # TODO: Just make the "alltime" ranks stored as another category
   downloadsq = connection.read("SELECT rank, tie, downloads FROM author_ranks WHERE author=%s;", (id,))
   if len(downloadsq) == 1:
-    author_count = connection.read("SELECT COUNT(author) FROM author_ranks;")
+    author_count = connection.read("SELECT COUNT(id) FROM authors;")
     author_count = author_count[0][0]
     result.alltime_rank = models.RankEntry(downloadsq[0][0], author_count, downloadsq[0][1], downloadsq[0][2])
 
@@ -209,7 +209,7 @@ def author_details(connection, id):
   if len(categoryq) > 0:
     result.categories = [models.RankEntry(cat[0], 0, cat[1], cat[2], cat[3]) for cat in categoryq]
   for entry in result.categories:
-    query = "SELECT COUNT(author) FROM author_ranks_category WHERE category=%s AND downloads > 0"
+    query = "SELECT COUNT(author) FROM author_ranks_category WHERE category=%s"
     author_in_category = connection.read(query, (entry.category,))
     entry.out_of = author_in_category[0][0]
 
@@ -217,7 +217,7 @@ def author_details(connection, id):
   sql = db.queries()["article_ranks"] + "WHERE article_authors.author=%s ORDER BY alltime_ranks.rank"
   articles = connection.read(sql, (id,))
 
-  alltime_count = connection.read("SELECT COUNT(article) FROM alltime_ranks")
+  alltime_count = connection.read("SELECT COUNT(id) FROM articles")
   alltime_count = alltime_count[0][0]
   # NOTE: alltime_count will not be a count of all the papers on the site,
   #   it excludes papers that don't have any traffic data.
@@ -244,7 +244,7 @@ def paper_details(connection, id):
         its authors.
 
   """
-  alltime_count = connection.read("SELECT COUNT(article) FROM alltime_ranks")
+  alltime_count = connection.read("SELECT COUNT(id) FROM articles")
   alltime_count = alltime_count[0][0]
 
   sql = db.queries()["article_ranks"] + "WHERE articles.id=%s"
