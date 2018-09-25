@@ -68,8 +68,13 @@ def most_popular(connection, q, categories, timeframe, metric, page=0):
     query += """, plainto_tsquery(%s) query,
     coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'C') || setweight(a.author_vector, 'D')) totalvector
     """
+  query += " WHERE "
+  if metric == "altmetric":
+    query += "r.day_score > 0"
+  elif metric == "downloads":
+    query += "r.downloads > 0"
   if q != "" or len(categories) > 0 or metric == "altmetric":
-    query += " WHERE "
+    query += " AND "
   if q != "":
     query += "query @@ totalvector "
     if len(categories) > 0 or metric == "altmetric":
