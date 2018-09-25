@@ -19,9 +19,14 @@
         % if len(category_filter) != 1:
           <span class="badge {{ result.collection.replace("-", "") }}" style="margin-left: 10px;">{{ helpers.formatCategory(result.collection) }}</span>
         % end
-        % if result.date.month is not None:
-          <span class="badge badge-secondary" style="margin-left: 10px;">{{result.date.monthname}} {{result.date.year}}</span>
-        % end
+        <span class="badge badge-secondary" style="margin-left: 10px;"
+          % if result.date.month is not None:
+            data-toggle="tooltip" data-placement="top" title="Date posted to bioRxiv">
+            {{result.date.monthname}} {{result.date.year}}
+          % else:
+            >new
+          % end
+        </span>
       </div>
       <div id="collapse{{result.id}}" class="collapse" aria-labelledby="heading{{result.id}}" data-parent="#alltime">
         <div class="card-body">
