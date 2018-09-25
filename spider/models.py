@@ -87,14 +87,13 @@ class Article:
   def record(self, connection, spider):
     with connection.db.cursor() as cursor:
       # check to see if we've seen this article before
-      responses = []
       if self.doi == "":
         spider.log.record("Attempting to record a paper without a DOI: {}".format(self.url), "fatal")
       cursor.execute("SELECT url FROM articles WHERE doi=%s", (self.doi,))
-      for x in cursor: # TODO: Look at using cursor.fetchone() here
-        responses.append(x)
-      if len(responses) > 0 and len(responses[0]) > 0:
-        if responses[0][0] == self.url:
+      response = cursor.fetchone()
+
+      if response is not None and len(response) > 0:
+        if response[0] == self.url:
           spider.log.record("Found article already: {}".format(self.title), "debug")
           connection.db.commit()
           return False
@@ -107,8 +106,8 @@ class Article:
     with connection.db.cursor() as cursor:
       try:
         cursor.execute("INSERT INTO articles (url, title, doi, collection) VALUES (%s, %s, %s, %s) RETURNING id;", (self.url, self.title, self.doi, self.collection))
-      finally:
-        connection.db.commit() # Needed to end the botched transaction TODO (this may not be true with autocommit now)
+      except Exception as e:
+        spider.log.record("Couldn't record article '{}': {}".format(self.title, e), "error")
       self.id = cursor.fetchone()[0]
 
       author_ids, author_string = self._record_authors(connection, spider.log)
@@ -117,8 +116,6 @@ class Article:
       cursor.execute("UPDATE articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, self.id))
       spider.log.record("Recorded article {}".format(self.title))
 
-      # fetch traffic stats for the new article
-      # TODO: this should be a method for Article, not Spider
       spider.log.record("Recording stats for new article", "debug")
       stat_table = None
       try:

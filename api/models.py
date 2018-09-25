@@ -119,7 +119,7 @@ class SearchResultAuthor(object):
     self.surname = last
     if self.surname != "":
       self.full = "{} {}".format(self.given, self.surname)
-    else: # TODO: There's one author with only a surname(?), so we should check this logic
+    else:
       self.full = self.given
     self.rank = RankEntry(rank, 0, tie, downloads)
 

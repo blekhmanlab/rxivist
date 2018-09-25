@@ -40,8 +40,6 @@ def most_popular(connection, q, categories, timeframe, metric, page=0):
 
   """
 
-  # TODO: validate that the category filters passed in are actual categories
-
   query = "SELECT "
   if metric == "downloads":
     query += "r.downloads"
@@ -120,8 +118,6 @@ def author_rankings(connection, category_list=[]):
   else:
     category = category_list[0] # only one category at a time for author searches
 
-  # TODO: validate that the category filters passed in are actual categories
-
   if category == "": # all time, all categories
     table = "author_ranks" # TODO: just make a category called "alltime"
     where = ""
@@ -198,7 +194,6 @@ def author_details(connection, id):
     raise ValueError("Multiple authors found with id {}".format(id))
   authorq = authorq[0]
   result = models.Author(authorq[0], authorq[1], authorq[2])
-  # TODO: Just make the "alltime" ranks stored as another category
   downloadsq = connection.read("SELECT rank, tie, downloads FROM author_ranks WHERE author=%s;", (id,))
   if len(downloadsq) == 1:
     author_count = connection.read("SELECT COUNT(id) FROM authors;")
@@ -214,7 +209,7 @@ def author_details(connection, id):
     entry.out_of = author_in_category[0][0]
 
 
-  sql = db.queries()["article_ranks"] + "WHERE article_authors.author=%s ORDER BY alltime_ranks.rank"
+  sql = db.QUERIES["article_ranks"] + "WHERE article_authors.author=%s ORDER BY alltime_ranks.rank"
   articles = connection.read(sql, (id,))
 
   alltime_count = connection.read("SELECT COUNT(id) FROM articles")
@@ -247,13 +242,12 @@ def paper_details(connection, id):
   alltime_count = connection.read("SELECT COUNT(id) FROM articles")
   alltime_count = alltime_count[0][0]
 
-  sql = db.queries()["article_ranks"] + "WHERE articles.id=%s"
+  sql = db.QUERIES["article_ranks"] + "WHERE articles.id=%s"
   paperq = connection.read(sql, (id,))
   if len(paperq) == 0:
     raise helpers.NotFoundError(id)
-  paperq = paperq[0]
-  # TODO: Figure out which join clause in the query makes a bunch of
-  # identical responses come back for this
+
+  paperq = paperq[0] # we get one entry for each author, but don't need them here
   result = models.ArticleDetails(paperq, alltime_count, connection)
   result.GetDetailedTraffic(connection)
   # once we're done processing the results of the last query, go back

@@ -32,6 +32,7 @@ def index():
   view = bottle.request.query.view # which format to display results
   entity = bottle.request.query.entity
   page = bottle.request.query.page
+  error = ""
 
   # set defaults, throw out bogus values
   if entity not in ["papers", "authors"]:
@@ -67,32 +68,41 @@ def index():
   elif entity == "authors":
     title = "Authors with most downloads, all-time"
 
+  category_list = endpoints.get_categories(connection) # list of all article categories
+
   # Get rid of a category filter that's just one empty parameter:
   if len(category_filter) == 1 and category_filter[0] == "":
     category_filter = []
+  else:
+    # otherwise validate that the categories are valid
+    for cat in category_filter:
+      if cat not in category_list:
+        error = "There was a problem with the submitted query: {} is not a recognized category.".format(cat)
+        bottle.response.status = 500
+        break
+
   if page == "":
     page = 0
   else:
     page = int(page)
 
-  category_list = endpoints.get_categories(connection) # list of all article categories
   stats = models.SiteStats(connection) # site-wide metrics (paper count, etc)
-  error = ""
   results = {}
 
-  try:
-    if entity == "authors":
-      results = endpoints.author_rankings(connection, category_filter)
-    elif entity == "papers":
-      if view == "table":
-        results = endpoints.table_results(connection, query)
-        print("Prepping table view \n\n\n")
-      else:
-        results = endpoints.most_popular(connection, query, category_filter, timeframe, metric, page)
-  except Exception as e:
-    print(e)
-    error = "There was a problem with the submitted query."
-    bottle.response.status = 500
+  if error == "": # if nothing's gone wrong yet, fetch results:
+    try:
+      if entity == "authors":
+        results = endpoints.author_rankings(connection, category_filter)
+      elif entity == "papers":
+        if view == "table":
+          results = endpoints.table_results(connection, query)
+          print("Prepping table view \n\n\n")
+        else:
+          results = endpoints.most_popular(connection, query, category_filter, timeframe, metric, page)
+    except Exception as e:
+      print(e)
+      error = "There was a problem with the submitted query: {}".format(e)
+      bottle.response.status = 500
 
   if "page=" in bottle.request.query_string:
     links = {

@@ -26,44 +26,47 @@
             </div>
           % end
 
-          <div class="alert alert-danger" role="alert" style="display: {{"none" if error == "" else "block"}}">
-            {{error}}
-          </div>
-          %if len(results) == 0:
-            <div><h3>No results found for "{{ query.replace("&", " ") }}"</h3></div>
-          %else:
-            % if view == "news":
-              <p><em>{{ title }}.</em>
-            % else:
-              <h2>{{title}}</h2>
-            % end
-          %end
-          %if len(category_filter) > 0:
-            <h4 style="padding-left: 20px;">in categor{{ "ies:" if len(category_filter) > 1 else "y" }}
-              % for i, cat in enumerate(category_filter):
-                {{ helpers.formatCategory(cat) }}{{", " if i < (len(category_filter)-1) else ""}}
-              %end
-            </h4>
-          %end
-          % if len(results) == 0 and metric == "altmetric":
-          %  # just adding a new "metric" param at the end of the query string overrides
-          %  # any that appear earlier in the query, once bottle gets it
-            <div><p>Search was based on articles with Altmetric data&mdash;redo search <a href="/?{{querystring}}&timeframe=alltime&metric=downloads">with download data</a> instead?</p></div>
-          % end
-
-          % if len(results) > 0:
-            % if entity == "authors":
-                % include("components/author_ranks", results=results)
-            % elif entity == "papers":
-              % if view == "table":
-                % include("components/results_table", results=results)
-              % elif view == "news":
-                % include("components/results_news", results=results)
+          % if error != "":
+            <div class="alert alert-danger" role="alert" style="display: {{"none" if error == "" else "block"}}">
+              {{error}}
+            </div>
+          % else:
+            %if len(results) == 0:
+              <div><h3>No results found for "{{ query.replace("&", " ") }}"</h3></div>
+            %else:
+              % if view == "news":
+                <p><em>{{ title }}.</em>
               % else:
-                % include("components/results_standard", results=results)
+                <h2>{{title}}</h2>
+              % end
+            %end
+            %if len(category_filter) > 0:
+              <h4 style="padding-left: 20px;">in categor{{ "ies:" if len(category_filter) > 1 else "y" }}
+                % for i, cat in enumerate(category_filter):
+                  {{ helpers.formatCategory(cat) }}{{", " if i < (len(category_filter)-1) else ""}}
+                %end
+              </h4>
+            %end
+            % if len(results) == 0 and metric == "altmetric":
+            %  # just adding a new "metric" param at the end of the query string overrides
+            %  # any that appear earlier in the query, once bottle gets it
+              <div><p>Search was based on articles with Altmetric data&mdash;redo search <a href="/?{{querystring}}&timeframe=alltime&metric=downloads">with download data</a> instead?</p></div>
+            % end
+
+            % if len(results) > 0:
+              % if entity == "authors":
+                  % include("components/author_ranks", results=results)
+              % elif entity == "papers":
+                % if view == "table":
+                  % include("components/results_table", results=results)
+                % elif view == "news":
+                  % include("components/results_news", results=results)
+                % else:
+                  % include("components/results_standard", results=results)
+                % end
               % end
             % end
-          % end
+          % end  # end of conditional for "display this if there's no error"
         </div>
       </div>
     </div>

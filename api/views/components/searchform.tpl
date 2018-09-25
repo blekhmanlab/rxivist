@@ -133,9 +133,9 @@
 ">
   <a class="badge badge-secondary" href=
   % if entity == "papers":
-    "/?entity=authors">switch to author rankings
+    "/?entity=authors&category={{"" if len(category_filter) == 0 else category_filter[0]}}">switch to author rankings
   % else:
-    "/">switch to paper rankings
+    "/?category={{"" if len(category_filter) == 0 else category_filter[0]}}">switch to paper rankings
   % end
   </a>
 </div>

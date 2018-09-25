@@ -10,25 +10,21 @@ import psycopg2
 
 import config
 
-def queries(): # TODO: This doesn't need to be a function
-  """ Returns a dict of strings containing complex queries
-  that are used in multiple locations.
-
+#A dict of strings containing complex queries that
+# are used in multiple locations.
+QUERIES = {
+  "article_ranks": """
+    SELECT alltime_ranks.downloads, alltime_ranks.rank, ytd_ranks.rank, month_ranks.rank,
+      articles.id, articles.url, articles.title, articles.abstract, articles.collection,
+      category_ranks.rank, articles.origin_month, articles.origin_year
+    FROM articles
+    LEFT JOIN article_authors ON articles.id=article_authors.article
+    LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article
+    LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article
+    LEFT JOIN month_ranks ON articles.id=month_ranks.article
+    LEFT JOIN category_ranks ON articles.id=category_ranks.article
   """
-
-  return {
-    "article_ranks": """
-      SELECT alltime_ranks.downloads, alltime_ranks.rank, ytd_ranks.rank, month_ranks.rank,
-        articles.id, articles.url, articles.title, articles.abstract, articles.collection,
-        category_ranks.rank, articles.origin_month, articles.origin_year
-      FROM articles
-      INNER JOIN article_authors ON article_authors.article=articles.id
-      LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article
-      LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article
-      LEFT JOIN month_ranks ON articles.id=month_ranks.article
-      LEFT JOIN category_ranks ON articles.id=category_ranks.article
-    """
-  }
+}
 
 class Connection(object):
   """Data type holding the data required to maintain a database
@@ -41,13 +37,15 @@ class Connection(object):
     self.dbname = dbname
     self.user = user
     self.password = password
-    self._attempt_connect()
+
+    try:
+      self._attempt_connect()
+    except RuntimeError as e:
+      print("FATAL: {}".format(e))
+      exit(1)
     print("Connected!")
     self.cursor = self.db.cursor()
 
-  # TODO: This thing is just for demo purposes. If the API starts
-  # but there's no DB, it dies and won't restart. This is probably
-  # not good.
   def _attempt_connect(self, attempts=0):
     attempts += 1
     print("Connecting. Attempt {} of {}.".format(attempts, config.db["connection"]["max_attempts"]))
@@ -58,7 +56,7 @@ class Connection(object):
     except:
       if attempts >= config.db["connection"]["max_attempts"]:
         print("Giving up.")
-        exit(1) # TODO: this should probably be an exception.
+        raise RuntimeError("Failed to connect to database.")
       print("Connection to DB failed. Retrying in {} seconds.".format(config.db["connection"]["attempt_pause"]))
       time.sleep(config.db["connection"]["attempt_pause"])
       self._attempt_connect(attempts)

@@ -1,5 +1,4 @@
 import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT # TODO: Was this the reason changing autocommit didn't speed up queries?
 
 class Connection(object):
   def __init__(self, host, db, user, password):
@@ -17,7 +16,6 @@ class Connection(object):
   def _ensure_database_exists(self, dbname, host, user, password):
     params = 'host={} dbname={} user={} password={}'.format(host, dbname, user, password)
     db = psycopg2.connect(params)
-    db.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT) # for creating DB
     cursor = db.cursor()
     cursor.execute("SELECT datname FROM pg_database WHERE datistemplate = false;")
     for result in cursor:
@@ -48,7 +46,7 @@ class Connection(object):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS hotness_ranks_working  (article integer PRIMARY KEY, rank integer, score integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks           (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_working   (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_category   (id SERIAL PRIMARY KEY, author integer, category text NOT NULL, rank integer NOT NULL, tie boolean, downloads integer NOT NULL, UNIQUE (author, category));") # TODO: can we ditch the SERIAL id and do a composite key here?
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_category   (id SERIAL PRIMARY KEY, author integer, category text NOT NULL, rank integer NOT NULL, tie boolean, downloads integer NOT NULL, UNIQUE (author, category));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_category_working   (id SERIAL PRIMARY KEY, author integer, category text NOT NULL,  rank integer NOT NULL, tie boolean, downloads integer NOT NULL, UNIQUE (author, category));")
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS download_distribution (id SERIAL PRIMARY KEY, bucket integer NOT NULL, count integer NOT NULL, category text NOT NULL);")

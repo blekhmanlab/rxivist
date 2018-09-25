@@ -85,7 +85,7 @@ class Spider(object):
     r = requests.get("{}?num_results=100&doi_prefix={}&page=1".format(config.altmetric["endpoints"]["daily"], config.altmetric["doi_prefix"]), headers=headers)
     if r.status_code != 200:
       self.log.record("ERROR: Got weird status code: {}. {}".format(r.status_code, r.text()), "error")
-      return # TODO: retry logic in here
+      return
     results = r.json()
     result_count = 1
     if "query" in results.keys() and "total" in results["query"]:
@@ -191,8 +191,11 @@ class Spider(object):
       for article in cursor:
         url = article[1]
         article_id = article[0]
-        abstract = self.get_article_abstract(url)
-        if abstract: self.update_article(article_id, abstract)
+        try:
+          abstract = self.get_article_abstract(url)
+          self.update_article(article_id, abstract)
+        except ValueError as e:
+          self.log.record("Error retrieving abstract: {}".format(e))
 
   def refresh_article_stats(self, collection, cap=100000):
     self.log.record("Refreshing article download stats for collection {}...".format(collection))
@@ -226,10 +229,10 @@ class Spider(object):
         return self.get_article_abstract(url, False)
       else:
         self.log.record("Giving up on this one for now.", "error")
-        return False # TODO: this should be an exception
+        raise ValueError("Encountered exception making HTTP call to fetch paper information.")
     abstract = resp.html.find("#p-2")
     if len(abstract) < 1:
-      return False # TODO: this should be an exception
+      raise ValueError("Successfully made HTTP call to fetch paper information, but did not find an abstract.")
     return abstract[0].text
 
   def get_article_stats(self, url):
@@ -254,8 +257,6 @@ class Spider(object):
       cursor.execute("SELECT MAX(month) FROM article_traffic WHERE year = 2018 AND article=%s;", (article_id,)) # TODO: don't hardcode the date, good luck
       month = cursor.fetchone()
       if month is not None and len(month) > 0:
-        # TODO: Select all the months and work backward from the max, for a configurable amount
-        # of months. This will allow for the refresh_interval to stretch out over more than a single month.
         cursor.execute("DELETE FROM article_traffic WHERE year = 2018 AND article=%s AND month = %s", (article_id, month[0]))
 
       # TODO: This delete query should be removed by the end of October 2018. It removes data that may have been
@@ -283,23 +284,24 @@ class Spider(object):
       params = [(article_id, x[0], x[1], x[2], x[3]) for x in to_record]
       cursor.executemany(sql, params)
 
-      # figure out the earliest date we have traffic, and make that the paper's birthday
-      # TODO: Only do all this stuff if we don't _have_ the data already, not every time
-      try:
-        cursor.execute("SELECT MIN(year) FROM article_traffic WHERE article=%s", (article_id,))
-        year = cursor.fetchone()
-        recorded = False
-        if year is not None:
-          cursor.execute("SELECT MIN(month) FROM article_traffic WHERE article=%s AND year=%s", (article_id,year))
-          month = cursor.fetchone()
-          if month is not None:
-            cursor.execute("UPDATE articles SET origin_month = %s, origin_year = %s, last_crawled = CURRENT_DATE WHERE id=%s", (month, year, article_id))
-            recorded = True
-        if not recorded:
-          cursor.execute("UPDATE articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
-      except Exception as e:
-        self.log.record("ERROR determining age of article: {}".format(e), "warn")
+      cursor.execute("UPDATE articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
       self.log.record("Recorded {} stats for ID {}".format(len(to_record), article_id), "debug")
+
+      cursor.execute("SELECT origin_month FROM articles WHERE id=%s", (article_id,))
+      paper = cursor.fetchone()
+      if len(paper) == 0:
+        self.log.record("No origin date recorded for paper; determining.", "info")
+        # figure out the earliest date we have traffic, and make that the paper's birthday
+        try:
+          cursor.execute("SELECT MIN(year) FROM article_traffic WHERE article=%s", (article_id,))
+          year = cursor.fetchone()
+          if year is not None:
+            cursor.execute("SELECT MIN(month) FROM article_traffic WHERE article=%s AND year=%s", (article_id,year))
+            month = cursor.fetchone()
+            if month is not None:
+              cursor.execute("UPDATE articles SET origin_month = %s, origin_year = %s, last_crawled = CURRENT_DATE WHERE id=%s", (month, year, article_id))
+        except Exception as e:
+          self.log.record("ERROR determining age of article: {}".format(e), "warn")
 
   def fetch_categories(self):
     categories = []
