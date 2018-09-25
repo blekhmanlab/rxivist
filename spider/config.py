@@ -43,25 +43,25 @@ delete_csv = True
 # When updating the statistics of papers that probably have new
 # download information ready, we don't have to get every single
 # outdated paper in one run of the spider. limit_refresh caps
-# how many "refresh download stats" calls are made before the
-# crawler just leaves the rest for next time.
+# how many "refresh download stats" calls are made for a single
+# category before the crawler just leaves the rest for next time.
+# refresh_category_cap states how many articles should be refreshed
+# in a single collection before the spider moves on to the next.
 # refresh_interval is a string expressing how old a paper's
 # stats should be before we refresh them. (This string MUST
 # be able to be interpreted by Postgres as a time interval
 # to subtract from the current date.)
-refresh_interval = "4 weeks"
+refresh_interval = "5 weeks"
 limit_refresh = True
-refresh_session_cap = 700
+refresh_category_cap = 20
 
 # information about the altmetric API endpoints
 altmetric = {
   "endpoints": {
     "daily": "https://api.altmetric.com/v1/citations/1d"
   },
-  "doi_prefix": "10.1101"
+  "doi_prefix": "10.1101" # https://gist.github.com/hubgit/5974663
 }
-# TODO: Validate that DOI prefix 10.1101 is bioRxiv, and that we won't miss
-# papers that somehow get another prefix.
 
 # information about the biorxiv web addresses to be scraped
 biorxiv = {

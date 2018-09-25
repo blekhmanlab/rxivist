@@ -197,7 +197,7 @@ class Spider(object):
         except ValueError as e:
           self.log.record("Error retrieving abstract: {}".format(e))
 
-  def refresh_article_stats(self, collection, cap=100000):
+  def refresh_article_stats(self, collection, cap=10000):
     self.log.record("Refreshing article download stats for collection {}...".format(collection))
     with self.connection.db.cursor() as cursor:
       cursor.execute("SELECT id, url FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
@@ -258,11 +258,6 @@ class Spider(object):
       month = cursor.fetchone()
       if month is not None and len(month) > 0:
         cursor.execute("DELETE FROM article_traffic WHERE year = 2018 AND article=%s AND month = %s", (article_id, month[0]))
-
-      # TODO: This delete query should be removed by the end of October 2018. It removes data that may have been
-      # pulled in June and July, before we'd added code to prevent fetching incomplete data for a month
-      # that hadn't ended yet. This makes sure we get the right numbers.
-      cursor.execute("DELETE FROM article_traffic WHERE year=2018 AND (month = 6 OR month = 7)")
 
     with self.connection.db.cursor() as cursor:
       # we check for which ones are already recorded because
@@ -674,7 +669,6 @@ def full_run(spider, collection=None):
     spider.find_record_new_articles(collection)
   else:
     spider.log.record("No collection specified, iterating through all known categories.")
-    refreshed = 0
     for collection in spider.fetch_categories():
       print("\n\nBeginning category {}".format(collection))
       # we update articles without any traffic data BEFORE fetching new articles
@@ -690,13 +684,7 @@ def full_run(spider, collection=None):
         spider.log.record("Skipping search for new articles: disabled in configuration file.")
 
       if config.crawl["refresh_stats"] is not False:
-        if config.limit_refresh:
-          if refreshed < config.refresh_session_cap:
-            refreshed += spider.refresh_article_stats(collection, config.refresh_session_cap - refreshed)
-          else:
-            spider.log.record("Not updating download stats for category {} - session max reached already.".format(collection), "debug")
-        else:
-          spider.refresh_article_stats(collection) # TODO: There's probably a more succinct way to do this rather than two different calls to refresh_article_stats
+        spider.refresh_article_stats(collection, config.refresh_category_cap)
       else:
         spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.")
   if config.crawl["fetch_abstracts"] is not False:
