@@ -674,6 +674,7 @@ def full_run(spider, collection=None):
     spider.log.record("No collection specified, iterating through all known categories.")
     refreshed = 0
     for collection in spider.fetch_categories():
+      print("\n\nBeginning category {}".format(collection))
       # we update articles without any traffic data BEFORE fetching new articles
       # to avoid crawling the same article twice in like two minutes.
       if config.crawl["first_stats"] is not False:
