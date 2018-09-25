@@ -10,7 +10,6 @@
   </head>
 
   <body>
-  <br>
     <div class="container" id="main">
 
       %include("components/header")

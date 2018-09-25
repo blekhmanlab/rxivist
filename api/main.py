@@ -195,6 +195,11 @@ def get_articles_table(table=None):
   return bottle.template('db', current=table, tables=table_names,
     headers=column_names, results=data)
 
+@bottle.route('/privacy')
+@bottle.view('privacy')
+def privacy():
+  return bottle.template("privacy", google_tag=config.google_tag)
+
 # Search engine stuff
 @bottle.route('/{}'.format(config.google_validation_file))
 def callback():
