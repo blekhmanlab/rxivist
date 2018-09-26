@@ -1,3 +1,27 @@
+#     Rxivist, a system for crawling papers published on bioRxiv
+#     and organizing them in ways that make it easier to find new
+#     or interesting research. Includes a web application for
+#     the display of data.
+#     Copyright (C) 2018 Regents of the University of Minnesota
+
+#     This program is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU Affero General Public License as
+#     published by the Free Software Foundation, version 3.
+
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU Affero General Public License for more details.
+
+#     You should have received a copy of the GNU Affero General Public License
+#     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+#     Any inquiries about this software or its use can be directed to
+#     Professor Ran Blekhman at the University of Minnesota:
+#     email: blekhman@umn.edu
+#     mail: MCB 6-126, 420 Washington Avenue SE, Minneapolis, MN 55455
+#     http://blekhmanlab.org/
+
 """Definition of web service and initialization of the server.
 
 This is the entrypoint for the application, the script called
