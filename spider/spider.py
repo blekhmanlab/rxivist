@@ -64,19 +64,6 @@ def pull_out_articles(html, collection, log):
     articles.append(a)
   return articles
 
-def record_ranks_db(to_record, sql, db):
-  log("Recording {} entries...".format(len(to_record)))
-  start = 0
-  interval = config.progress_update_interval
-  with db.cursor() as cursor:
-    while True:
-      end = start + interval if start + interval < len(to_record) else len(to_record)
-      log("{} Recording ranks {} through {}.".format(datetime.now(), start, end-1))
-      cursor.executemany(sql, to_record[start:end])
-      if end == len(to_record):
-        break
-      start += interval
-
 def record_ranks_file(to_record, filename):
   with open("{}.csv".format(filename), 'w') as f:
     for entry in to_record:

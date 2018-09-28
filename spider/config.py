@@ -30,12 +30,6 @@ stop_on_recognized = True
 # all the papers at that point in the chronology.
 recognized_limit = 18
 
-# When writing a large number of rows to the database (during
-# the ranking of authors and papers), a helper function can
-# log progress through the process. This is how many rows should
-# be written before each update.
-progress_update_interval = 10000
-
 # The crawler uses temporary files to speed up database writes.
 # Setting this flag to True will delete them after they're processed.
 delete_csv = True
@@ -53,7 +47,7 @@ delete_csv = True
 # to subtract from the current date.)
 refresh_interval = "5 weeks"
 limit_refresh = True
-refresh_category_cap = 20
+refresh_category_cap = 200
 
 # information about the altmetric API endpoints
 altmetric = {
@@ -71,15 +65,15 @@ biorxiv = {
 }
 
 crawl = {
-  "fetch_new": False,
-  "fetch_abstracts": False,
+  "fetch_new": True,
+  "fetch_abstracts": True,
   "fetch_altmetric": True,
-  "refresh_stats": False,
+  "refresh_stats": True,
   "first_stats": True, # look for download info for papers that didn't have any when they were first recorded
 }
 
 perform_ranks = {
-  "enabled": False,  # set to False to disable all below
+  "enabled": True,  # set to False to disable all below
   "alltime": True,
   "ytd": True,
   "month": True,
