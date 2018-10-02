@@ -37,6 +37,9 @@
   % if entity == "papers":
     <div class="input-group mb-3 col-sm-9">
       <input type="text" class="form-control form-control-lg" id="basicsearchtext" name="q" placeholder="Enter search terms here (optional)" value="{{ query.replace("&", " ") }}">
+      <a href="#" data-toggle="modal" data-target="#textsearch" style="margin-top: 10px;">
+        <i class="far fa-question-circle" font-size: 1.5em;"></i>
+      </a>
     </div>
     <div class="input-group mb-3 col-md-9">
       <select class="form-control  col-sm-4" id="metric" name="metric" onchange="fixForm('metric');">
@@ -139,3 +142,5 @@
   % end
   </a>
 </div>
+
+%include("components/modal_textsearch")

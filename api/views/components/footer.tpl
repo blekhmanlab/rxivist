@@ -6,7 +6,7 @@
   </div>
 </div>
 
-%include("components/about_modal")
+%include("components/modal_about")
 
 <script src="/static/jquery-3.3.1.slim.min.js"></script>
 <script src="/static/popper.min.js"></script>
