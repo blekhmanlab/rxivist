@@ -21,7 +21,7 @@
             <div class="collapse" id="searchform">
           % end
 
-          %include("components/searchform", category_list=category_list, view=view, query=query)
+          %include("components/searchform")
           % if view == "news":
             </div>
           % end

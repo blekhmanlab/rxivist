@@ -19,7 +19,10 @@ db = {
 use_prod_webserver = False
 
 # how many search results are returned at a time
-page_size = 20
+default_page_size = 20
+
+# the largest page a web user can request
+max_page_size = 250
 
 # The entity ID provided by Google Analytics
 google_tag = "UA-125076477-1"

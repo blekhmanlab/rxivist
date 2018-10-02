@@ -27,7 +27,7 @@ def get_categories(connection):
       results.append(cat[0])
   return results
 
-def most_popular(connection, q, categories, timeframe, metric, page=0):
+def most_popular(connection, q, categories, timeframe, metric, page, page_size):
   """Returns a list of the 20 most downloaded papers that meet a given set of constraints.
 
   Arguments:
@@ -35,6 +35,11 @@ def most_popular(connection, q, categories, timeframe, metric, page=0):
     - q:  A search string to compare against article abstracts
           and titles. (Title matches are weighted more heavily.)
     - categories: A list of bioRxiv categories the results can be in.
+    - timeframe: A description of the range of dates on which to
+          base the rankings (i.e. "alltime" or "lastmonth")
+    - metric: Which article-level statistic to use when sorting results
+    - page: Which page of the results to display (0 indexed)
+    - page_size: How many entries should be returned
   Returns:
     - An ordered list of Article objects that meet the search criteria.
 
@@ -94,9 +99,9 @@ def most_popular(connection, q, categories, timeframe, metric, page=0):
   elif metric == "altmetric":
     query += "r.day_score DESC, r.week_score DESC"
 
-  query += " LIMIT {}".format(config.page_size)
+  query += " LIMIT {}".format(page_size)
   if page > 0:
-    query += " OFFSET {}".format(page * config.page_size)
+    query += " OFFSET {}".format(page * page_size)
   query += ";"
   with connection.db.cursor() as cursor:
     cursor.execute(query, params)

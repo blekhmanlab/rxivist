@@ -1,3 +1,4 @@
+<p class="text-right"><em>For more information, click each entry to expand.</em></p>
 <div class="accordion" id="alltime">
   % for i, result in enumerate(results):
     <div class="card">
@@ -19,14 +20,13 @@
         % if len(category_filter) != 1:
           <span class="badge {{ result.collection.replace("-", "") }}" style="margin-left: 10px;">{{ helpers.formatCategory(result.collection) }}</span>
         % end
-        <span class="badge badge-secondary" style="margin-left: 10px;"
+        <p class="text-right" style="margin-top: -1.5em; margin-bottom: 0;"><small>Posted to bioRxiv
           % if result.date.month is not None:
-            data-toggle="tooltip" data-placement="top" title="Date posted to bioRxiv">
             {{result.date.monthname}} {{result.date.year}}
           % else:
-            >new
+            very recently
           % end
-        </span>
+        </small></p>
       </div>
       <div id="collapse{{result.id}}" class="collapse" aria-labelledby="heading{{result.id}}" data-parent="#alltime">
         <div class="card-body">

@@ -42,7 +42,7 @@
       </a>
     </div>
     <div class="input-group mb-3 col-md-9">
-      <select class="form-control  col-sm-4" id="metric" name="metric" onchange="fixForm('metric');">
+      <select class="form-control  col-sm-3" id="metric" name="metric" onchange="fixForm('metric');">
         <option value="downloads"
         %if metric == "downloads":
           selected
@@ -54,7 +54,7 @@
         %end
         >Altmetric score</option>
       </select>
-      <select class="form-control col-sm-4" id="category" name="category">
+      <select class="form-control col-sm-3" id="category" name="category">
         <option value="">all categories</option>
         % for cat in category_list:
           <option value="{{cat}}"
@@ -64,7 +64,11 @@
           >{{ helpers.formatCategory(cat) }}</option>
         %end
       </select>
-      <select class="form-control  col-sm-4" id="timeframe" name="timeframe" onchange="fixForm('timeframe');">
+      <select class="form-control  col-sm-3" id="timeframe" name="timeframe" onchange="fixForm('timeframe');"
+        %if metric != "downloads":
+          disabled
+        %end
+      >
         <option value="alltime"
         %if timeframe == "alltime":
           selected
@@ -99,6 +103,28 @@
           disabled
         %end
         >last 24 hours</option>
+      </select>
+      <select class="form-control  col-sm-3" id="page_size" name="page_size">
+        <option value="20"
+          %if page_size == 20:
+            selected
+          %end
+        >20 results per page</option>
+        <option value="50"
+          %if page_size == 50:
+            selected
+          %end
+        >50 results per page</option>
+        <option value="75"
+          %if page_size == 75:
+            selected
+          %end
+        >75 results per page</option>
+        <option value="100"
+          %if page_size == 100:
+            selected
+          %end
+        >100 results per page</option>
       </select>
       <input type="hidden" name="view" value="{{ view }}"></input>
       <div class="input-group-append">
@@ -136,7 +162,7 @@
 ">
   <a class="badge badge-secondary" href=
   % if entity == "papers":
-    "/?entity=authors&category={{"" if len(category_filter) == 0 else category_filter[0]}}">switch to author rankings
+    "/?entity=authors&category={{"" if len(category_filter) == 0 else category_filter[0]}}">switch to all-time author rankings
   % else:
     "/?category={{"" if len(category_filter) == 0 else category_filter[0]}}">switch to paper rankings
   % end

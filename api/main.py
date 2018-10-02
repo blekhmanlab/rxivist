@@ -56,6 +56,7 @@ def index():
   view = bottle.request.query.view # which format to display results
   entity = bottle.request.query.entity
   page = bottle.request.query.page
+  page_size = bottle.request.query.page_size
   error = ""
 
   # set defaults, throw out bogus values
@@ -108,7 +109,22 @@ def index():
   if page == "":
     page = 0
   else:
-    page = int(page)
+    try:
+      page = int(page)
+    except Exception as e:
+      error = "Problem recognizing specified page number: {}".format(e)
+
+  if page_size == "":
+    page_size = config.default_page_size
+  else:
+    try:
+      page_size = int(page_size)
+    except Exception as e:
+      error = "Problem recognizing specified page size: {}".format(e)
+      page_size = 0
+
+  if page_size > config.max_page_size:
+    page_size = config.max_page_size # cap the page size users can ask for
 
   stats = models.SiteStats(connection) # site-wide metrics (paper count, etc)
   results = {}
@@ -122,7 +138,7 @@ def index():
           results = endpoints.table_results(connection, query)
           print("Prepping table view \n\n\n")
         else:
-          results = endpoints.most_popular(connection, query, category_filter, timeframe, metric, page)
+          results = endpoints.most_popular(connection, query, category_filter, timeframe, metric, page, page_size)
     except Exception as e:
       print(e)
       error = "There was a problem with the submitted query: {}".format(e)
@@ -143,7 +159,7 @@ def index():
     error=error, stats=stats, category_list=category_list,
     timeframe=timeframe, metric=metric, querystring=bottle.request.query_string,
     view=view, entity=entity, google_tag=config.google_tag, page=page,
-    page_size=config.page_size, links=links)
+    page_size=page_size, links=links)
 
 # ---- full display thing
 @bottle.get('/table')
