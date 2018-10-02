@@ -22,22 +22,9 @@ body {
   /* margin-top: 20px; */
 }
 
-#logo {   /* "Blekhman Lab" logo */
-  color: #fff;
-  display: block;
-  text-align: right;
-  font-family: "Open Sans", sans-serif;
-  font-size: 45px;
-  font-weight: 700;
-  height: 60px;
-  letter-spacing: 4px;
-  line-height: 60px;
-  text-rendering: optimizeLegibility;
-  text-transform: uppercase;
-}
-
 #footer {
   color: #fff;
+  text-align: right;
 }
 
 #footer a {
@@ -46,14 +33,6 @@ body {
 }
 
 #footer a:hover {
-  color: #468847;
-}
-
-#logo a:hover {
-  color: #fff; /* don't do any hover effects for the logo */
-}
-
-.logo-altcolor {
   color: #468847;
 }
 
