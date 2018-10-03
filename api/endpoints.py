@@ -61,7 +61,6 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
   query = ""
   if q != "": # if there's a text search specified
     params = (q,)
-    query += ", ts_rank_cd(totalvector, query) as rank"
   query += " FROM articles AS a INNER JOIN "
   if metric == "altmetric":
     query += "altmetric_daily"

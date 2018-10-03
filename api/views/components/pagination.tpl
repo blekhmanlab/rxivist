@@ -1,3 +1,5 @@
+% import math
+
 <a href="{{pagelink}}{{ page - 1 }}" class="btn btn-altcolor
 % if page == 0: # always display the "previous" button even if it's page one, to keep
 %               # the page numbers from changing positions along the bottom between pages 0 and 1
@@ -33,18 +35,20 @@
   % end
 % end
 
-% if (page + page_nums_printed + 1) * page_size < totalcount: # if the final page printed isn't the last page
-  % lastpage = int(totalcount / page_size) - 1
+% last_printed = page + page_nums_printed + 1
+% lastpage = math.ceil(totalcount / page_size) - 1
 
-  % if page + page_nums_printed + 1  < lastpage - 1: # if there's a gap before the last page number
+% if last_printed < lastpage: # if the final page printed isn't the last page
+
+  % if last_printed  < lastpage - 1: # if there's a gap before the last page number
     <span class="pagenum">. . .</span>
   % # if the ellipsis would only eliminate one number, just print the page number:
-  % elif page + page_nums_printed + 1  == lastpage - 1:
+  % elif last_printed  == lastpage - 1:
     <a class="pagenum" href="{{pagelink}}{{ lastpage - 1 }}" class="btn btn-altcolor">{{ lastpage - 1 }}</a>
   % end
   <a class="pagenum" href="{{pagelink}}{{ lastpage }}" class="btn btn-altcolor">{{ lastpage }}</a>
 % end
 
-% if (page + 1) * page_size < totalcount:
+% if page < lastpage:
   <a href="{{pagelink}}{{ page + 1 }}" class="btn btn-altcolor">Next page</a>
 % end
