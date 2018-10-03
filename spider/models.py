@@ -91,14 +91,6 @@ class Article:
       else:
         log.record("NOT adding author to list: {} {}".format(first, last), "warn")
 
-  def _find_posted_date(self, html, log):
-    find = html.find('meta[name="article:published_time"]', first=True)
-    if find is not None:
-      self.posted = find.attrs['content']
-    else:
-      log.record("Could not determine posted date for article at {}".format(self.url), "warn")
-      self.posted = None
-
   def record(self, connection, spider):
     with connection.db.cursor() as cursor:
       # check to see if we've seen this article before
@@ -120,7 +112,7 @@ class Article:
     # If it's brand new:
     with connection.db.cursor() as cursor:
       try:
-        cursor.execute("INSERT INTO articles (url, title, doi, collection, posted) VALUES (%s, %s, %s, %s. %s) RETURNING id;", (self.url, self.title, self.doi, self.collection, self.posted))
+        cursor.execute("INSERT INTO articles (url, title, doi, collection) VALUES (%s, %s, %s, %s) RETURNING id;", (self.url, self.title, self.doi, self.collection))
       except Exception as e:
         spider.log.record("Couldn't record article '{}': {}".format(self.title, e), "error")
       self.id = cursor.fetchone()[0]
@@ -136,14 +128,15 @@ class Article:
       try:
         stat_table = spider.get_article_stats(self.url)
       except Exception as e:
-        spider.log.record("Error fetching stats. Trying one more time...", "warn")
+        spider.log.record("Error fetching stats: {}. Trying one more time...".format(e), "warn")
       try:
         stat_table = spider.get_article_stats(self.url)
       except Exception as e:
         spider.log.record("Error fetching stats again. Giving up on this one.", "error")
 
+      posted = spider.get_article_posted_date(self.url)
       if stat_table is not None:
-        spider.save_article_stats(self.id, stat_table)
+        spider.save_article_stats(self.id, stat_table, posted)
     return True
 
   def _record_authors(self, connection, log):

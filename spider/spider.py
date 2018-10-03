@@ -183,11 +183,11 @@ class Spider(object):
         url = article[1]
         article_id = article[0]
         known_posted = article[2]
-        stat_table, posted = self.get_article_stats(url) # also updates self.posted attribute
+        stat_table = self.get_article_stats(url)
+        posted = None
         if known_posted is None: # record the 'posted on' date if we don't know it
-          self.save_article_stats(article_id, stat_table, posted)
-        else:
-          self.save_article_stats(article_id, stat_table)
+          posted = self.get_article_posted_date(url)
+        self.save_article_stats(article_id, stat_table, posted)
         updated += 1
         if updated >= cap:
           self.log.record("Maximum articles reached for this session. Returning.")
@@ -215,29 +215,49 @@ class Spider(object):
     return abstract[0].text
 
   def get_article_stats(self, url): # TODO: This should be an article method, right?
-    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    months_to_num = dict(zip(months, range(1,13)))
     resp = self.session.get("{}.article-metrics".format(url))
 
-    # Determine publication date:
-    posted = resp.html.find('meta[name="article:published_time"]', first=True)
-    if posted is not None:
-      posted = posted.attrs['content'] # TODO ********** self.posted refers to SPIDER not article FIX THIS
-    else:
-      log.record("Could not determine posted date for article at {}".format(url), "warn")
-
-    detailed_authors = find_detailed_authors(resp)
+    detailed_authors = find_detailed_authors(resp) # TODO: Record this
 
     entries = iter(resp.html.find("td"))
     stats = []
     for entry in entries:
       date = entry.text.split(" ")
-      month = months_to_num[date[0]]
+      month = month_to_num(date[0])
       year = int(date[1])
       abstract = int(next(entries).text)
       pdf = int(next(entries).text)
       stats.append((month, year, abstract, pdf))
-    return stats, posted
+    return stats
+
+  def get_article_posted_date(self, url):
+    self.log.record("Determining publication date.")
+    # Determine publication date
+    resp = self.session.get("{}.article-info".format(url))
+    # This assumes that revisions continue to be listed with oldest version first:
+    older = resp.html.find('.hw-version-previous-link', first=True)
+    # Also grab the "Posted on" date on this page:
+    posted = resp.html.find('meta[name="article:published_time"]', first=True)
+    if older is not None: # if there's an older version, grab the date
+      self.log.record("Previous version detected. Finding date.")
+      print(older.text)
+      date_search = re.search('(\w*) (\d*), (\d{4})', older.text)
+      if len(date_search.groups()) < 3:
+        self.log.record("Could not determine date. Skipping.", "warn")
+        return None
+      month = date_search.group(1)
+      day = date_search.group(2)
+      year = date_search.group(3)
+      datestring = "{}-{}-{}".format(year, month_to_num(month), day)
+      self.log.record("Determined date! {}".format(datestring), "info")
+      return datestring
+    elif posted is not None: # if not, just grab the date from the current version
+      self.log.record("No older version detected; using date from current page: {}".format(posted.attrs['content']), "info")
+      return posted.attrs['content']
+    else:
+      log.record("Could not determine posted date for article at {}".format(url), "warn")
+
+    return None
 
   def save_article_stats(self, article_id, stats, posted=None):
     # First, delete the most recently fetched month, because it was probably recorded before
@@ -745,6 +765,14 @@ def find_detailed_authors(response):
     detailed_authors.append(models.DetailedAuthor(current_name, current_institution, current_email, current_orcid))
 
   return detailed_authors
+
+def month_to_num(month):
+  # helper for converting month names (string) to numbers (int)
+  if len(month) > 3: # if it's the full name, truncate it
+    month = month[:3]
+  months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  months_to_num = dict(zip(months, range(1,13)))
+  return months_to_num[month]
 
 if __name__ == "__main__":
   spider = Spider()
