@@ -35,6 +35,7 @@ class Article:
     self._find_url(html)
     self._find_authors(html, log)
     self._find_doi(html, log)
+    self._find_posted_date(html, log)
     self.collection = collection
     # NOTE: We don't get abstracts from search result pages
     # because they're loaded asynchronously and it would be
@@ -84,6 +85,14 @@ class Article:
       else:
         log.record("NOT adding author to list: {} {}".format(first, last), "warn")
 
+  def _find_posted_date(self, html, log):
+    find = html.find('meta[name="article:published_time"]', first=True)
+    if find is not None:
+      self.posted = find.attrs['content']
+    else:
+      log.record("Could not determine posted date for article at {}".format(self.url), "warn")
+      self.posted = None
+
   def record(self, connection, spider):
     with connection.db.cursor() as cursor:
       # check to see if we've seen this article before
@@ -105,7 +114,7 @@ class Article:
     # If it's brand new:
     with connection.db.cursor() as cursor:
       try:
-        cursor.execute("INSERT INTO articles (url, title, doi, collection) VALUES (%s, %s, %s, %s) RETURNING id;", (self.url, self.title, self.doi, self.collection))
+        cursor.execute("INSERT INTO articles (url, title, doi, collection, posted) VALUES (%s, %s, %s, %s. %s) RETURNING id;", (self.url, self.title, self.doi, self.collection, self.posted))
       except Exception as e:
         spider.log.record("Couldn't record article '{}': {}".format(self.title, e), "error")
       self.id = cursor.fetchone()[0]

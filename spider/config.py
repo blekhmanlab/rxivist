@@ -69,7 +69,6 @@ crawl = {
   "fetch_abstracts": True,
   "fetch_altmetric": True,
   "refresh_stats": True,
-  "first_stats": True, # look for download info for papers that didn't have any when they were first recorded
 }
 
 perform_ranks = {

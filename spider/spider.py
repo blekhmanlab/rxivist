@@ -159,42 +159,6 @@ class Spider(object):
         else:
           consecutive_recognized = 0
 
-  def _fetch_first_article_stats(self, collection):
-    self.log.record("Refreshing article download stats for papers without traffic data in category {}...".format(collection))
-
-    with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT id, url FROM articles WHERE collection=%s AND origin_month IS NULL;", (collection,))
-      updated = 0
-      articles = [x for x in cursor]
-
-      for article in articles:
-        if config.polite:
-          time.sleep(1)
-        url = article[1]
-        article_id = article[0]
-        stat_table = self.get_article_stats(url)
-
-        if len(stat_table) == 0:
-          # if we didn't find any thing, update the last_crawled date anyway
-          cursor.execute("UPDATE articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
-          continue
-
-        self.save_article_stats(article_id, stat_table)
-        try:
-          cursor.execute("SELECT MIN(year) FROM article_traffic WHERE article=%s", (article_id,))
-          year = cursor.fetchone()[0]
-          if year is not None: # this should never be None since if we're here we know we found stats
-            cursor.execute("SELECT MIN(month) FROM article_traffic WHERE article=%s AND year=%s", (article_id,year))
-            month = cursor.fetchone()[0]
-            if month is not None:
-              cursor.execute("UPDATE articles SET origin_month = %s, origin_year = %s, last_crawled = CURRENT_DATE WHERE id=%s", (month, year, article_id))
-              updated += 1
-              self.log.record("Origin determined for ID {}: {}-{}".format(article_id, month, year), "debug")
-        except Exception as e:
-          self.log.record("ERROR determining age of article: {}".format(e), "warn")
-    self.log.record("{} articles updated in {}, out of {} missing traffic data.".format(updated, collection, len(articles)))
-    return updated
-
   def fetch_abstracts(self):
     with self.connection.db.cursor() as cursor:
       # find abstracts for any articles without them
@@ -211,15 +175,19 @@ class Spider(object):
   def refresh_article_stats(self, collection, cap=10000):
     self.log.record("Refreshing article download stats for collection {}...".format(collection))
     with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT id, url FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
+      cursor.execute("SELECT id, url, posted FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
       updated = 0
       for article in cursor:
         if config.polite:
           time.sleep(1)
         url = article[1]
         article_id = article[0]
-        stat_table = self.get_article_stats(url)
-        self.save_article_stats(article_id, stat_table)
+        known_posted = article[2]
+        stat_table = self.get_article_stats(url) # also updates self.posted attribute
+        if known_posted is None:
+          self.save_article_stats(article_id, stat_table, self.posted)
+        else:
+          self.save_article_stats(article_id, stat_table)
         updated += 1
         if updated >= cap:
           self.log.record("Maximum articles reached for this session. Returning.")
@@ -250,6 +218,13 @@ class Spider(object):
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     months_to_num = dict(zip(months, range(1,13)))
     resp = self.session.get("{}.article-metrics".format(url))
+
+    posted = html.find('meta[name="article:published_time"]', first=True)
+    if posted is not None:
+      self.posted = posted.attrs['content']
+    else:
+      log.record("Could not determine posted date for article at {}".format(self.url), "warn")
+
     entries = iter(resp.html.find("td"))
     stats = []
     for entry in entries:
@@ -261,7 +236,7 @@ class Spider(object):
       stats.append((month, year, abstract, pdf))
     return stats
 
-  def save_article_stats(self, article_id, stats):
+  def save_article_stats(self, article_id, stats, posted=None):
     # First, delete the most recently fetched month, because it was probably recorded before
     # that month was complete:
     with self.connection.db.cursor() as cursor:
@@ -291,6 +266,11 @@ class Spider(object):
       cursor.executemany(sql, params)
 
       cursor.execute("UPDATE articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
+
+      # TODO: once we update the backlog with this info, we can probably clear this part out
+      if posted is not None:
+        print("\n\nUPDATING POSTED!!!!!\n\n")
+        cursor.execute("UPDATE articles SET posted = %s WHERE id=%s", (posted, article_id))
       self.log.record("Recorded {} stats for ID {}".format(len(to_record), article_id), "debug")
 
       cursor.execute("SELECT origin_month FROM articles WHERE id=%s", (article_id,))
@@ -682,13 +662,6 @@ def full_run(spider, collection=None):
     spider.log.record("No collection specified, iterating through all known categories.")
     for collection in spider.fetch_categories():
       print("\n\nBeginning category {}".format(collection))
-      # we update articles without any traffic data BEFORE fetching new articles
-      # to avoid crawling the same article twice in like two minutes.
-      if config.crawl["first_stats"] is not False:
-        spider._fetch_first_article_stats(collection)
-      else:
-        spider.log.record("Skipping search for download data for articles without any: disabled in configuration file.")
-
       if config.crawl["fetch_new"] is not False:
         spider.find_record_new_articles(collection)
       else:
