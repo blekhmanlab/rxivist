@@ -45,13 +45,20 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
 
   """
 
-  query = "SELECT "
+  # We build two queries, 'select' and 'countselect': one to get the
+  # current page of results, and one to figure out the total number
+  # of results
+  select = "SELECT "
   if metric == "downloads":
-    query += "r.downloads"
+    select += "r.downloads"
   elif metric == "altmetric":
-    query += "r.day_score"
-  query += ", a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year"
+    select += "r.day_score"
+  select += ", a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year"
+
+  countselect = "SELECT COUNT(a.id)"
   params = ()
+
+  query = ""
   if q != "": # if there's a text search specified
     params = (q,)
     query += ", ts_rank_cd(totalvector, query) as rank"
@@ -93,6 +100,14 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
       query += " AND "
   if metric == "altmetric":
       query += "r.crawled > now() - interval '1 days'"
+
+  # this is the last piece of the query we need for the one
+  # that counts the total number of results
+  countselect += query
+  with connection.db.cursor() as cursor:
+    cursor.execute(countselect, params)
+    total = cursor.fetchone()[0]
+
   query += " ORDER BY "
   if metric == "downloads":
     query += "r.rank ASC"
@@ -103,10 +118,12 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
   if page > 0:
     query += " OFFSET {}".format(page * page_size)
   query += ";"
+  select += query
   with connection.db.cursor() as cursor:
-    cursor.execute(query, params)
+    cursor.execute(select, params)
     results = [models.SearchResultArticle(a, connection) for a in cursor]
-  return results
+
+  return results, total
 
 def author_rankings(connection, category_list=[]):
   """Returns a list of authors with the most cumulative downloads

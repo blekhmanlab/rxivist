@@ -48,3 +48,7 @@ body {
   color: #fff;
   text-decoration: none;
 }
+
+.pagenum {
+  padding: 20px;
+}

@@ -1,4 +1,4 @@
-<p class="text-right"><em>For more information, click each entry to expand.</em></p>
+<p class="text-right"><em><strong>{{ "{:,}".format(totalcount) }} results found.</strong> For more information, click each entry to expand.</em></p>
 <div class="accordion" id="alltime">
   % for i, result in enumerate(results):
     <div class="card">
@@ -46,9 +46,4 @@
   % end
 </div>
 
-% if "prev" in links.keys():
-  <a href="{{ links["prev"] }}" class="btn btn-altcolor">Previous {{ page_size }}</a>
-% end
-% if len(results) == page_size:
-  <a href="{{ links["next"] }}" class="btn btn-altcolor">Next {{ page_size }}</a>
-% end
+%include("components/pagination")

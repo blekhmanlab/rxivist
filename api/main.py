@@ -127,7 +127,8 @@ def index():
     page_size = config.max_page_size # cap the page size users can ask for
 
   stats = models.SiteStats(connection) # site-wide metrics (paper count, etc)
-  results = {}
+  results = {} # a list of articles for the current page
+  totalcount = 0 # how many results there are in total
 
   if error == "": # if nothing's gone wrong yet, fetch results:
     try:
@@ -138,28 +139,25 @@ def index():
           results = endpoints.table_results(connection, query)
           print("Prepping table view \n\n\n")
         else:
-          results = endpoints.most_popular(connection, query, category_filter, timeframe, metric, page, page_size)
+          results, totalcount = endpoints.most_popular(connection, query, category_filter, timeframe, metric, page, page_size)
     except Exception as e:
       print(e)
       error = "There was a problem with the submitted query: {}".format(e)
       bottle.response.status = 500
 
+  # Take the current query string and turn it into a template that any page
+  # number can get plugged into:
   if "page=" in bottle.request.query_string:
-    links = {
-      "next": "/?{}".format(re.sub(r"page=\d*", "page={}".format(page + 1), bottle.request.query_string)),
-      "prev": "/?{}".format(re.sub(r"page=\d*", "page={}".format(page - 1), bottle.request.query_string))
-    }
+    pagelink =  "/?{}".format(re.sub(r"page=\d*", "page=", bottle.request.query_string))
   else:
-    links = {
-      "next": "/?{}&page={}".format(bottle.request.query_string, page + 1)
-    }
+    pagelink = "/?{}&page=".format(bottle.request.query_string)
 
   return bottle.template('index', results=results,
     query=query, category_filter=category_filter, title=title,
     error=error, stats=stats, category_list=category_list,
     timeframe=timeframe, metric=metric, querystring=bottle.request.query_string,
     view=view, entity=entity, google_tag=config.google_tag, page=page,
-    page_size=page_size, links=links)
+    page_size=page_size, totalcount=totalcount, pagelink=pagelink)
 
 # ---- full display thing
 @bottle.get('/table')
