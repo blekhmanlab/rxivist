@@ -26,6 +26,13 @@ class Author:
       connection.db.commit()
       log.record("Recorded author {} with ID {}".format(self.name(), self.id), "debug")
 
+class DetailedAuthor:
+  def __init__(self, name, institution, email, orcid=None):
+    self.name = name
+    self.institution = institution
+    self.email = email
+    self.orcid = orcid
+
 class Article:
   def __init__(self):
     pass
@@ -35,7 +42,6 @@ class Article:
     self._find_url(html)
     self._find_authors(html, log)
     self._find_doi(html, log)
-    self._find_posted_date(html, log)
     self.collection = collection
     # NOTE: We don't get abstracts from search result pages
     # because they're loaded asynchronously and it would be

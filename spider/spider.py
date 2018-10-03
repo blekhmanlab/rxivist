@@ -183,9 +183,9 @@ class Spider(object):
         url = article[1]
         article_id = article[0]
         known_posted = article[2]
-        stat_table = self.get_article_stats(url) # also updates self.posted attribute
-        if known_posted is None:
-          self.save_article_stats(article_id, stat_table, self.posted)
+        stat_table, posted = self.get_article_stats(url) # also updates self.posted attribute
+        if known_posted is None: # record the 'posted on' date if we don't know it
+          self.save_article_stats(article_id, stat_table, posted)
         else:
           self.save_article_stats(article_id, stat_table)
         updated += 1
@@ -214,16 +214,19 @@ class Spider(object):
       raise ValueError("Successfully made HTTP call to fetch paper information, but did not find an abstract.")
     return abstract[0].text
 
-  def get_article_stats(self, url):
+  def get_article_stats(self, url): # TODO: This should be an article method, right?
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     months_to_num = dict(zip(months, range(1,13)))
     resp = self.session.get("{}.article-metrics".format(url))
 
-    posted = html.find('meta[name="article:published_time"]', first=True)
+    # Determine publication date:
+    posted = resp.html.find('meta[name="article:published_time"]', first=True)
     if posted is not None:
-      self.posted = posted.attrs['content']
+      posted = posted.attrs['content'] # TODO ********** self.posted refers to SPIDER not article FIX THIS
     else:
-      log.record("Could not determine posted date for article at {}".format(self.url), "warn")
+      log.record("Could not determine posted date for article at {}".format(url), "warn")
+
+    detailed_authors = find_detailed_authors(resp)
 
     entries = iter(resp.html.find("td"))
     stats = []
@@ -234,7 +237,7 @@ class Spider(object):
       abstract = int(next(entries).text)
       pdf = int(next(entries).text)
       stats.append((month, year, abstract, pdf))
-    return stats
+    return stats, posted
 
   def save_article_stats(self, article_id, stats, posted=None):
     # First, delete the most recently fetched month, because it was probably recorded before
@@ -269,7 +272,7 @@ class Spider(object):
 
       # TODO: once we update the backlog with this info, we can probably clear this part out
       if posted is not None:
-        print("\n\nUPDATING POSTED!!!!!\n\n")
+        self.log.record("Determined 'posted on' date: {}".format(posted), "debug")
         cursor.execute("UPDATE articles SET posted = %s WHERE id=%s", (posted, article_id))
       self.log.record("Recorded {} stats for ID {}".format(len(to_record), article_id), "debug")
 
@@ -711,6 +714,37 @@ def fill_in_author_vectors(spider):
       to_do -= 1
       if to_do % 100 == 0:
         spider.log.record("{} - {} left to go.".format(datetime.now(), to_do))
+
+def find_detailed_authors(response):
+  # Determine author details:
+  detailed_authors = []
+  author_tags = response.html.find('meta[name^="citation_author"]')
+  current_name = ""
+  current_institution = ""
+  current_email = ""
+  current_orcid = ""
+  for tag in author_tags:
+    print(tag.attrs)
+    if tag.attrs["name"] == "citation_author":
+      if current_name != "": # if this isn't the first author
+        detailed_authors.append(models.DetailedAuthor(current_name, current_institution, current_email, current_orcid))
+      current_name = tag.attrs["content"]
+      current_institution = ""
+      current_email = ""
+      current_orcid = ""
+    elif tag.attrs["name"] == "citation_author_institution":
+      current_institution = tag.attrs["content"]
+    elif tag.attrs["name"] == "citation_author_email":
+      current_email = tag.attrs["content"]
+    elif tag.attrs["name"] == "citation_author_orcid":
+      current_orcid = tag.attrs["content"]
+  # since we record each author once we find the beginning of the
+  # next author's entry, the last step has to be to record whichever
+  # author we were looking at when the author list ended:
+  if current_name != "": # if we somehow didn't find a single author
+    detailed_authors.append(models.DetailedAuthor(current_name, current_institution, current_email, current_orcid))
+
+  return detailed_authors
 
 if __name__ == "__main__":
   spider = Spider()
