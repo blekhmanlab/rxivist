@@ -230,7 +230,7 @@ class Spider(object):
         if config.polite:
           time.sleep(1)
         stat_table, detailed_authors = self.get_article_stats(url)
-        pub_data = self.check_publication_status(doi)
+        pub_data = self.check_publication_status(article_id, doi)
         if pub_data is not None: # if we found something
           self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
         posted = None
@@ -245,8 +245,16 @@ class Spider(object):
     self.log.record("{} articles refreshed in {}.".format(updated, collection))
     return updated
 
-  def check_publication_status(self, doi, retry=True):
+  def check_publication_status(self, article_id ,doi, retry=True):
     self.log.record("Determining publication status for DOI {}.".format(doi))
+    with self.connection.db.cursor() as cursor:
+      # we check for which ones are already recorded because
+      # the postgres UPSERT feature is bananas
+      cursor.execute("SELECT COUNT(article) FROM article_publications WHERE article=%s", (article_id,))
+      pub_count = cursor.fetchone()[0]
+      if pub_count > 0:
+        self.log.record("Paper already has publication recorded. Skipping.", "debug")
+        return
     try:
       resp = self.session.get("https://connect.biorxiv.org/bx_pub_doi_get.php?doi={}".format(doi))
     except Exception as e:
@@ -269,21 +277,21 @@ class Spider(object):
     data = parsed.get("pub", [])
     if len(data) == 0:
       self.log.record("No data found", "debug")
-      return None
+      return
 
     if data[0].get("pub_type") != "published":
       self.log.record("Publication found, but not in 'published' state: {}. Skipping.".format(data[0]["pub_type"]), "info")
-      return None # Don't know what this could mean
+      return # Don't know what this could mean
     if "pub_doi" not in data[0] or "pub_journal" not in data[0]:
       self.log.record("Publication data found, but missing important field(s). Skipping.")
-      return None
+      return
 
-    self.log.record("\n\nPUBLICATION FOUND!!!\n{}\n".format(data[0]["pub_doi"]))
+    self.log.record("**Publication found: {}".format(data[0]["pub_journal"]))
 
-    return {
-      "doi": data[0]["pub_doi"],
-      "publication": data[0]["pub_journal"],
-    }
+    with self.connection.db.cursor() as cursor:
+      self.log.record("Saving publication info.", "debug")
+      cursor.execute("INSERT INTO article_publications (article, doi, publication) VALUES (%s, %s, %s);", (article_id, data[0]["pub_doi"], data[0]["pub_journal"]))
+      self.log.record("Recorded DOI {} for article {}".format(data[0]["pub_doi", article_id))
 
   def get_article_abstract(self, url, retry=True):
     if config.polite:
@@ -400,19 +408,6 @@ class Spider(object):
               cursor.execute("UPDATE articles SET origin_month = %s, origin_year = %s, last_crawled = CURRENT_DATE WHERE id=%s", (month, year, article_id))
         except Exception as e:
           self.log.record("ERROR determining age of article: {}".format(e), "warn")
-
-  def record_publication_status(self, article_id, doi, publication):
-    self.log.record("Saving publication info.", "debug")
-    with self.connection.db.cursor() as cursor:
-      # we check for which ones are already recorded because
-      # the postgres UPSERT feature is bananas
-      cursor.execute("SELECT COUNT(article) FROM article_publications WHERE article=%s", (article_id,))
-      pub_count = cursor.fetchone()[0]
-      if pub_count > 0:
-        self.log.record("Paper already has publication recorded. Skipping.", "debug")
-        return
-      cursor.execute("INSERT INTO article_publications (article, doi, publication) VALUES (%s, %s, %s);", (article_id, doi, publication))
-      self.log.record("Recorded DOI {} for article {}".format(doi, article_id))
 
   def _record_detailed_authors(self, article_id, authors):
     with self.connection.db.cursor() as cursor:
