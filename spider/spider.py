@@ -96,7 +96,7 @@ class Spider(object):
     r = requests.get("{}?num_results=100&doi_prefix={}&page=1".format(config.altmetric["endpoints"]["daily"], config.altmetric["doi_prefix"]), headers=headers)
     if r.status_code != 200:
       self.log.record("ERROR: Got weird status code: {}. {}".format(r.status_code, r.text()), "error")
-      return
+      return # TODO: this should be an exception
     results = r.json()
     result_count = 1
     if "query" in results.keys() and "total" in results["query"]:
@@ -132,6 +132,50 @@ class Spider(object):
           cursor.execute(sql, (article_id, score, day_score, week_score, tweets, altmetric_id))
       self.log.record("Recorded {} recognized articles on page".format(found))
     self.log.record("Altmetric data pull complete.")
+
+  def pull_crossref_data(self):
+    self.log.record("Beginning retrieval of Crossref data", "info")
+    headers = {'user-agent': config.user_agent}
+    datestring = "2018-09-21"
+    r = requests.get("https://api.eventdata.crossref.org/v1/events?obj-id.prefix=10.1101&from-occurred-date={0}&until-occurred-date={0}&mailto=rabdill@umn.edu&rows=10000".format(datestring), headers=headers)
+    if r.status_code != 200:
+      self.log.record("Got weird status code: {}. {}".format(r.status_code, r.text()), "error")
+      return
+    results = r.json()
+
+    print("Got it")
+    if results["status"] != "ok":
+      self.log.record("Crossref responded, but with unexpected status: {}".format(results["status"]), "error")
+      return
+    if "message" not in results.keys() or "events" not in results["message"].keys() or len(results["message"]["events"]) == 0:
+      self.log.record("Events not found in response.", "error")
+      return
+
+    tweets = defaultdict(list)
+    sources = defaultdict(int)
+    if results["message"]["total-results"] > 10000:
+      print("TOO MANY RESULTS: {}".format(results["message"]["total-results"]))
+      exit(0)
+    for event in results["message"]["events"]:
+      sources[event.get("source_id")] += 1
+      if event.get("source_id") != "twitter":
+        continue
+      try:
+        doi_search = re.search('https://doi.org/(.*)', event["obj_id"])
+      except:
+        self.log.record("Could not determine DOI number for object. Skipping.", "warn")
+        continue
+      if len(doi_search.groups()) == 0:
+        self.log.record("No DOI number found. Skipping.", "warn")
+        continue
+      doi = doi_search.group(1)
+      tweets[doi].append(event["subj"]["original-tweet-url"])
+    for doi in tweets:
+      print("{}: {}".format(doi, len(tweets[doi])))
+    print("\n--\nSOURCES FOUND FOR {}:".format(datestring))
+    for source in sources:
+      print("{}: {}".format(source, sources[source]))
+    self.log.record("Done with crossref.", "info")
 
   def find_record_new_articles(self, collection):
     # we need to grab the first page to figure out how many pages there are
@@ -274,7 +318,7 @@ class Spider(object):
       # the postgres UPSERT feature is bananas
       cursor.execute("SELECT month, year FROM article_traffic WHERE article=%s", (article_id,))
       # associate each year with which months are already recorded
-      done = defaultdict(lambda: [])
+      done = defaultdict(list)
       for record in cursor:
         done[record[1]].append(record[0])
       # make a list that excludes the records we already know about
@@ -824,6 +868,6 @@ if __name__ == "__main__":
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   elif sys.argv[1] == "test": # placeholder for temporary commands
-    spider._rank_articles_alltime()
+    spider.get_article_posted_date("https://www.biorxiv.org/content/early/2018/09/10/172221")
   else:
     full_run(spider, sys.argv[1])
