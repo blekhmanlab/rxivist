@@ -172,22 +172,24 @@ class Spider(object):
         except ValueError as e:
           self.log.record("Error retrieving abstract: {}".format(e))
 
-  def refresh_article_stats(self, collection, cap=10000):
+  def refresh_article_stats(self, collection, cap=10000): # TODO: should be article method
     self.log.record("Refreshing article download stats for collection {}...".format(collection))
     with self.connection.db.cursor() as cursor:
       cursor.execute("SELECT id, url, posted FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
       updated = 0
       for article in cursor:
-        if config.polite:
-          time.sleep(1)
         url = article[1]
         article_id = article[0]
         known_posted = article[2]
-        stat_table = self.get_article_stats(url)
+        self.log.record("\nRefreshing article {}".format(article_id), "debug")
+        if config.polite:
+          time.sleep(1)
+        stat_table, detailed_authors = self.get_article_stats(url)
         posted = None
         if known_posted is None: # record the 'posted on' date if we don't know it
           posted = self.get_article_posted_date(url)
         self.save_article_stats(article_id, stat_table, posted)
+        self._record_detailed_authors(article_id, detailed_authors)
         updated += 1
         if updated >= cap:
           self.log.record("Maximum articles reached for this session. Returning.")
@@ -228,7 +230,7 @@ class Spider(object):
       abstract = int(next(entries).text)
       pdf = int(next(entries).text)
       stats.append((month, year, abstract, pdf))
-    return stats
+    return stats, detailed_authors
 
   def get_article_posted_date(self, url):
     self.log.record("Determining publication date.")
@@ -240,7 +242,6 @@ class Spider(object):
     posted = resp.html.find('meta[name="article:published_time"]', first=True)
     if older is not None: # if there's an older version, grab the date
       self.log.record("Previous version detected. Finding date.")
-      print(older.text)
       date_search = re.search('(\w*) (\d*), (\d{4})', older.text)
       if len(date_search.groups()) < 3:
         self.log.record("Could not determine date. Skipping.", "warn")
@@ -311,6 +312,37 @@ class Spider(object):
               cursor.execute("UPDATE articles SET origin_month = %s, origin_year = %s, last_crawled = CURRENT_DATE WHERE id=%s", (month, year, article_id))
         except Exception as e:
           self.log.record("ERROR determining age of article: {}".format(e), "warn")
+
+  def _record_detailed_authors(self, article_id, authors):
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT COUNT(article) FROM article_detailed_authors WHERE article=%s;", (article_id,))
+      count = cursor.fetchone()[0]
+      if count > 0:
+        self.log.record("Article authors already recorded; skipping.", "info")
+        return
+
+    detailed_author_ids = []
+    for a in authors:
+      a.record(self.connection, self.log)
+      detailed_author_ids.append(a.id)
+
+    try:
+      with self.connection.db.cursor() as cursor:
+        sql = "INSERT INTO article_detailed_authors (article, author) VALUES (%s, %s);"
+        cursor.executemany(sql, [(article_id, x) for x in detailed_author_ids])
+    except Exception as e:
+      # If there's an error associating all the authors with their paper all at once,
+      # send separate queries for each one
+      # (This came up last time because an author was listed twice on the same paper.)
+      self.log.record("Error associating detailed authors to paper: {}".format(e), "warn")
+      self.log.record("Recording article associations one at a time.")
+      for x in detailed_author_ids:
+        try:
+          with connection.db.cursor() as cursor:
+            cursor.execute("INSERT INTO article_detailed_authors (article, author) VALUES (%s, %s);", (article_id, x))
+        except Exception as e:
+          self.log.record("Another problem associating detailed author {} to article {}. Moving on.".format(x, self.id), "error")
+          pass
 
   def fetch_categories(self):
     categories = []
@@ -677,14 +709,13 @@ def load_rankings_from_file(batch, log):
   if to_delete is not None:
     os.remove(to_delete)
 
-
 def full_run(spider, collection=None):
   if collection is not None:
     spider.find_record_new_articles(collection)
   else:
     spider.log.record("No collection specified, iterating through all known categories.")
     for collection in spider.fetch_categories():
-      print("\n\nBeginning category {}".format(collection))
+      spider.log.record("\n\nBeginning category {}".format(collection), "info")
       if config.crawl["fetch_new"] is not False:
         spider.find_record_new_articles(collection)
       else:
@@ -744,7 +775,6 @@ def find_detailed_authors(response):
   current_email = ""
   current_orcid = ""
   for tag in author_tags:
-    print(tag.attrs)
     if tag.attrs["name"] == "citation_author":
       if current_name != "": # if this isn't the first author
         detailed_authors.append(models.DetailedAuthor(current_name, current_institution, current_email, current_orcid))

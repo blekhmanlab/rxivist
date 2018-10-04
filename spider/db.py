@@ -26,8 +26,14 @@ class Connection(object):
 
   def _ensure_tables_exist(self):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS articles (id SERIAL PRIMARY KEY, url text UNIQUE, title text NOT NULL, abstract text, doi text UNIQUE, origin_month integer, origin_year integer, posted date, collection text, title_vector tsvector, abstract_vector tsvector, author_vector tsvector, last_crawled DATE NOT NULL DEFAULT CURRENT_DATE);")
+
     self.cursor.execute("CREATE TABLE IF NOT EXISTS authors (id SERIAL PRIMARY KEY, given text NOT NULL, surname text, UNIQUE (given, surname));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_authors (id SERIAL PRIMARY KEY, article integer NOT NULL, author integer NOT NULL, UNIQUE (article, author));")
+
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS detailed_authors (id SERIAL PRIMARY KEY, name text NOT NULL, institution text, orcid text UNIQUE);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS detailed_authors_email (id SERIAL PRIMARY KEY, author integer NOT NULL, email text);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS article_detailed_authors (id SERIAL PRIMARY KEY, article integer NOT NULL, author integer NOT NULL, UNIQUE (article, author));")
+
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_traffic (id SERIAL PRIMARY KEY, article integer NOT NULL, month integer, year integer NOT NULL, abstract integer, pdf integer, UNIQUE (article, month, year));")
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS altmetric_daily (id SERIAL PRIMARY KEY, article integer, crawled DATE NOT NULL DEFAULT CURRENT_DATE, score integer, day_score integer, week_score integer, tweets integer, altmetric_id integer);")

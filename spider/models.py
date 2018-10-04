@@ -28,10 +28,59 @@ class Author:
 
 class DetailedAuthor:
   def __init__(self, name, institution, email, orcid=None):
+    if institution == "":
+      institution = None
+    if email == "":
+      email = None
+    if orcid == "":
+      orcid = None
+
     self.name = name
     self.institution = institution
     self.email = email
     self.orcid = orcid
+    self.id = None
+
+  def record(self, connection, log):
+    recorded = False
+    with connection.db.cursor() as cursor:
+      if self.orcid is not None:
+        log.record("Author has ORCiD; determining whether they exist in DB.")
+        cursor.execute("SELECT id FROM detailed_authors WHERE orcid = %s;", (self.orcid,))
+        a_id = cursor.fetchone()
+        if a_id is not None:
+          self.id = a_id[0]
+          log.record("ORCiD: Author {} exists with ID {}".format(self.name, self.id), "debug")
+
+      if self.id is None:
+        # if they don't have an ORCiD, check for duplicates based on name.
+        # NOTE: We don't use email as a signifier of uniqueness because some authors who hate
+        # me record the same email address for multiple people.
+        cursor.execute("SELECT id FROM detailed_authors WHERE name = %s;", (self.name,))
+        a_id = cursor.fetchone()
+        if a_id is not None:
+          self.id = a_id[0]
+          log.record("Name: Author {} exists with ID {}".format(self.name, self.id), "debug")
+          recorded = True
+
+          # if they have an orcid but we didn't know about it before:
+          if self.orcid is not None:
+            log.record("Recording ORCiD {} for known author".format(self.orcid), "debug")
+            cursor.execute("UPDATE detailed_authors SET orcid=%s WHERE id=%s;", (self.orcid, self.id))
+
+      if self.id is None: # if they're definitely brand new
+        cursor.execute("INSERT INTO detailed_authors (name, orcid, institution) VALUES (%s, %s, %s) RETURNING id;", (self.name, self.orcid, self.institution))
+        self.id = cursor.fetchone()[0]
+        log.record("Recorded detailed author {} with ID {}".format(self.name, self.id), "debug")
+        recorded = True
+
+      if self.email is not None:
+        # check if we know about this email already:
+        cursor.execute("SELECT COUNT(id) FROM detailed_authors_email WHERE author=%s AND email=%s", (self.id,self.email))
+        emailcount = cursor.fetchone()[0]
+        if emailcount == 0:
+          log.record("Recording email {} for author".format(self.email), "debug")
+          cursor.execute("INSERT INTO detailed_authors_email (author, email) VALUES (%s, %s);", (self.id, self.email))
 
 class Article:
   def __init__(self):
@@ -126,14 +175,15 @@ class Article:
       spider.log.record("Recording stats for new article", "debug")
       stat_table = None
       try:
-        stat_table = spider.get_article_stats(self.url)
+        stat_table, detailed_authors = spider.get_article_stats(self.url)
       except Exception as e:
         spider.log.record("Error fetching stats: {}. Trying one more time...".format(e), "warn")
       try:
-        stat_table = spider.get_article_stats(self.url)
+        stat_table, detailed_authors = spider.get_article_stats(self.url)
       except Exception as e:
         spider.log.record("Error fetching stats again. Giving up on this one.", "error")
 
+      spider._record_detailed_authors(self.id, detailed_authors)
       posted = spider.get_article_posted_date(self.url)
       if stat_table is not None:
         spider.save_article_stats(self.id, stat_table, posted)
