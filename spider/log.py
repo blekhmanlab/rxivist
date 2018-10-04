@@ -15,7 +15,8 @@ class Logger:
     return ["debug", "info", "warn", "error", "fatal"].index(level)
 
   def record(self, message, level="info"):
-    print(message)
+    if config.log_to_stdout is True:
+      print(message)
     if self.level(level) >= self.level(config.log_level):
       self.file.write("{} {}: {}\n".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), level.upper(), message))
     if level == "fatal":
