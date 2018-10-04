@@ -262,7 +262,7 @@ class Spider(object):
       if retry:
         self.log.record("Retrying:")
         time.sleep(3)
-        return self.check_publication_status(doi, False)
+        return self.check_publication_status(article_id, False)
       else:
         self.log.record("Giving up on this one for now.", "error")
         raise ValueError("Encountered exception making HTTP call to fetch publication information.")
@@ -291,7 +291,7 @@ class Spider(object):
     with self.connection.db.cursor() as cursor:
       self.log.record("Saving publication info.", "debug")
       cursor.execute("INSERT INTO article_publications (article, doi, publication) VALUES (%s, %s, %s);", (article_id, data[0]["pub_doi"], data[0]["pub_journal"]))
-      self.log.record("Recorded DOI {} for article {}".format(data[0]["pub_doi", article_id))
+      self.log.record("Recorded DOI {} for article {}".format(data[0]["pub_doi"], article_id))
 
   def get_article_abstract(self, url, retry=True):
     if config.polite:
