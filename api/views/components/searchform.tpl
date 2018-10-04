@@ -154,19 +154,5 @@
 
   </form>
 </div>
-<div class="col-md-2
-
-% if entity == "papers":
-  offset-md-6
-% end
-">
-  <a class="badge badge-secondary" href=
-  % if entity == "papers":
-    "/?entity=authors&category={{"" if len(category_filter) == 0 else category_filter[0]}}">switch to all-time author rankings
-  % else:
-    "/?category={{"" if len(category_filter) == 0 else category_filter[0]}}">switch to paper rankings
-  % end
-  </a>
-</div>
 
 %include("components/modal_textsearch")

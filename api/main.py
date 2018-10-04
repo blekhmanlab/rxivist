@@ -202,8 +202,9 @@ def display_author_details(id):
     print(e)
     return {"error": "Server error."}
   download_distribution, averages = endpoints.download_distribution(connection, 'author')
+  stats = models.SiteStats(connection)
   return bottle.template('author_details', author=author,
-    download_distribution=download_distribution, averages=averages,
+    download_distribution=download_distribution, averages=averages, stats=stats,
     google_tag=config.google_tag)
 
 # ---- Paper details page
@@ -220,8 +221,9 @@ def display_paper_details(id):
     print(e)
     return {"error": "Server error."}
   download_distribution, averages = endpoints.download_distribution(connection, 'alltime')
+  stats = models.SiteStats(connection)
   return bottle.template('paper_details', paper=paper,
-    download_distribution=download_distribution, averages=averages,
+    download_distribution=download_distribution, averages=averages, stats=stats,
     google_tag=config.google_tag)
 
 # ---- DB convenience endpoint
@@ -246,7 +248,8 @@ def get_articles_table(table=None):
 @bottle.route('/privacy')
 @bottle.view('privacy')
 def privacy():
-  return bottle.template("privacy", google_tag=config.google_tag)
+  stats = models.SiteStats(connection)
+  return bottle.template("privacy", google_tag=config.google_tag, stats=stats)
 
 # Search engine stuff
 @bottle.route('/{}'.format(config.google_validation_file))
