@@ -10,16 +10,13 @@
         {{result.title}}
 
         <br>
-        <span class="badge badge-secondary" style="margin-left: 10px;">
           % if metric == "downloads":
-            {{ helpers.formatNumber(result.downloads) }} downloads
+            <small>Downloads:</small> <strong>{{ helpers.formatNumber(result.downloads) }}
           % elif metric == "altmetric":
-            Score today: {{ helpers.formatNumber(result.downloads) }}
+            <small>Score today:</small> <strong>{{ helpers.formatNumber(result.downloads) }}
           % end
-        </span>
-        % if len(category_filter) != 1:
-          <span class="badge {{ result.collection.replace("-", "") }}" style="margin-left: 10px;">{{ helpers.formatCategory(result.collection) }}</span>
-        % end
+        </strong>
+        <span class="badge {{ result.collection.replace("-", "") }}" style="margin-left: 10px;">{{ helpers.formatCategory(result.collection) }}</span>
         <p class="text-right" style="margin-top: -1.5em; margin-bottom: 0;"><small>Posted to bioRxiv
           % if result.date.month is not None:
             {{result.date.monthname}} {{result.date.year}}
