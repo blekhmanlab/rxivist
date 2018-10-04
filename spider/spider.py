@@ -219,16 +219,20 @@ class Spider(object):
   def refresh_article_stats(self, collection, cap=10000): # TODO: should be article method
     self.log.record("Refreshing article download stats for collection {}...".format(collection))
     with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT id, url, posted FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
+      cursor.execute("SELECT id, url, posted, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
       updated = 0
       for article in cursor:
         url = article[1]
         article_id = article[0]
         known_posted = article[2]
+        doi = article[3]
         self.log.record("\nRefreshing article {}".format(article_id), "debug")
         if config.polite:
           time.sleep(1)
         stat_table, detailed_authors = self.get_article_stats(url)
+        pub_data = self.check_publication_status(doi)
+        if pub_data is not None: # if we found something
+          self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
         posted = None
         if known_posted is None: # record the 'posted on' date if we don't know it
           posted = self.get_article_posted_date(url)
@@ -240,6 +244,46 @@ class Spider(object):
           break
     self.log.record("{} articles refreshed in {}.".format(updated, collection))
     return updated
+
+  def check_publication_status(self, doi, retry=True):
+    self.log.record("Determining publication status for DOI {}.".format(doi))
+    try:
+      resp = self.session.get("https://connect.biorxiv.org/bx_pub_doi_get.php?doi={}".format(doi))
+    except Exception as e:
+      self.log.record("Error fetching publication data: {}".format(e), "warn")
+      if retry:
+        self.log.record("Retrying:")
+        time.sleep(3)
+        return self.check_publication_status(doi, False)
+      else:
+        self.log.record("Giving up on this one for now.", "error")
+        raise ValueError("Encountered exception making HTTP call to fetch publication information.")
+
+    try:
+      # response is wrapped in parentheses and lots of trailing white space
+      parsed = json.loads(re.sub(r'\)\s*$', '', resp.text[1:]))
+    except json.decoder.JSONDecodeError as e:
+      self.log.record("Error encountered decoding JSON: {}. Bailing.".format(e), "error")
+      return
+
+    data = parsed.get("pub", [])
+    if len(data) == 0:
+      self.log.record("No data found", "debug")
+      return None
+
+    if data[0].get("pub_type") != "published":
+      self.log.record("Publication found, but not in 'published' state: {}. Skipping.".format(data[0]["pub_type"]), "info")
+      return None # Don't know what this could mean
+    if "pub_doi" not in data[0] or "pub_journal" not in data[0]:
+      self.log.record("Publication data found, but missing important field(s). Skipping.")
+      return None
+
+    self.log.record("\n\nPUBLICATION FOUND!!!\n{}\n".format(data[0]["pub_doi"]))
+
+    return {
+      "doi": data[0]["pub_doi"],
+      "publication": data[0]["pub_journal"],
+    }
 
   def get_article_abstract(self, url, retry=True):
     if config.polite:
@@ -356,6 +400,19 @@ class Spider(object):
               cursor.execute("UPDATE articles SET origin_month = %s, origin_year = %s, last_crawled = CURRENT_DATE WHERE id=%s", (month, year, article_id))
         except Exception as e:
           self.log.record("ERROR determining age of article: {}".format(e), "warn")
+
+  def record_publication_status(self, article_id, doi, publication):
+    self.log.record("Saving publication info.", "debug")
+    with self.connection.db.cursor() as cursor:
+      # we check for which ones are already recorded because
+      # the postgres UPSERT feature is bananas
+      cursor.execute("SELECT COUNT(article) FROM article_publications WHERE article=%s", (article_id,))
+      pub_count = cursor.fetchone()[0]
+      if pub_count > 0:
+        self.log.record("Paper already has publication recorded. Skipping.", "debug")
+        return
+      cursor.execute("INSERT INTO article_publications (article, doi, publication) VALUES (%s, %s, %s);", (article_id, doi, publication))
+      self.log.record("Recorded DOI {} for article {}".format(doi, article_id))
 
   def _record_detailed_authors(self, article_id, authors):
     with self.connection.db.cursor() as cursor:
@@ -868,6 +925,6 @@ if __name__ == "__main__":
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   elif sys.argv[1] == "test": # placeholder for temporary commands
-    spider.get_article_posted_date("https://www.biorxiv.org/content/early/2018/09/10/172221")
+    spider.check_publication_status("10.1101/292805")
   else:
     full_run(spider, sys.argv[1])

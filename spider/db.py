@@ -26,6 +26,7 @@ class Connection(object):
 
   def _ensure_tables_exist(self):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS articles (id SERIAL PRIMARY KEY, url text UNIQUE, title text NOT NULL, abstract text, doi text UNIQUE, origin_month integer, origin_year integer, posted date, collection text, title_vector tsvector, abstract_vector tsvector, author_vector tsvector, last_crawled DATE NOT NULL DEFAULT CURRENT_DATE);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS article_publications (article integer PRIMARY KEY, doi text UNIQUE, publication text NOT NULL);")
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS authors (id SERIAL PRIMARY KEY, given text NOT NULL, surname text, UNIQUE (given, surname));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_authors (id SERIAL PRIMARY KEY, article integer NOT NULL, author integer NOT NULL, UNIQUE (article, author));")
@@ -48,8 +49,6 @@ class Connection(object):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS ytd_ranks_working      (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS month_ranks            (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS month_ranks_working    (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS hotness_ranks          (article integer PRIMARY KEY, rank integer, score integer NOT NULL);")
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS hotness_ranks_working  (article integer PRIMARY KEY, rank integer, score integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks           (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_working   (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_category   (id SERIAL PRIMARY KEY, author integer, category text NOT NULL, rank integer NOT NULL, tie boolean, downloads integer NOT NULL, UNIQUE (author, category));")
@@ -57,15 +56,6 @@ class Connection(object):
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS download_distribution (id SERIAL PRIMARY KEY, bucket integer NOT NULL, count integer NOT NULL, category text NOT NULL);")
     self.db.commit()
-
-  def _clear_out(self):
-    # NOTE: DON'T DO THIS UNLESS YOU REALLY WANT ALL YOUR STUFF GONE
-    for table in ["articles", "authors", "article_authors",
-       "article_traffic", "alltime_ranks", "alltime_ranks_working",
-       "bounce_ranks", "bounce_ranks_working"]:
-      self.cursor.execute("TRUNCATE TABLE {};".format(table))
-    self.db.commit()
-    # Other NOTE: This won't reset the ID numbers in each table
 
   def __del__(self):
     if self.db is not None:
