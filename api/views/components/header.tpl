@@ -1,7 +1,7 @@
 % import helpers
 <div class="row" id="header">
   <div class="col-md-7" style="padding-left: 35px;">
-    <a href="/"><img src="/static/rxivist_logo9.png" class="img-fluid" alt="Rxivist logo" title="It's pronounced 'Archivist.'" width="350"></a>
+    <a href="/"><img src="/static/rxivist_logo.png" class="img-fluid" alt="Rxivist logo" title="It's pronounced 'Archivist.'" width="350"></a>
   </div>
   % try:
   %  entity
