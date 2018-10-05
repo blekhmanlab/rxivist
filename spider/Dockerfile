@@ -1,7 +1,10 @@
 FROM postgres:10
-MAINTAINER Richard Abdill
+LABEL maintainer="Richard Abdill rabdill@umn.edu"
 
 RUN apt-get update
-RUN apt-get install -y python3 python3-pip
+RUN echo deb http://ftp.de.debian.org/debian testing main >> /etc/apt/sources.list
+RUN echo 'APT::Default-Release "stable";' | tee -a /etc/apt/apt.conf.d/00local
+RUN apt-get update
+RUN apt-get -t testing install -y python3.6 python3-pip
 
 ENTRYPOINT ["bash", "/app/prep.sh"]
