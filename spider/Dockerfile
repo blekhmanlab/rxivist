@@ -7,4 +7,8 @@ RUN echo 'APT::Default-Release "stable";' | tee -a /etc/apt/apt.conf.d/00local
 RUN apt-get update
 RUN apt-get -t testing install -y python3.6 python3-pip
 
-ENTRYPOINT ["bash", "/app/prep.sh"]
+ADD . /app
+WORKDIR /app
+RUN pip3 install -r requirements.txt
+
+ENTRYPOINT ["python3", "/app/spider.py", "crossref"]

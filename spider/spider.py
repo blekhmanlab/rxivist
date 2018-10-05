@@ -82,58 +82,7 @@ class Spider(object):
     self.session.headers['User-Agent'] = config.user_agent
     self.log = Logger()
 
-  def pull_altmetric_data(self):
-    self.log.record("Beginning retrieval of Altmetric data")
-    headers = {'user-agent': config.user_agent}
-    # (If we have multiple results for the same 24-hour period, the
-    # query that displays the most popular displays the same articles
-    # multiple times, and the aggregation function to clean that up
-    # would be too complicated to bother with right now.)
-    with self.connection.db.cursor() as cursor:
-      self.log.record("Removing earlier data from same day")
-      cursor.execute("DELETE FROM altmetric_daily WHERE crawled=CURRENT_DATE;")
-    self.log.record("Sending request to Altmetric")
-    r = requests.get("{}?num_results=100&doi_prefix={}&page=1".format(config.altmetric["endpoints"]["daily"], config.altmetric["doi_prefix"]), headers=headers)
-    if r.status_code != 200:
-      self.log.record("ERROR: Got weird status code: {}. {}".format(r.status_code, r.text()), "error")
-      return # TODO: this should be an exception
-    results = r.json()
-    result_count = 1
-    if "query" in results.keys() and "total" in results["query"]:
-      result_count = results["query"]["total"]
-    last_page = math.ceil(result_count / 100)
-    self.log.record("Total results are {}, meaning {} pages".format(result_count, last_page))
-    for page in range(1, last_page + 1):
-      found = 0
-      time.sleep(1) # 1 per second limit
-      self.log.record("Fetching page {}".format(page))
-      try:
-        r = requests.get("{}?num_results=100&doi_prefix={}&page={}".format(config.altmetric["endpoints"]["daily"], config.altmetric["doi_prefix"], page), headers=headers)
-        results = r.json()
-      except json.decoder.JSONDecodeError:
-        self.log.record("Error encountered; bailing.", "error")
-        break
-      for result in results["results"]:
-        if "doi" not in result.keys():
-          continue
-        with self.connection.db.cursor() as cursor:
-          cursor.execute("SELECT id FROM articles WHERE doi=%s;", (result["doi"],))
-          article_id = cursor.fetchone()
-          if article_id is None or len(article_id) == 0: # if we don't know about the article that was mentioned, bail
-            continue
-          article_id = article_id[0]
-          found += 1
-          sql = "INSERT INTO altmetric_daily (article, score, day_score, week_score, tweets, altmetric_id) VALUES (%s, %s, %s, %s, %s, %s);"
-          score = result.get("score", 0)
-          day_score = result["history"].get("1d", 0)
-          week_score = result["history"].get("1w", 0)
-          tweets = result.get("cited_by_tweeters_count", 0)
-          altmetric_id = result.get("altmetric_id", 0)
-          cursor.execute(sql, (article_id, score, day_score, week_score, tweets, altmetric_id))
-      self.log.record("Recorded {} recognized articles on page".format(found))
-    self.log.record("Altmetric data pull complete.")
-
-  def pull_crossref_data(self, datestring):
+  def _pull_crossref_data_date(self, datestring):
     self.log.record("Beginning retrieval of Crossref data for {}".format(datestring), "info")
     # (If we have multiple results for the same 24-hour period, the
     # query that displays the most popular displays the same articles
@@ -144,7 +93,7 @@ class Spider(object):
       cursor.execute("DELETE FROM crossref_daily WHERE source_date=%s;", (datestring,))
 
     headers = {'user-agent': config.user_agent}
-    r = requests.get("https://api.eventdata.crossref.org/v1/events?obj-id.prefix=10.1101&from-occurred-date={0}&until-occurred-date={0}&mailto=rabdill@umn.edu&rows=10000".format(datestring), headers=headers)
+    r = requests.get("https://api.eventdata.crossref.org/v1/events?obj-id.prefix=10.1101&from-occurred-date={0}&until-occurred-date={0}&source=twitter&mailto=rabdill@umn.edu&rows=10000".format(datestring), headers=headers)
     if r.status_code != 200:
       self.log.record("Got weird status code: {}. {}".format(r.status_code, r.text()), "error")
       return
@@ -158,15 +107,14 @@ class Spider(object):
       return
 
     tweets = defaultdict(list)
-    sources = defaultdict(int)
     if results["message"]["total-results"] > 10000:
       # Odds are we're never going to get more than one page here, so
       # let's put off the implemention of pagination until that day
       # is upon us
       self.log.record("TOO MANY RESULTS: {}".format(results["message"]["total-results"]), "fatal")
     for event in results["message"]["events"]:
-      sources[event.get("source_id")] += 1
-      if event.get("source_id") != "twitter":
+      if event.get("source_id") != "twitter": # double-check that it's filtering right
+        self.log.record("Unrecognized source_id field: {}. Skipping.".format(event.get("source_id", "(not provided)")), "info")
         continue
       try:
         doi_search = re.search('https://doi.org/(.*)', event["obj_id"])
@@ -184,10 +132,6 @@ class Spider(object):
     self.log.record("Saving tweet data for {} DOI entries.".format(len(tweets.keys())))
     with self.connection.db.cursor() as cursor:
       cursor.executemany(sql, params)
-
-    self.log.record("Event sources for {}:".format(datestring), "debug")
-    for source in sources:
-      self.log.record("{}: {}".format(source, sources[source]), "debug")
     self.log.record("Done with crossref.", "info")
 
   def find_record_new_articles(self, collection):
@@ -739,6 +683,18 @@ class Spider(object):
 
     record_ranks_file(params, "author_ranks_category_working")
 
+  def pull_todays_crossref_data(self):
+    current = datetime.now()
+    with self.connection.db.cursor() as cursor:
+      self.log.record("Determining if Crossref data from yesterday needs to be refreshed.")
+      cursor.execute("SELECT COUNT(id) FROM crossref_daily WHERE source_date=%s", (current.strftime('%Y-%m-%d'),))
+      data_count = cursor.fetchone()[0]
+      if data_count == 0:
+        spider.log.record("Fetching yesterday's Crossref data one more time.", "info")
+        spider._pull_crossref_data_date((current - timedelta(days=1)).strftime('%Y-%m-%d'))
+    self.log.record("Fetching today's Crossref data.")
+    self._pull_crossref_data_date(current.strftime('%Y-%m-%d'))
+
   def update_article(self, article_id, abstract):
     # TODO: seems like this thing should be in the Article class maybe?
     with self.connection.db.cursor() as cursor:
@@ -843,17 +799,7 @@ def full_run(spider, collection=None):
   else:
     spider.log.record("Skipping call to fetch Altmetric data: disabled in configuration file.")
   if config.crawl["fetch_crossref"] is not False:
-    current = datetime.now()
-    # if we haven't fetched today's stats yet, refresh yesterday's first to make sure we
-    # got everything
-    with spider.connection.db.cursor() as cursor:
-      spider.log.record("Determining if Crossref data from yesterday needs to be refreshed.")
-      cursor.execute("SELECT COUNT(id) FROM crossref_daily WHERE source_date=%s", (current.strftime('%Y-%m-%d'),))
-      data_count = cursor.fetchone()[0]
-      if data_count == 0:
-        spider.log.record("Fetching yesterday's Crossref data one more time.")
-        spider.pull_crossref_data((current - timedelta(days=1)).strftime('%Y-%m-%d'))
-    spider.pull_crossref_data(current.strftime('%Y-%m-%d'))
+    spider.pull_todays_crossref_data()
   else:
     spider.log.record("Skipping call to fetch Crossref data: disabled in configuration file.")
 
@@ -939,12 +885,15 @@ if __name__ == "__main__":
   elif sys.argv[1] == "distro":
     spider._calculate_download_distributions()
   elif sys.argv[1] == "crossref":
-    spider.pull_crossref_data()
+    if len(sys.argv) > 2:
+      spider._pull_crossref_data_date(sys.argv[2])
+    else:
+      spider.pull_todays_crossref_data()
   elif sys.argv[1] == "authorvector":
     fill_in_author_vectors(spider)
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   elif sys.argv[1] == "test": # placeholder for temporary commands
-    spider.pull_crossref_data("2018-09-27")
+    spider._pull_crossref_data("2018-09-27")
   else:
     full_run(spider, sys.argv[1])

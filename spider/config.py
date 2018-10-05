@@ -8,9 +8,10 @@ db = {
 }
 
 log_level = "debug"
-# Logs are written to a timestamped file. This controls whether
-# messages are also printed to the console.
+# Whether to print messages to stdout
 log_to_stdout = True
+# Whether to record messages in a timestamped file
+log_to_file = False
 
 # how the web crawler should identify itself when sending http requests
 # to sites such as bioRxiv and altmetric
@@ -50,7 +51,7 @@ delete_csv = True
 # to subtract from the current date.)
 refresh_interval = "5 weeks"
 limit_refresh = True
-refresh_category_cap = 50
+refresh_category_cap = 15
 
 # information about the altmetric API endpoints
 altmetric = {
@@ -68,7 +69,7 @@ biorxiv = {
 }
 
 crawl = {
-  "fetch_new": False,
+  "fetch_new": True,
   "fetch_abstracts": True,
   "fetch_altmetric": False,
   "fetch_crossref": True,
@@ -76,7 +77,7 @@ crawl = {
 }
 
 perform_ranks = {
-  "enabled": False,  # set to False to disable all below
+  "enabled": True,  # set to False to disable all below
   "alltime": True,
   "ytd": True,
   "month": True,
