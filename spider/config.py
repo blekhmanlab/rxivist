@@ -50,7 +50,7 @@ delete_csv = True
 # to subtract from the current date.)
 refresh_interval = "5 weeks"
 limit_refresh = True
-refresh_category_cap = 15
+refresh_category_cap = 100
 
 # information about the altmetric API endpoints
 altmetric = {
@@ -68,9 +68,10 @@ biorxiv = {
 }
 
 crawl = {
-  "fetch_new": True,
+  "fetch_new": False,
   "fetch_abstracts": True,
   "fetch_altmetric": False,
+  "fetch_crossref": True,
   "refresh_stats": True,
 }
 

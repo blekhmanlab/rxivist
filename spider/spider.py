@@ -133,17 +133,23 @@ class Spider(object):
       self.log.record("Recorded {} recognized articles on page".format(found))
     self.log.record("Altmetric data pull complete.")
 
-  def pull_crossref_data(self):
+  def pull_crossref_data(self, datestring):
     self.log.record("Beginning retrieval of Crossref data", "info")
+    # (If we have multiple results for the same 24-hour period, the
+    # query that displays the most popular displays the same articles
+    # multiple times, and the aggregation function to clean that up
+    # would be too complicated to bother with right now.)
+    with self.connection.db.cursor() as cursor:
+      self.log.record("Removing earlier data from same day")
+      cursor.execute("DELETE FROM crossref_daily WHERE source_date=%s;", (datestring,))
+
     headers = {'user-agent': config.user_agent}
-    datestring = "2018-09-21"
     r = requests.get("https://api.eventdata.crossref.org/v1/events?obj-id.prefix=10.1101&from-occurred-date={0}&until-occurred-date={0}&mailto=rabdill@umn.edu&rows=10000".format(datestring), headers=headers)
     if r.status_code != 200:
       self.log.record("Got weird status code: {}. {}".format(r.status_code, r.text()), "error")
       return
     results = r.json()
 
-    print("Got it")
     if results["status"] != "ok":
       self.log.record("Crossref responded, but with unexpected status: {}".format(results["status"]), "error")
       return
@@ -154,8 +160,10 @@ class Spider(object):
     tweets = defaultdict(list)
     sources = defaultdict(int)
     if results["message"]["total-results"] > 10000:
-      print("TOO MANY RESULTS: {}".format(results["message"]["total-results"]))
-      exit(0)
+      # Odds are we're never going to get more than one page here, so
+      # let's put off the implemention of pagination until that day
+      # is upon us
+      self.log.record("TOO MANY RESULTS: {}".format(results["message"]["total-results"]), "fatal")
     for event in results["message"]["events"]:
       sources[event.get("source_id")] += 1
       if event.get("source_id") != "twitter":
@@ -170,11 +178,16 @@ class Spider(object):
         continue
       doi = doi_search.group(1)
       tweets[doi].append(event["subj"]["original-tweet-url"])
-    for doi in tweets:
-      print("{}: {}".format(doi, len(tweets[doi])))
-    print("\n--\nSOURCES FOUND FOR {}:".format(datestring))
+
+    sql = "INSERT INTO crossref_daily (source_date, doi, count) VALUES (%s, %s, %s);"
+    params = [(datestring, doi, len(tweets[doi])) for doi in tweets]
+    self.log.record("Saving tweet data for {} DOI entries.".format(len(tweets.keys())))
+    with self.connection.db.cursor() as cursor:
+      cursor.executemany(sql, params)
+
+    self.log.record("Event sources for {}:".format(datestring), "debug")
     for source in sources:
-      print("{}: {}".format(source, sources[source]))
+      self.log.record("{}: {}".format(source, sources[source]), "debug")
     self.log.record("Done with crossref.", "info")
 
   def find_record_new_articles(self, collection):
@@ -329,8 +342,7 @@ class Spider(object):
     return stats, detailed_authors
 
   def get_article_posted_date(self, url):
-    self.log.record("Determining publication date.")
-    # Determine publication date
+    self.log.record("Determining posting date.")
     resp = self.session.get("{}.article-info".format(url))
     # This assumes that revisions continue to be listed with oldest version first:
     older = resp.html.find('.hw-version-previous-link', first=True)
@@ -346,7 +358,7 @@ class Spider(object):
       day = date_search.group(2)
       year = date_search.group(3)
       datestring = "{}-{}-{}".format(year, month_to_num(month), day)
-      self.log.record("Determined date! {}".format(datestring), "info")
+      self.log.record("Determined date: {}".format(datestring), "info")
       return datestring
     elif posted is not None: # if not, just grab the date from the current version
       self.log.record("No older version detected; using date from current page: {}".format(posted.attrs['content']), "info")
@@ -830,7 +842,10 @@ def full_run(spider, collection=None):
     spider.pull_altmetric_data()
   else:
     spider.log.record("Skipping call to fetch Altmetric data: disabled in configuration file.")
-
+  if config.crawl["fetch_crossref"] is not False:
+    spider.pull_crossref_data()
+  else:
+    spider.log.record("Skipping call to fetch Crossref data: disabled in configuration file.")
 
   spider.calculate_vectors()
 
@@ -920,6 +935,6 @@ if __name__ == "__main__":
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   elif sys.argv[1] == "test": # placeholder for temporary commands
-    spider.check_publication_status("10.1101/292805")
+    spider.pull_crossref_data("2018-09-21")
   else:
     full_run(spider, sys.argv[1])
