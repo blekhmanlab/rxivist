@@ -446,10 +446,10 @@ class Spider(object):
       self.log.record("Recording article associations one at a time.")
       for x in detailed_author_ids:
         try:
-          with connection.db.cursor() as cursor:
+          with self.connection.db.cursor() as cursor:
             cursor.execute("INSERT INTO article_detailed_authors (article, author) VALUES (%s, %s);", (article_id, x))
         except Exception as e:
-          self.log.record("Another problem associating detailed author {} to article {}. Moving on.".format(x, self.id), "error")
+          self.log.record("Another problem associating detailed author {} to article {}. Moving on.".format(x, article_id), "error")
           pass
 
   def fetch_categories(self):

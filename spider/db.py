@@ -8,6 +8,7 @@ class Connection(object):
 
     params = 'host={} dbname={} user={} password={}'.format(host, dbname, user, password)
     self.db = psycopg2.connect(params)
+    self.db.set_session(autocommit=True)
     self.cursor = self.db.cursor()
 
     self._ensure_tables_exist()
@@ -25,7 +26,11 @@ class Connection(object):
 
   def _ensure_tables_exist(self):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS articles (id SERIAL PRIMARY KEY, url text UNIQUE, title text NOT NULL, abstract text, doi text UNIQUE, origin_month integer, origin_year integer, posted date, collection text, title_vector tsvector, abstract_vector tsvector, author_vector tsvector, last_crawled DATE NOT NULL DEFAULT CURRENT_DATE);")
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS article_publications (article integer PRIMARY KEY, doi text UNIQUE, publication text NOT NULL);")
+
+    # The "doi" column can't have a "UNIQUE" constraint because sometimes a paper will be
+    # posted to bioRxiv under two different title, so they will show up as two different
+    # bioRxiv papers that will eventually share a single journal DOI.
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS article_publications (article integer PRIMARY KEY, doi text, publication text NOT NULL);")
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS authors (id SERIAL PRIMARY KEY, given text NOT NULL, surname text, UNIQUE (given, surname));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_authors (id SERIAL PRIMARY KEY, article integer NOT NULL, author integer NOT NULL, UNIQUE (article, author));")

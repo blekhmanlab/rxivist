@@ -50,7 +50,7 @@ delete_csv = True
 # to subtract from the current date.)
 refresh_interval = "5 weeks"
 limit_refresh = True
-refresh_category_cap = 100
+refresh_category_cap = 50
 
 # information about the altmetric API endpoints
 altmetric = {

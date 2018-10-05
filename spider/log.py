@@ -15,6 +15,7 @@ class Logger:
     return ["debug", "info", "warn", "error", "fatal"].index(level)
 
   def record(self, message, level="info"):
+    message = message.encode('utf-8')
     if config.log_to_stdout is True:
       print(message)
     if self.level(level) >= self.level(config.log_level):
