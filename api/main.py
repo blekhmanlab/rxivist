@@ -63,8 +63,8 @@ def index():
   if entity not in ["papers", "authors"]:
     entity = "papers"
   if entity == "papers":
-    if metric not in ["downloads", "altmetric"]:
-      metric = "altmetric"
+    if metric not in ["downloads", "crossref"]:
+      metric = "crossref"
     if timeframe not in ["alltime", "ytd", "lastmonth", "daily"]:
       timeframe = "daily"
   elif entity == "authors":
@@ -74,9 +74,9 @@ def index():
   # figure out the page title
   if entity == "papers":
     title = "Most "
-    if metric == "altmetric":
+    if metric == "crossref":
       timeframe = "daily" # only option for now
-      title += "discussed"
+      title += "tweeted"
     elif metric == "downloads":
       title += "downloaded"
     if query != "":

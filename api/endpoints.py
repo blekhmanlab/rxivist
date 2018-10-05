@@ -51,8 +51,8 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
   select = "SELECT "
   if metric == "downloads":
     select += "r.downloads"
-  elif metric == "altmetric":
-    select += "r.day_score"
+  elif metric == "crossref":
+    select += "SUM(r.count)"
   select += ", a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year"
 
   countselect = "SELECT COUNT(a.id)"
@@ -62,8 +62,8 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
   if q != "": # if there's a text search specified
     params = (q,)
   query += " FROM articles AS a INNER JOIN "
-  if metric == "altmetric":
-    query += "altmetric_daily"
+  if metric == "crossref":
+    query += "crossref_daily"
   elif metric == "downloads":
     query_times = {
       "alltime": "alltime_ranks",
@@ -71,22 +71,24 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
       "lastmonth": "month_ranks",
     }
     query += query_times[timeframe]
-  query += " AS r ON r.article=a.id"
+
+  if metric == "crossref":
+    query += " AS r ON r.doi=a.doi"
+  elif metric == "downloads":
+    query += " AS r ON r.article=a.id"
 
   if q != "":
     query += """, plainto_tsquery(%s) query,
     coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'C') || setweight(a.author_vector, 'D')) totalvector
     """
   query += " WHERE "
-  if metric == "altmetric":
-    query += "r.day_score > 0"
-  elif metric == "downloads":
+  if metric == "downloads":
     query += "r.downloads > 0"
-  if q != "" or len(categories) > 0 or metric == "altmetric":
+  if q != "" or len(categories) > 0:
     query += " AND "
   if q != "":
     query += "query @@ totalvector "
-    if len(categories) > 0 or metric == "altmetric":
+    if len(categories) > 0 or metric == "crossref":
       query += " AND "
 
   if len(categories) > 0:
@@ -95,10 +97,10 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
       params = (q,categories)
     else:
       params = (categories,)
-    if metric == "altmetric":
+    if metric == "crossref":
       query += " AND "
-  if metric == "altmetric":
-      query += "r.crawled > now() - interval '1 days'"
+  if metric == "crossref":
+      query += "r.source_date > now() - interval '2 days'"
 
   # this is the last piece of the query we need for the one
   # that counts the total number of results
@@ -107,11 +109,13 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
     cursor.execute(countselect, params)
     total = cursor.fetchone()[0]
 
+  if metric == "crossref":
+    query += "GROUP BY a.id"
   query += " ORDER BY "
   if metric == "downloads":
     query += "r.rank ASC"
-  elif metric == "altmetric":
-    query += "r.day_score DESC, r.week_score DESC"
+  elif metric == "crossref":
+    query += "SUM(r.count) DESC"
 
   query += " LIMIT {}".format(page_size)
   if page > 0:
@@ -121,7 +125,6 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
   with connection.db.cursor() as cursor:
     cursor.execute(select, params)
     results = [models.SearchResultArticle(a, connection) for a in cursor]
-
   return results, total
 
 def author_rankings(connection, category_list=[]):

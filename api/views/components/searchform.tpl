@@ -13,7 +13,7 @@
 
       switch(changed) {
         case "metric":
-          if(metric == "altmetric") {
+          if(metric == "crossref") {
             timeField.disabled = true;
             timeField.selectedIndex = 3; // daily
           } else { // downloads
@@ -48,11 +48,11 @@
           selected
         %end
         >downloads</option>
-        <option value="altmetric"
-        %if metric == "altmetric":
+        <option value="crossref"
+        %if metric == "crossref":
           selected
         %end
-        >Altmetric score</option>
+        >Tweet count</option>
       </select>
       <select class="form-control col-sm-3" id="category" name="category">
         <option value="">all categories</option>
@@ -99,7 +99,7 @@
         %if timeframe == "daily":
           selected
         %end
-        %if metric != "altmetric":
+        %if metric != "crossref":
           disabled
         %end
         >last 24 hours</option>
