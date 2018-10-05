@@ -23,7 +23,7 @@
 #     http://blekhmanlab.org/
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import math
 import os
@@ -134,7 +134,7 @@ class Spider(object):
     self.log.record("Altmetric data pull complete.")
 
   def pull_crossref_data(self, datestring):
-    self.log.record("Beginning retrieval of Crossref data", "info")
+    self.log.record("Beginning retrieval of Crossref data for {}".format(datestring), "info")
     # (If we have multiple results for the same 24-hour period, the
     # query that displays the most popular displays the same articles
     # multiple times, and the aggregation function to clean that up
@@ -843,7 +843,17 @@ def full_run(spider, collection=None):
   else:
     spider.log.record("Skipping call to fetch Altmetric data: disabled in configuration file.")
   if config.crawl["fetch_crossref"] is not False:
-    spider.pull_crossref_data(datetime.now().strftime('%Y-%m-%d'))
+    current = datetime.now()
+    # if we haven't fetched today's stats yet, refresh yesterday's first to make sure we
+    # got everything
+    with spider.connection.db.cursor() as cursor:
+      spider.log.record("Determining if Crossref data from yesterday needs to be refreshed.")
+      cursor.execute("SELECT COUNT(id) FROM crossref_daily WHERE source_date=%s", (current.strftime('%Y-%m-%d'),))
+      data_count = cursor.fetchone()[0]
+      if data_count == 0:
+        spider.log.record("Fetching yesterday's Crossref data one more time.")
+        spider.pull_crossref_data((current - timedelta(days=1)).strftime('%Y-%m-%d'))
+    spider.pull_crossref_data(current.strftime('%Y-%m-%d'))
   else:
     spider.log.record("Skipping call to fetch Crossref data: disabled in configuration file.")
 
