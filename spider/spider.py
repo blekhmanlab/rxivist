@@ -843,7 +843,7 @@ def full_run(spider, collection=None):
   else:
     spider.log.record("Skipping call to fetch Altmetric data: disabled in configuration file.")
   if config.crawl["fetch_crossref"] is not False:
-    spider.pull_crossref_data()
+    spider.pull_crossref_data(datetime.now().strftime('%Y-%m-%d'))
   else:
     spider.log.record("Skipping call to fetch Crossref data: disabled in configuration file.")
 
