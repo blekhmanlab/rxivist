@@ -17,7 +17,10 @@ class Logger:
   def record(self, message, level="info"):
     message = message.encode('utf-8')
     if config.log_to_stdout is True:
-      print(message)
+      try:
+        print(message.decode('utf-8'))
+      except Exception:
+        print(message)
     if self.level(level) >= self.level(config.log_level):
       self.file.write("{} {}: {}\n".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), level.upper(), message))
     if level == "fatal":

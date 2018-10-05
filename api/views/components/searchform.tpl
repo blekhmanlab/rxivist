@@ -1,30 +1,53 @@
 % if entity == "papers":
   <script>
+    function createOptions(template) {
+      options = [];
+      for (let x of template) {
+        var option = document.createElement("option");
+        option.text = x[0];
+        option.value = x[1];
+        options.push(option);
+      }
+      return options;
+    }
     function fixForm(changed) {
       metricField = document.getElementById("metric");
-      metricOptions = metricField.getElementsByTagName("option");
       metric = metricField.options[metricField.selectedIndex].value;
-
       timeField = document.getElementById("timeframe");
-      timeOptions = timeField.getElementsByTagName("option");
-      timeframe = timeField.options[timeField.selectedIndex].value;
-
       searchField = document.getElementById("basicsearchtext");
+
+      crossref_options = createOptions([
+        ["Since yesterday", "day"],
+        ["Last 7 days", "week"],
+        ["Last 30 days", "month"],
+        ["Last 365 days", "year"],
+        ["All time", "alltime"]
+      ]);
+      download_options = createOptions([
+        ["Since last month", "lastmonth"],
+        ["Year to date", "ytd"],
+        ["All time", "alltime"]
+      ]);
 
       switch(changed) {
         case "metric":
+          // clear out old values:
+          console.log(timeField.options.length)
+          for(i = timeField.options.length - 1 ; i >= 0 ; i--) {
+            timeField.remove(i);
+          }
+          console.log(timeField.options.length)
+          console.log("--")
           if(metric == "crossref") {
-            timeField.disabled = true;
-            timeField.selectedIndex = 3; // daily
-          } else { // downloads
-            timeField.disabled = false;
-            if(timeField.selectedIndex == 3) { // daily
-              timeField.selectedIndex = 0;
+            for (let x of crossref_options) {
+              timeField.add(x);
             }
-            timeOptions[0].disabled = false; // all time
-            timeOptions[1].disabled = false; // year to date
-            timeOptions[2].disabled = false; // last month
-            timeOptions[3].disabled = true; // 24 hours
+            timeField.selectedIndex = 0; // daily
+          } else { // downloads
+            for (let x of download_options) {
+              timeField.add(x);
+            }
+            timeField.selectedIndex = 2; // alltime
           }
           break;
       }
@@ -52,7 +75,7 @@
         %if metric == "crossref":
           selected
         %end
-        >Tweet count</option>
+        >Twitter activity</option>
       </select>
       <select class="form-control col-sm-3" id="category" name="category">
         <option value="">all categories</option>
@@ -64,45 +87,8 @@
           >{{ helpers.formatCategory(cat) }}</option>
         %end
       </select>
-      <select class="form-control  col-sm-3" id="timeframe" name="timeframe" onchange="fixForm('timeframe');"
-        %if metric != "downloads":
-          disabled
-        %end
-      >
-        <option value="alltime"
-        %if timeframe == "alltime":
-          selected
-        %end
-        %if metric != "downloads":
-          disabled
-        %end
-        >all time</option>
-        <option value="ytd"
-        %if timeframe == "ytd":
-          selected
-        %end
-        %if metric != "downloads":
-          disabled
-        %end
-        >year to date</option>
+      <select class="form-control  col-sm-3" id="timeframe" name="timeframe" onchange="fixForm('timeframe');">
 
-        <option value="lastmonth"
-        %if timeframe == "lastmonth":
-          selected
-        %end
-        %if metric != "downloads":
-          disabled
-        %end
-        >since last month</option>
-
-        <option value="daily"
-        %if timeframe == "daily":
-          selected
-        %end
-        %if metric != "crossref":
-          disabled
-        %end
-        >last 24 hours</option>
       </select>
       <select class="form-control  col-sm-3" id="page_size" name="page_size">
         <option value="20"
@@ -156,3 +142,7 @@
 </div>
 
 %include("components/modal_textsearch")
+
+<script>
+  fixForm("metric");
+</script>

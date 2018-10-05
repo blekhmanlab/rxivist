@@ -100,7 +100,14 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
     if metric == "crossref":
       query += " AND "
   if metric == "crossref":
-      query += "r.source_date > now() - interval '2 days'"
+    query += "r.source_date > now() - interval "
+    query_times = {
+      "day": 2,
+      "week": 7,
+      "month": 30,
+      "year": 365
+    }
+    query += "'{} days'".format(query_times[timeframe])
 
   # this is the last piece of the query we need for the one
   # that counts the total number of results

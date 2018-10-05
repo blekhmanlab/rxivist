@@ -65,8 +65,8 @@ def index():
   if entity == "papers":
     if metric not in ["downloads", "crossref"]:
       metric = "crossref"
-    if timeframe not in ["alltime", "ytd", "lastmonth", "daily"]:
-      timeframe = "daily"
+    if timeframe not in ["alltime", "ytd", "lastmonth", "day", "week", "month", "year"]:
+      timeframe = "day"
   elif entity == "authors":
     metric = "downloads"
     timeframe = "alltime"
@@ -75,7 +75,6 @@ def index():
   if entity == "papers":
     title = "Most "
     if metric == "crossref":
-      timeframe = "daily" # only option for now
       title += "tweeted"
     elif metric == "downloads":
       title += "downloaded"
@@ -87,7 +86,10 @@ def index():
       "alltime": "all time",
       "ytd": "year to date",
       "lastmonth": "since beginning of last month",
-      "daily": "last 24 hours"
+      "day": "last 24 hours",
+      "week": "last 7 days",
+      "month": "last 30 days",
+      "year": "last 365 days"
     }
     title += printable_times[timeframe]
   elif entity == "authors":
