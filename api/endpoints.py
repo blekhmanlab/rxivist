@@ -84,8 +84,8 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
   query += " WHERE "
   if metric == "downloads":
     query += "r.downloads > 0"
-  if q != "" or len(categories) > 0:
-    query += " AND "
+    if q != "" or len(categories) > 0:
+      query += " AND "
   if q != "":
     query += "query @@ totalvector "
     if len(categories) > 0 or metric == "crossref":
