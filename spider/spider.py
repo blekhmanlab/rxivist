@@ -938,13 +938,13 @@ if __name__ == "__main__":
       spider.log.record("Must specify collection to refresh traffic stats for.", "fatal")
   elif sys.argv[1] == "distro":
     spider._calculate_download_distributions()
-  elif sys.argv[1] == "altmetric":
-    spider.pull_altmetric_data()
+  elif sys.argv[1] == "crossref":
+    spider.pull_crossref_data()
   elif sys.argv[1] == "authorvector":
     fill_in_author_vectors(spider)
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   elif sys.argv[1] == "test": # placeholder for temporary commands
-    spider.pull_crossref_data("2018-09-21")
+    spider.pull_crossref_data("2018-09-27")
   else:
     full_run(spider, sys.argv[1])

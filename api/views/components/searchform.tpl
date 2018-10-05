@@ -32,12 +32,9 @@
       switch(changed) {
         case "metric":
           // clear out old values:
-          console.log(timeField.options.length)
           for(i = timeField.options.length - 1 ; i >= 0 ; i--) {
             timeField.remove(i);
           }
-          console.log(timeField.options.length)
-          console.log("--")
           if(metric == "crossref") {
             for (let x of crossref_options) {
               timeField.add(x);
