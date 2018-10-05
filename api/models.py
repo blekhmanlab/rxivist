@@ -47,7 +47,7 @@ class DateEntry(object):
   def __init__(self, month, year):
     self.month = month
     self.year = year
-    self.monthname = helpers.month_name(month)
+    self.monthname = helpers.num_to_month(month)
 
 class RankEntry(object):
   """Stores data about a paper's rank within a
@@ -109,6 +109,7 @@ class SearchResultArticle(Article):
     self.abstract = sql_entry[4]
     self.collection = sql_entry[5]
     self.date = DateEntry(sql_entry[6], sql_entry[7])
+    self.posted = sql_entry[8]
     self.get_authors(connection)
 
 class SearchResultAuthor(object):

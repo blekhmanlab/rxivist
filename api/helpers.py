@@ -24,7 +24,7 @@ def get_traffic(connection, id):
     raise NotFoundError(id)
   return traffic[0] # "traffic" is an array of tuples; we only want a tuple.
 
-def month_name(monthnum):
+def num_to_month(monthnum):
   """Converts a (1-indexed) numerical representation of a month
   of the year into a three-character string for printing. If
   the number is not recognized, it returns an empty string.
