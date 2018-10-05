@@ -1,11 +1,15 @@
 % import math
+% # if there's more than one page of results, to keep
+% # display the "previous" button even if it's page one,
+% # the page numbers from changing positions along the
+% # bottom between pages 0 and 1
+% if totalcount > page_size:
+  <a href="{{pagelink}}{{ page - 1 }}" class="btn btn-altcolor
+  % if page == 0:
+    disabled
+  % end
+  ">Previous page</a>
 
-<a href="{{pagelink}}{{ page - 1 }}" class="btn btn-altcolor
-% if page == 0: # always display the "previous" button even if it's page one, to keep
-%               # the page numbers from changing positions along the bottom between pages 0 and 1
-  disabled
-% end
-">Previous page</a>
 % if page > 0: # always give a link to the first page of results
   <a class="pagenum" href="{{pagelink}}0" class="btn btn-altcolor">0</a>
 % end

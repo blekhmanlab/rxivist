@@ -55,7 +55,7 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
     select += "SUM(r.count)"
   select += ", a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year, a.posted"
 
-  countselect = "SELECT COUNT(a.id)"
+  countselect = "SELECT COUNT(DISTINCT a.id)"
   params = ()
 
   query = ""
@@ -107,11 +107,7 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
       "month": 30,
       "year": 365
     }
-    query += "'{} days'".format(query_times[timeframe])
-
-  if metric == "crossref":
-    query += "GROUP BY a.id"
-
+    query += "'{} days' ".format(query_times[timeframe])
   # this is the last piece of the query we need for the one
   # that counts the total number of results
   countselect += query
@@ -119,6 +115,8 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
     cursor.execute(countselect, params)
     total = cursor.fetchone()[0]
 
+  if metric == "crossref":
+    query += "GROUP BY a.id"
   query += " ORDER BY "
   if metric == "downloads":
     query += "r.rank ASC"
