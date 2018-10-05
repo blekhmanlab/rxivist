@@ -41,7 +41,52 @@ connection = db.Connection(config.db["host"], config.db["db"], config.db["user"]
 
 # - ROUTES -
 
-# ---- Homepage / search results
+# API ENDPOINTS
+
+#     paper details
+@bottle.get('/api/papers/<id:int>')
+def paper_details(id):
+  try:
+    paper = endpoints.paper_details(connection, id)
+  except helpers.NotFoundError as e:
+    bottle.response.status = 404
+    return {"error": e.message}
+  except ValueError as e:
+    bottle.response.status = 500
+    print(e)
+    return {"error": "Server error."}
+  return paper.json()
+
+#     paper details, with ranking and author info
+@bottle.get('/api/papers/<id:int>/hydrate')
+def paper_details(id):
+  try:
+    paper = endpoints.paper_details(connection, id)
+  except helpers.NotFoundError as e:
+    bottle.response.status = 404
+    return {"error": e.message}
+  except ValueError as e:
+    bottle.response.status = 500
+    print(e)
+    return {"error": "Server error."}
+  return paper.json(True)
+
+#     Author details page
+@bottle.get('/api/authors/<id:int>')
+def display_author_details(id):
+  try:
+    author = endpoints.author_details(connection, id)
+  except helpers.NotFoundError as e:
+    bottle.response.status = 404
+    return {"error": e.message}
+  except ValueError as e:
+    bottle.response.status = 500
+    print(e)
+    return {"error": "Server error."}
+  return author.json() # TODO: switch this to detailed_authors with ranks
+
+# WEB PAGES
+#     Homepage / search results
 @bottle.get('/')
 @bottle.view('index')
 def index():
@@ -161,7 +206,7 @@ def index():
     view=view, entity=entity, google_tag=config.google_tag, page=page,
     page_size=page_size, totalcount=totalcount, pagelink=pagelink)
 
-# ---- full display thing
+#     full display thing
 @bottle.get('/table')
 @bottle.view('table')
 def table():
@@ -190,7 +235,7 @@ def table():
     error=error, stats=stats,
     category_list=category_list, google_tag=config.google_tag)
 
-# ---- Author details page
+#     Author details page
 @bottle.get('/authors/<id:int>')
 @bottle.view('author_details')
 def display_author_details(id):
@@ -209,7 +254,7 @@ def display_author_details(id):
     download_distribution=download_distribution, averages=averages, stats=stats,
     google_tag=config.google_tag)
 
-# ---- Paper details page
+#     Paper details page
 @bottle.get('/papers/<id:int>')
 @bottle.view('paper_details')
 def display_paper_details(id):
@@ -228,7 +273,7 @@ def display_paper_details(id):
     download_distribution=download_distribution, averages=averages, stats=stats,
     google_tag=config.google_tag)
 
-# ---- DB convenience endpoint
+#     DB convenience endpoint
 @bottle.get('/db')
 @bottle.get('/db/<table>')
 @bottle.view('db')

@@ -42,6 +42,12 @@ class Author(object):
     self.alltime_rank = RankEntry()
     self.categories = []
 
+  def json(self, full=True):
+    return {
+      "id": self.id,
+      "name": self.full,
+    }
+
 class DateEntry(object):
   "Stores paper publication date info."
   def __init__(self, month, year):
@@ -68,6 +74,28 @@ class ArticleRanks(object):
     self.ytd = RankEntry(ytd, alltime_count)
     self.lastmonth = RankEntry(lastmonth, alltime_count)
     self.collection = RankEntry(collection)
+
+  def json(self):
+    return {
+      "alltime": {
+        "rank": self.alltime.rank,
+        "tie": self.alltime.tie
+      },
+      "ytd": {
+        "rank": self.ytd.rank,
+        "tie": self.ytd.tie
+      },
+      "lastmonth": {
+        "rank": self.lastmonth.rank,
+        "tie": self.lastmonth.tie
+      },
+      "category": {
+        "category": self.collection.category,
+        "downloads": self.lastmonth.downloads,
+        "rank": self.lastmonth.rank,
+        "tie": self.lastmonth.tie
+      }
+    }
 
 class Article:
   """Base class for the different formats in which articles
@@ -152,3 +180,22 @@ class ArticleDetails(Article):
     self.collection = sql_entry[8]
     self.date = DateEntry(sql_entry[10], sql_entry[11])
     self.get_authors(connection)
+
+  def json(self, hydrate=False):
+    # TODO: These different versions of responses don't actually
+    # reduce the amount of DB work we have to do, they just limit
+    # how much we send back. That's probably a silly way to do it.
+    resp = {
+      "id": self.id,
+      "biorxiv_url": self.url,
+      "url": "https://rxivist.org/papers/{}".format(self.id),
+      "title": self.title,
+      "abstract": self.abstract,
+      "downloads": self.downloads
+    }
+    if hydrate: # this will be more important when we do detailed_authors
+      resp["authors"] = [x.json() for x in self.authors]
+      resp["ranks"] = self.ranks.json()
+    else:
+      resp["author_ids"] = [x.id for x in self.authors],
+    return resp
