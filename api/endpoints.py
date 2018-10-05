@@ -109,6 +109,9 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
     }
     query += "'{} days'".format(query_times[timeframe])
 
+  if metric == "crossref":
+    query += "GROUP BY a.id"
+
   # this is the last piece of the query we need for the one
   # that counts the total number of results
   countselect += query
@@ -116,8 +119,6 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
     cursor.execute(countselect, params)
     total = cursor.fetchone()[0]
 
-  if metric == "crossref":
-    query += "GROUP BY a.id"
   query += " ORDER BY "
   if metric == "downloads":
     query += "r.rank ASC"
