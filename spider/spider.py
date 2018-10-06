@@ -365,13 +365,21 @@ class Spider(object):
         except Exception as e:
           self.log.record("ERROR determining age of article: {}".format(e), "warn")
 
-  def _record_detailed_authors(self, article_id, authors):
-    with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT COUNT(article) FROM article_detailed_authors WHERE article=%s;", (article_id,))
-      count = cursor.fetchone()[0]
-      if count > 0:
-        self.log.record("Article authors already recorded; skipping.", "info")
-        return
+  def _record_detailed_authors(self, article_id, authors, overwrite=False):
+    if overwrite:
+      with self.connection.db.cursor() as cursor:
+        self.log.record("Marking currently recorded authors for deletion.", "debug")
+        # we set the article ID to 0 before deleting them so if the spider dies in
+        # between removing the old authors and updating the new ones, we can go in
+        # and fix it manually.
+        cursor.execute("UPDATE article_detailed_authors SET article=0 WHERE article=%s;", (article_id,))
+    else:
+      with self.connection.db.cursor() as cursor:
+        cursor.execute("SELECT COUNT(article) FROM article_detailed_authors WHERE article=%s;", (article_id,))
+        count = cursor.fetchone()[0]
+        if count > 0:
+          self.log.record("Article authors already recorded; skipping.", "info")
+          return
 
     detailed_author_ids = []
     for a in authors:
@@ -387,7 +395,7 @@ class Spider(object):
       # send separate queries for each one
       # (This came up last time because an author was listed twice on the same paper.)
       self.log.record("Error associating detailed authors to paper: {}".format(e), "warn")
-      self.log.record("Recording article associations one at a time.")
+      self.log.record("Recording article associations one at a time.", "info")
       for x in detailed_author_ids:
         try:
           with self.connection.db.cursor() as cursor:
@@ -395,6 +403,10 @@ class Spider(object):
         except Exception as e:
           self.log.record("Another problem associating detailed author {} to article {}. Moving on.".format(x, article_id), "error")
           pass
+    if overwrite:
+      # if we marked authors for deletion earlier, it's safe to delete them now.
+      self.log.record("Removing outdated authors.", "info")
+      cursor.execute("DELETE FROM article_detailed_authors WHERE article=0;")
 
   def fetch_categories(self):
     categories = []
@@ -794,10 +806,6 @@ def full_run(spider, collection=None):
   else:
     spider.log.record("Skipping step to fetch unknown abstracts: disabled in configuration file.")
 
-  if config.crawl["fetch_altmetric"] is not False:
-    spider.pull_altmetric_data()
-  else:
-    spider.log.record("Skipping call to fetch Altmetric data: disabled in configuration file.")
   if config.crawl["fetch_crossref"] is not False:
     spider.pull_todays_crossref_data()
   else:

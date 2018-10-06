@@ -45,7 +45,7 @@ class DetailedAuthor:
     recorded = False
     with connection.db.cursor() as cursor:
       if self.orcid is not None:
-        log.record("Author has ORCiD; determining whether they exist in DB.")
+        log.record("Author has ORCiD; determining whether they exist in DB.", "debug")
         cursor.execute("SELECT id FROM detailed_authors WHERE orcid = %s;", (self.orcid,))
         a_id = cursor.fetchone()
         if a_id is not None:
@@ -65,13 +65,13 @@ class DetailedAuthor:
 
           # if they have an orcid but we didn't know about it before:
           if self.orcid is not None:
-            log.record("Recording ORCiD {} for known author".format(self.orcid), "debug")
+            log.record("Recording ORCiD {} for known author".format(self.orcid), "info")
             cursor.execute("UPDATE detailed_authors SET orcid=%s WHERE id=%s;", (self.orcid, self.id))
 
       if self.id is None: # if they're definitely brand new
         cursor.execute("INSERT INTO detailed_authors (name, orcid, institution) VALUES (%s, %s, %s) RETURNING id;", (self.name, self.orcid, self.institution))
         self.id = cursor.fetchone()[0]
-        log.record("Recorded detailed author {} with ID {}".format(self.name, self.id), "debug")
+        log.record("Recorded detailed author {} with ID {}".format(self.name, self.id), "info")
         recorded = True
 
       if self.email is not None:
@@ -144,7 +144,7 @@ class Article:
     with connection.db.cursor() as cursor:
       # check to see if we've seen this article before
       if self.doi == "":
-        spider.log.record("Attempting to record a paper without a DOI: {}".format(self.url), "fatal")
+        spider.log.record("Won't record a paper without a DOI: {}".format(self.url), "fatal")
       cursor.execute("SELECT url FROM articles WHERE doi=%s", (self.doi,))
       response = cursor.fetchone()
 
@@ -155,7 +155,11 @@ class Article:
           return False
         else:
           cursor.execute("UPDATE articles SET url=%s, title=%s, collection=%s WHERE doi=%s RETURNING id;", (self.url, self.title, self.collection, self.doi))
-          spider.log.record("Updated revision for article DOI {}: {}".format(self.doi, self.title))
+          stat_table, detailed_authors = spider.get_article_stats(self.url)
+          spider._record_detailed_authors(self.id, detailed_authors)
+          if stat_table is not None:
+            spider.save_article_stats(self.id, stat_table, posted)
+          spider.log.record("Updated revision for article DOI {}: {}".format(self.doi, self.title), "info")
           connection.db.commit()
           return True
     # If it's brand new:
