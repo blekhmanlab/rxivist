@@ -39,12 +39,43 @@
             for (let x of crossref_options) {
               timeField.add(x);
             }
-            timeField.selectedIndex = 0; // daily
-          } else { // downloads
+            switch("{{ timeframe }}") {
+              case "day":
+                timeField.selectedIndex = 0;
+                break;
+              case "week":
+                timeField.selectedIndex = 1;
+                break;
+              case "month":
+                timeField.selectedIndex = 2;
+                break;
+              case "year":
+                timeField.selectedIndex = 3;
+                break;
+              case "alltime":
+                timeField.selectedIndex = 4;
+                break;
+              default:
+                timeField.selectedIndex = 4;
+            }
+          } else {
+            // download metric is selected:
             for (let x of download_options) {
               timeField.add(x);
             }
-            timeField.selectedIndex = 2; // alltime
+            switch("{{ timeframe }}") {
+              case "lastmonth":
+                timeField.selectedIndex = 0;
+                break;
+              case "ytd":
+                timeField.selectedIndex = 1;
+                break;
+              case "alltime":
+                timeField.selectedIndex = 2;
+                break;
+              default:
+                timeField.selectedIndex = 2;
+            }
           }
           break;
       }
@@ -140,6 +171,8 @@
 
 %include("components/modal_textsearch")
 
-<script>
-  fixForm("metric");
-</script>
+% if entity == "papers":
+  <script>
+    fixForm("metric");
+  </script>
+% end
