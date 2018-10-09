@@ -51,7 +51,7 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
   select = "SELECT "
   if metric == "downloads":
     select += "r.downloads"
-  elif metric == "crossref":
+  elif metric == "twitter":
     select += "SUM(r.count)"
   select += ", a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year, a.posted, a.doi"
 
@@ -62,7 +62,7 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
   if q != "": # if there's a text search specified
     params = (q,)
   query += " FROM articles AS a INNER JOIN "
-  if metric == "crossref":
+  if metric == "twitter":
     query += "crossref_daily"
   elif metric == "downloads":
     query_times = {
@@ -72,7 +72,7 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
     }
     query += query_times[timeframe]
 
-  if metric == "crossref":
+  if metric == "twitter":
     query += " AS r ON r.doi=a.doi"
   elif metric == "downloads":
     query += " AS r ON r.article=a.id"
@@ -88,7 +88,7 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
       query += " AND "
   if q != "":
     query += "query @@ totalvector "
-    if len(categories) > 0 or metric == "crossref":
+    if len(categories) > 0 or metric == "twitter":
       query += " AND "
 
   if len(categories) > 0:
@@ -97,9 +97,9 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
       params = (q,categories)
     else:
       params = (categories,)
-    if metric == "crossref":
+    if metric == "twitter":
       query += " AND "
-  if metric == "crossref":
+  if metric == "twitter":
     query += "r.source_date > now() - interval "
     query_times = {
       "day": 2,
@@ -115,12 +115,12 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
     cursor.execute(countselect, params)
     total = cursor.fetchone()[0]
 
-  if metric == "crossref":
+  if metric == "twitter":
     query += "GROUP BY a.id"
   query += " ORDER BY "
   if metric == "downloads":
     query += "r.rank ASC"
-  elif metric == "crossref":
+  elif metric == "twitter":
     query += "SUM(r.count) DESC"
 
   query += " LIMIT {}".format(page_size)

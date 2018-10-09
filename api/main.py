@@ -36,8 +36,10 @@ import helpers
 import endpoints
 import config
 import models
+import docs
 
 connection = db.Connection(config.db["host"], config.db["db"], config.db["user"], config.db["password"])
+docs.build_docs(connection)
 
 # - ROUTES -
 
@@ -54,9 +56,9 @@ def index():
   page_size = bottle.request.query.page_size
   error = ""
 
-  if metric not in ["downloads", "crossref"]:
-    metric = "crossref"
-  if metric == "crossref":
+  if metric not in ["downloads", "twitter"]:
+    metric = "twitter"
+  if metric == "twitter":
     if timeframe not in ["alltime", "day", "week", "month", "year"]:
       timeframe = "day"
   elif metric == "downloads":
@@ -175,9 +177,9 @@ def index():
   if entity not in ["papers", "authors"]:
     entity = "papers"
   if entity == "papers":
-    if metric not in ["downloads", "crossref"]:
-      metric = "crossref"
-    if metric == "crossref":
+    if metric not in ["downloads", "twitter"]:
+      metric = "twitter"
+    if metric == "twitter":
       if timeframe not in ["alltime", "day", "week", "month", "year"]:
         timeframe = "day"
     elif metric == "downloads":
@@ -190,7 +192,7 @@ def index():
   # figure out the page title
   if entity == "papers":
     title = "Most "
-    if metric == "crossref":
+    if metric == "twitter":
       title += "tweeted"
     elif metric == "downloads":
       title += "downloaded"

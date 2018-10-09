@@ -47,7 +47,7 @@
                 %end
               </h4>
             %end
-            % if len(results) == 0 and metric == "crossref":
+            % if len(results) == 0 and metric == "twitter":
             %  # just adding a new "metric" param at the end of the query string overrides
             %  # any that appear earlier in the query, once bottle gets it
               <div><p>Search was based on articles with Twitter activity data&mdash;redo search <a href="/?{{querystring}}&timeframe=alltime&metric=downloads">with download data</a> instead?</p></div>

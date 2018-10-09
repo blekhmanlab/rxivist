@@ -35,7 +35,7 @@
           for(i = timeField.options.length - 1 ; i >= 0 ; i--) {
             timeField.remove(i);
           }
-          if(metric == "crossref") {
+          if(metric == "twitter") {
             for (let x of crossref_options) {
               timeField.add(x);
             }
@@ -99,8 +99,8 @@
           selected
         %end
         >downloads</option>
-        <option value="crossref"
-        %if metric == "crossref":
+        <option value="twitter"
+        %if metric == "twitter":
           selected
         %end
         >Twitter activity</option>

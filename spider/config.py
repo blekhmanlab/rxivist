@@ -14,7 +14,7 @@ log_to_stdout = True
 log_to_file = False
 
 # how the web crawler should identify itself when sending http requests
-# to sites such as bioRxiv and altmetric
+# to sites such as bioRxiv and crossref
 user_agent = "rxivist web crawler (rxivist.org)"
 
 # whether to add pauses at several places in the crawl
@@ -49,17 +49,9 @@ delete_csv = True
 # stats should be before we refresh them. (This string MUST
 # be able to be interpreted by Postgres as a time interval
 # to subtract from the current date.)
-refresh_interval = "5 weeks"
+refresh_interval = "4 weeks"
 limit_refresh = True
-refresh_category_cap = 15
-
-# information about the altmetric API endpoints
-altmetric = {
-  "endpoints": {
-    "daily": "https://api.altmetric.com/v1/citations/1d"
-  },
-  "doi_prefix": "10.1101" # https://gist.github.com/hubgit/5974663
-}
+refresh_category_cap = 150
 
 # information about the biorxiv web addresses to be scraped
 biorxiv = {
@@ -69,15 +61,14 @@ biorxiv = {
 }
 
 crawl = {
-  "fetch_new": True,
+  "fetch_new": False,
   "fetch_abstracts": True,
-  "fetch_altmetric": False,
-  "fetch_crossref": True,
+  "fetch_crossref": False,
   "refresh_stats": True,
 }
 
 perform_ranks = {
-  "enabled": True,  # set to False to disable all below
+  "enabled": False,  # set to False to disable all below
   "alltime": True,
   "ytd": True,
   "month": True,

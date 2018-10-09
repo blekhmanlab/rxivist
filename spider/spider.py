@@ -196,7 +196,7 @@ class Spider(object):
         self.save_article_stats(article_id, stat_table, posted)
         self._record_detailed_authors(article_id, detailed_authors)
         updated += 1
-        if updated >= cap:
+        if config.limit_refresh is not False and updated >= cap:
           self.log.record("Maximum articles reached for this session. Returning.")
           break
     self.log.record("{} articles refreshed in {}.".format(updated, collection))

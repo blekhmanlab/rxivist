@@ -145,7 +145,7 @@ class Article:
       # check to see if we've seen this article before
       if self.doi == "":
         spider.log.record("Won't record a paper without a DOI: {}".format(self.url), "fatal")
-      cursor.execute("SELECT url FROM articles WHERE doi=%s", (self.doi,))
+      cursor.execute("SELECT url, id FROM articles WHERE doi=%s", (self.doi,))
       response = cursor.fetchone()
 
       if response is not None and len(response) > 0:
@@ -155,11 +155,12 @@ class Article:
           return False
         else:
           cursor.execute("UPDATE articles SET url=%s, title=%s, collection=%s WHERE doi=%s RETURNING id;", (self.url, self.title, self.collection, self.doi))
+          self.id = cursor.fetchone()[0]
           stat_table, detailed_authors = spider.get_article_stats(self.url)
           spider._record_detailed_authors(self.id, detailed_authors)
           if stat_table is not None:
-            spider.save_article_stats(self.id, stat_table, posted)
-          spider.log.record("Updated revision for article DOI {}: {}".format(self.doi, self.title), "info")
+            spider.save_article_stats(self.id, stat_table, None)
+          spider.log.record("Updated revision for article DOI {}: {}\n\n********\n\n\n*\n".format(self.doi, self.title), "info")
           connection.db.commit()
           return True
     # If it's brand new:

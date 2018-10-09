@@ -4,7 +4,7 @@
     <div class="card">
       <div class="card-header context" id="heading{{result.id}}"  data-toggle="collapse" data-target="#collapse{{result.id}}" aria-expanded="true" aria-controls="collapse{{result.id}}">
         <strong>{{i+1 + (page * page_size)}}:</strong>
-        % if metric == "crossref" and timeframe == "day" and result.downloads > 80:
+        % if metric == "twitter" and timeframe == "day" and result.downloads > 80:
           <i class="fab fa-hotjar text-danger" style="font-size: 2em;"></i>
         % end
         {{result.title}}
@@ -13,7 +13,7 @@
           <strong>{{ helpers.formatNumber(result.downloads) }}</strong>
           % if metric == "downloads":
             <small>{{ "downloads" if result.downloads > 1 else "download" }}</small>
-          % elif metric == "crossref":
+          % elif metric == "twitter":
             <small>{{ "tweets" if result.downloads > 1 else "tweet" }}</small>
           % end
         <span class="badge {{ result.collection.replace("-", "") }}" style="margin-left: 10px;">{{ helpers.formatCategory(result.collection) }}</span>
