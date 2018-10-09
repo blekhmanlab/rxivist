@@ -131,8 +131,8 @@ class Article:
   """Base class for the different formats in which articles
   are presented throughout the site.
   """
-  def __init(self):
-    self.id = None
+  def __init__(self, a_id=None):
+    self.id = a_id
     pass
 
   def get_authors(self, connection):

@@ -124,6 +124,20 @@ def paper_details(id):
     return {"error": "Server error."}
   return paper.json()
 
+#     paper download stats
+@bottle.get('/api/papers/<id:int>/downloads')
+def paper_downloads(id):
+  try:
+    details = endpoints.paper_downloads(connection, id)
+  except helpers.NotFoundError as e:
+    bottle.response.status = 404
+    return {"error": e.message}
+  except ValueError as e:
+    bottle.response.status = 500
+    print(e)
+    return {"error": "Server error."}
+  return details
+
 #     Author details page
 @bottle.get('/api/authors/<id:int>')
 def display_author_details(id):
@@ -317,6 +331,7 @@ def display_author_details(id):
 def display_paper_details(id):
   try:
     paper = endpoints.paper_details(connection, id)
+    paper.GetDetailedTraffic(connection)
   except helpers.NotFoundError as e:
     bottle.response.status = 404
     return e.message

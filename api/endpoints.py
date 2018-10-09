@@ -279,7 +279,6 @@ def paper_details(connection, id):
 
   paperq = paperq[0] # we get one entry for each author, but don't need them here
   result = models.ArticleDetails(paperq, alltime_count, connection)
-  result.GetDetailedTraffic(connection)
   # once we're done processing the results of the last query, go back
   # and query for some extra info about each article
   query = "SELECT COUNT(id) FROM articles WHERE collection=%s"
@@ -287,6 +286,16 @@ def paper_details(connection, id):
   result.ranks.collection.out_of = collection_count[0][0]
 
   return result
+
+def paper_downloads(connection, a_id):
+  result = models.Article(a_id)
+  result.GetDetailedTraffic(connection)
+  return {
+    "query": {
+      "id": a_id
+    },
+    "results": [{"month": x.month, "year": x.year, "downloads": x.downloads} for x in result.traffic]
+  }
 
 def download_distribution(connection, category):
   data = connection.read("SELECT bucket, count FROM download_distribution WHERE category=%s ORDER BY bucket", (category,))

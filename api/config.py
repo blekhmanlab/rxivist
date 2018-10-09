@@ -22,9 +22,9 @@ use_prod_webserver = False
 default_page_size = 20
 
 # the largest page a web user can request
-max_page_size_site = 250
+max_page_size_site = 100
 # the most results an API user can request at one time
-max_page_size_api = 1000
+max_page_size_api = 250
 
 # The entity ID provided by Google Analytics
 google_tag = "UA-125076477-1"
