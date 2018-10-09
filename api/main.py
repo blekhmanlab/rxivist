@@ -42,6 +42,73 @@ connection = db.Connection(config.db["host"], config.db["db"], config.db["user"]
 # - ROUTES -
 
 # API ENDPOINTS
+#     paper query endpoint
+@bottle.get('/api/papers')
+def index():
+  query = bottle.request.query.q
+  timeframe = bottle.request.query.timeframe
+  category_filter = bottle.request.query.getall('category') # multiple params possible
+  metric = bottle.request.query.metric
+  entity = "papers"
+  page = bottle.request.query.page
+  page_size = bottle.request.query.page_size
+  error = ""
+
+  if metric not in ["downloads", "crossref"]:
+    metric = "crossref"
+  if metric == "crossref":
+    if timeframe not in ["alltime", "day", "week", "month", "year"]:
+      timeframe = "day"
+  elif metric == "downloads":
+    if timeframe not in ["alltime", "ytd", "lastmonth"]:
+      timeframe = "alltime"
+
+  category_list = endpoints.get_categories(connection) # list of all article categories
+
+  # Get rid of a category filter that's just one empty parameter:
+  if len(category_filter) == 1 and category_filter[0] == "":
+    category_filter = []
+  else:
+    # otherwise validate that the categories are valid
+    for cat in category_filter:
+      if cat not in category_list:
+        error = "There was a problem with the submitted query: {} is not a recognized category.".format(cat)
+        bottle.response.status = 500
+        break
+
+  if page == "":
+    page = 0
+  else:
+    try:
+      page = int(page)
+    except Exception as e:
+      error = "Problem recognizing specified page number: {}".format(e)
+
+  if page_size == "":
+    page_size = config.default_page_size
+  else:
+    try:
+      page_size = int(page_size)
+    except Exception as e:
+      error = "Problem recognizing specified page size: {}".format(e)
+      page_size = 0
+
+  if page_size > config.max_page_size_api:
+    page_size = config.max_page_size_api # cap the page size users can ask for
+
+  results = {} # a list of articles for the current page
+  totalcount = 0 # how many results there are in total
+
+  if error == "": # if nothing's gone wrong yet, fetch results:
+    try:
+      results, totalcount = endpoints.most_popular(connection, query, category_filter, timeframe, metric, page, page_size)
+    except Exception as e:
+      print(e)
+      error = "There was a problem with the submitted query: {}".format(e)
+      bottle.response.status = 500
+  print("\n\n||{}||\n**\n".format(entity))
+  resp = models.PaperQueryResponse(results, query, timeframe, category_filter, metric, entity, page, page_size, totalcount)
+  return resp.json()
 
 #     paper details
 @bottle.get('/api/papers/<id:int>')
@@ -56,20 +123,6 @@ def paper_details(id):
     print(e)
     return {"error": "Server error."}
   return paper.json()
-
-#     paper details, with ranking and author info
-@bottle.get('/api/papers/<id:int>/hydrate')
-def paper_details(id):
-  try:
-    paper = endpoints.paper_details(connection, id)
-  except helpers.NotFoundError as e:
-    bottle.response.status = 404
-    return {"error": e.message}
-  except ValueError as e:
-    bottle.response.status = 500
-    print(e)
-    return {"error": "Server error."}
-  return paper.json(True)
 
 #     Author details page
 @bottle.get('/api/authors/<id:int>')
@@ -110,8 +163,12 @@ def index():
   if entity == "papers":
     if metric not in ["downloads", "crossref"]:
       metric = "crossref"
-    if timeframe not in ["alltime", "ytd", "lastmonth", "day", "week", "month", "year"]:
-      timeframe = "day"
+    if metric == "crossref":
+      if timeframe not in ["alltime", "day", "week", "month", "year"]:
+        timeframe = "day"
+    elif metric == "downloads":
+      if timeframe not in ["alltime", "ytd", "lastmonth"]:
+        timeframe = "alltime"
   elif entity == "authors":
     metric = "downloads"
     timeframe = "alltime"
@@ -170,8 +227,8 @@ def index():
       error = "Problem recognizing specified page size: {}".format(e)
       page_size = 0
 
-  if page_size > config.max_page_size:
-    page_size = config.max_page_size # cap the page size users can ask for
+  if page_size > config.max_page_size_site:
+    page_size = config.max_page_size_site # cap the page size users can ask for
 
   stats = models.SiteStats(connection) # site-wide metrics (paper count, etc)
   results = {} # a list of articles for the current page
@@ -272,25 +329,6 @@ def display_paper_details(id):
   return bottle.template('paper_details', paper=paper,
     download_distribution=download_distribution, averages=averages, stats=stats,
     google_tag=config.google_tag)
-
-#     DB convenience endpoint
-@bottle.get('/db')
-@bottle.get('/db/<table>')
-@bottle.view('db')
-def get_articles_table(table=None):
-  if not config.allow_db_dashboard:
-    bottle.response.status = 403
-    return "Database debugging dashboard is restricted."
-  if connection is None:
-    bottle.response.status = 421
-    return "Database is initializing."
-  table_names = connection.fetch_db_tables()
-  column_names = []
-  data = []
-  if table is not None:
-    column_names, data = connection.fetch_table_data(table)
-  return bottle.template('db', current=table, tables=table_names,
-    headers=column_names, results=data)
 
 @bottle.route('/privacy')
 @bottle.view('privacy')

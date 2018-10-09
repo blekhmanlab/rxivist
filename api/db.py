@@ -10,13 +10,13 @@ import psycopg2
 
 import config
 
-#A dict of strings containing complex queries that
+# A dict of strings containing complex queries that
 # are used in multiple locations.
 QUERIES = {
   "article_ranks": """
     SELECT alltime_ranks.downloads, alltime_ranks.rank, ytd_ranks.rank, month_ranks.rank,
       articles.id, articles.url, articles.title, articles.abstract, articles.collection,
-      category_ranks.rank, articles.origin_month, articles.origin_year
+      category_ranks.rank, articles.origin_month, articles.origin_year, articles.doi
     FROM articles
     LEFT JOIN article_authors ON articles.id=article_authors.article
     LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article

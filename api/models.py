@@ -2,8 +2,38 @@
 
 
 """
+import math
 
 import helpers
+
+class PaperQueryResponse(object):
+  def __init__(self, results, query, timeframe, category_filter, metric, entity, current_page, page_size, totalcount):
+    self.results = results
+    self.query = query
+    self.timeframe = timeframe
+    self.category_filter = category_filter
+    self.metric = metric
+    self.entity = entity
+    self.current_page = current_page
+    self.page_size = page_size
+    self.final_page = math.ceil(totalcount / page_size) - 1 # zero-indexed
+
+  def json(self):
+    return {
+      "query": {
+        "text_search": self.query,
+        "timeframe": self.timeframe,
+        "categories": self.category_filter,
+        "metric": self.metric,
+        "page_size": self.page_size,
+        "current_page": self.current_page,
+        "final_page": self.final_page
+      },
+      "results": {
+        "ids": [r.id for r in self.results],
+        "items": [r.json() for r in self.results]
+      }
+    }
 
 class SiteStats(object):
   """Class that, when initialized, collects and organizes
@@ -130,7 +160,7 @@ class TrafficEntry(object):
 class SearchResultArticle(Article):
   "An article as displayed on the main results page."
   def __init__(self, sql_entry, connection):
-    self.downloads = sql_entry[0]
+    self.downloads = sql_entry[0] # NOTE: This can be "downloads" OR "tweet count"
     self.id = sql_entry[1]
     self.url = sql_entry[2]
     self.title = sql_entry[3]
@@ -138,7 +168,21 @@ class SearchResultArticle(Article):
     self.collection = sql_entry[5]
     self.date = DateEntry(sql_entry[6], sql_entry[7])
     self.posted = sql_entry[8]
+    self.doi = sql_entry[9]
     self.get_authors(connection)
+
+  def json(self):
+    return {
+      "id": self.id,
+      "metric": self.downloads,
+      "title": self.title,
+      "url": self.url,
+      "doi": self.doi,
+      "collection": self.collection,
+      "first_posted": self.posted.strftime('%d-%m-%Y') if self.posted is not None else "",
+      "abstract": self.abstract,
+      "authors": [x.full for x in self.authors]
+    }
 
 class SearchResultAuthor(object):
   "An author as displayed on the main results page."
@@ -179,23 +223,18 @@ class ArticleDetails(Article):
     self.abstract = sql_entry[7]
     self.collection = sql_entry[8]
     self.date = DateEntry(sql_entry[10], sql_entry[11])
+    self.doi = sql_entry[12]
     self.get_authors(connection)
 
-  def json(self, hydrate=False):
-    # TODO: These different versions of responses don't actually
-    # reduce the amount of DB work we have to do, they just limit
-    # how much we send back. That's probably a silly way to do it.
-    resp = {
+  def json(self):
+    return {
       "id": self.id,
+      "doi": self.doi,
       "biorxiv_url": self.url,
       "url": "https://rxivist.org/papers/{}".format(self.id),
       "title": self.title,
       "abstract": self.abstract,
-      "downloads": self.downloads
+      "downloads": self.downloads,
+      "authors": [x.json() for x in self.authors],
+      "ranks": self.ranks.json()
     }
-    if hydrate: # this will be more important when we do detailed_authors
-      resp["authors"] = [x.json() for x in self.authors]
-      resp["ranks"] = self.ranks.json()
-    else:
-      resp["author_ids"] = [x.id for x in self.authors],
-    return resp

@@ -53,7 +53,7 @@ def most_popular(connection, q, categories, timeframe, metric, page, page_size):
     select += "r.downloads"
   elif metric == "crossref":
     select += "SUM(r.count)"
-  select += ", a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year, a.posted"
+  select += ", a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year, a.posted, a.doi"
 
   countselect = "SELECT COUNT(DISTINCT a.id)"
   params = ()
