@@ -155,8 +155,8 @@ def build_docs(connection):
     """
   )
 
-  downloads = paper_details.add_endpoint("Download data", "/papers/<id>/downloads", "Retrieve monthly download statistics for a single paper.")
-  downloads.add_argument("path", "id", "Rxivist paper ID associated with the download data you want ", required=True)
+  downloads = paper_details.add_endpoint("Download data", "/papers/<id>/downloads", "Retrieve monthly download statistics for a single paper. PLEASE NOTE that currently, the author list for a given paper is based on the authors retrieved the first time a paper was indexed by Rxivist; if a paper was revised later and the author list modified, that would not have been updated here.")
+  downloads.add_argument("path", "id", "Rxivist paper ID associated with the download data you want.", required=True)
   downloads.add_example(
     "Paper download data request",
     "",
