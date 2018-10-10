@@ -44,7 +44,7 @@ connection = db.Connection(config.db["host"], config.db["db"], config.db["user"]
 
 # API ENDPOINTS
 #     paper query endpoint
-@bottle.get('/api/papers')
+@bottle.get('/api/v1/papers')
 def index():
   query = bottle.request.query.q
   timeframe = bottle.request.query.timeframe
@@ -112,7 +112,7 @@ def index():
   return resp.json()
 
 #     paper details
-@bottle.get('/api/papers/<id:int>')
+@bottle.get('/api/v1/papers/<id:int>')
 def paper_details(id):
   try:
     paper = endpoints.paper_details(connection, id)
@@ -126,7 +126,7 @@ def paper_details(id):
   return paper.json()
 
 #     paper download stats
-@bottle.get('/api/papers/<id:int>/downloads')
+@bottle.get('/api/v1/papers/<id:int>/downloads')
 def paper_downloads(id):
   try:
     details = endpoints.paper_downloads(connection, id)
@@ -140,7 +140,7 @@ def paper_downloads(id):
   return details
 
 #     Author details page
-@bottle.get('/api/authors/<id:int>')
+@bottle.get('/api/v1/authors/<id:int>')
 def display_author_details(id):
   try:
     author = endpoints.author_details(connection, id)

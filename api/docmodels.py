@@ -33,7 +33,7 @@ class Endpoint:
       raise Exception("Unrecognized argument type {}".format(category))
     return new
 
-  def add_example(self, title, description, url, response):
+  def add_example(self, title, description, url, response=""):
     new = Example(title, description, url, response)
     self.examples.append(new)
     return new
@@ -50,7 +50,7 @@ class Argument:
     self.acceptable = potential
 
 class Example:
-  def __init__(self, title, description, url, response):
+  def __init__(self, title, description, url, response=""):
     self.title = title
     self.url = url
     self.description = description

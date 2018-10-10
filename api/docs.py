@@ -23,7 +23,7 @@ def build_docs(connection):
   query.add_argument("get", "page_size", "How many results to return at one time. Capped at {}.".format(config.max_page_size_api), 20)
 
   query.add_example(
-    "Top 3 downloaded papers, alltime",
+    "Top 3 downloaded papers, all time",
     "Using the \"downloads\" metric, get 3 papers ordered by their overall download count.",
     "/papers?metric=downloads&page_size=3&timeframe=alltime",
     """{
@@ -94,11 +94,125 @@ def build_docs(connection):
   )
 
   # Paper details
-  details = docmodels.Chapter("Paper details", "Retrieving more detailed information about a single paper.")
-  query = papers.add_endpoint("Details", "/papers/<id>", "Retrieve data about a single paper and all of its authors")
-  query = papers.add_endpoint("Download data", "/papers/<id>/downloads", "Retrieve monthly download statistics for a single paper.")
+  paper_details = docmodels.Chapter("Paper details", "Retrieving more detailed information about a single paper.")
+  details = paper_details.add_endpoint("Details", "/papers/<id>", "Retrieve data about a single paper and all of its authors")
+  details.add_argument("path", "id", "Rxivist paper ID associated with the paper you want ", required=True)
+  details.add_example(
+    "Paper detail request",
+    "",
+    "/papers/12345",
+    """{
+  "id": 12345,
+  "doi": "10.1101/350124",
+  "biorxiv_url": "https://www.biorxiv.org/content/early/2018/06/19/350124",
+  "url": "https://rxivist.org/papers/12345",
+  "title": "Reconstructing intelligible speech from the human auditory cortex",
+  "abstract": "Auditory stimulus reconstruction is a technique that finds the best approximation of the acoustic stimulus from the population of evoked neural activity. Reconstructing speech from the human auditory cortex creates the possibility of a speech neuroprosthetic to establish a direct communication with the brain and has been shown to be possible in both overt and covert conditions. However, the low quality of the reconstructed speech has severely limited the utility of this method for brain-computer interface (BCI) applications. To advance the state-of-the-art in speech neuroprosthesis, we combined the recent advances in deep learning with the latest innovations in speech synthesis technologies to reconstruct closed-set intelligible speech from the human auditory cortex. We investigated the dependence of reconstruction accuracy on linear and nonlinear regression methods and the acoustic representation that is used as the target of reconstruction, including spectrogram and speech synthesis parameters. In addition, we compared the reconstruction accuracy from low and high neural frequency ranges. Our results show that a deep neural network model that directly estimates the parameters of a speech synthesizer from all neural frequencies achieves the highest subjective and objective scores on a digit recognition task, improving the intelligibility by 65% over the baseline. These results demonstrate the efficacy of deep learning and speech synthesis algorithms for designing the next generation of speech BCI systems, which not only can restore communications for paralyzed patients but also have the potential to transform human-computer interaction technologies.",
+  "downloads": 574,
+  "authors": [
+    {
+      "id": 78107,
+      "name": "Hassan Akbari"
+    },
+    {
+      "id": 78108,
+      "name": "Bahar Khalighinejad"
+    },
+    {
+      "id": 78109,
+      "name": "Jose Herrero"
+    },
+    {
+      "id": 78110,
+      "name": "Ashesh Mehta"
+    },
+    {
+      "id": 78111,
+      "name": "Nima Mesgarani"
+    }
+  ],
+  "ranks": {
+    "alltime": {
+      "rank": 6712,
+      "tie": false
+    },
+    "ytd": {
+      "rank": 1471,
+      "tie": false
+    },
+    "lastmonth": {
+      "rank": 553,
+      "tie": false
+    },
+    "category": {
+      "category": "alltime",
+      "downloads": 0,
+      "rank": 553,
+      "tie": false
+    }
+  }
+}
+    """
+  )
+
+  downloads = paper_details.add_endpoint("Download data", "/papers/<id>/downloads", "Retrieve monthly download statistics for a single paper.")
+  downloads.add_argument("path", "id", "Rxivist paper ID associated with the download data you want ", required=True)
+  downloads.add_example(
+    "Paper download data request",
+    "",
+    "/papers/12345/downloads",
+    """{
+  "query": {
+    "id": 12345
+  },
+  "results": [
+    {
+      "month": 6,
+      "year": 2018,
+      "downloads": 205
+    },
+    {
+      "month": 7,
+      "year": 2018,
+      "downloads": 153
+    },
+    {
+      "month": 8,
+      "year": 2018,
+      "downloads": 88
+    },
+    {
+      "month": 9,
+      "year": 2018,
+      "downloads": 118
+    },
+    {
+      "month": 10,
+      "year": 2018,
+      "downloads": 10
+    }
+  ]
+}
+    """
+  )
+
+
+  # Author details
+  author_details = docmodels.Chapter("Author details", "Retrieving more detailed information about a single author.")
+  details = author_details.add_endpoint("Details", "/authors/<id>", "Retrieve data about a single author.")
+  details.add_argument("path", "id", "Rxivist paper ID associated with the author in question.", required=True)
+  details.add_example(
+    "Author detail request",
+    "",
+    "/authors/12345",
+    """{
+  "id": 12345,
+  "name": "Hernán Ramiro Lascano"
+}
+    """
+  )
 
 
 
-  docs = docmodels.Documentation("https://rxivist.org/api", [papers, details])
+  docs = docmodels.Documentation("https://rxivist.org/api/v1", [papers, paper_details, author_details])
   return docs
