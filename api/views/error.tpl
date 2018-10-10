@@ -19,7 +19,7 @@
     </div>
 
     %include("components/footer")
-    %include("components/about_modal")
+    %include("components/modal_about")
 
     <script>
       $(function () {
