@@ -20,7 +20,9 @@
         <div class="col-sm-10 offset-sm-1">
           <p>The Rxivist API offers free, programmatic access to all of our bioRxiv metadata in a RESTful JSON interface. It's open to all&mdash;no keys or authentication here, at least for now. We only ask that you go easy on the requests, as this is a small project with limited funding for server infrastructure.
 
-          <p>If you are looking for data to use offline somewhere, there's no need to send 40,000 API requests to get all the data: <strong>We generate weekly database dumps that contain all Rxivist data,</strong> and you're welcome to download them. Not only is that easier for our servers to handle, but it's probably much easier for you too. The PostgreSQL dumps are available <a href="*tk">for direct download</a>.
+          <p>If you are looking for data to use offline somewhere, there's no need to send 40,000 API requests to get all of it: <strong>We generate weekly database dumps that contain all Rxivist information,</strong> and you're welcome to download them. Not only is that easier for our servers to handle, but it may be much easier for you to process. The PostgreSQL dumps are available <a href="*tk">for direct download</a>.
+
+          <p>If you are planning to use the Rxivist API as a backend for a web application, please <strong>cite and link to Rxivist</strong> on any page that displays a non-trivial amount of data pulled from this API. Also, let us know what you're up to! We'd love to find out how this data is being used.
         </div>
       </div>
       <div class="row">
@@ -55,7 +57,7 @@
                   <div class="accordion" id="accordion{{ accordion_count }}">
                     <div class="card">
                       <div class="card-header context" id="heading{{ accordion_count }}"  data-toggle="collapse" data-target="#collapse{{ accordion_count }}" aria-expanded="true" aria-controls="collapse{{ accordion_count }}">
-                        <h6>Response:</h6>
+                        <h6>Response (click to expand)</h6>
                       </div>
                       <div id="collapse{{ accordion_count }}" class="collapse" aria-labelledby="heading{{ accordion_count }}" data-parent="#accordion{{ accordion_count }}">
                         <div class="card-body">
