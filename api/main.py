@@ -39,7 +39,6 @@ import models
 import docs
 
 connection = db.Connection(config.db["host"], config.db["db"], config.db["user"], config.db["password"])
-docs.build_docs(connection)
 
 # - ROUTES -
 
@@ -352,6 +351,14 @@ def display_paper_details(id):
 def privacy():
   stats = models.SiteStats(connection)
   return bottle.template("privacy", google_tag=config.google_tag, stats=stats)
+
+@bottle.route('/docs')
+@bottle.view('api_docs')
+def api_docs():
+  stats = models.SiteStats(connection)
+  documentation = docs.build_docs(connection)
+  return bottle.template("api_docs", google_tag=config.google_tag, stats=stats, docs=documentation)
+
 
 # Search engine stuff
 @bottle.route('/{}'.format(config.google_validation_file))
