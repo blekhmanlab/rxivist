@@ -50,7 +50,7 @@ delete_csv = True
 # be able to be interpreted by Postgres as a time interval
 # to subtract from the current date.)
 refresh_interval = "4 weeks"
-limit_refresh = True
+limit_refresh = False
 refresh_category_cap = 150
 
 # information about the biorxiv web addresses to be scraped
@@ -61,14 +61,14 @@ biorxiv = {
 }
 
 crawl = {
-  "fetch_new": False,
+  "fetch_new": True,
   "fetch_abstracts": True,
   "fetch_crossref": False,
   "refresh_stats": True,
 }
 
 perform_ranks = {
-  "enabled": False,  # set to False to disable all below
+  "enabled": True,  # set to False to disable all below
   "alltime": True,
   "ytd": True,
   "month": True,

@@ -32,9 +32,6 @@ google_tag = "UA-125076477-1"
 # (Should be placed in the /static directory)
 google_validation_file = "google3d18e8a680b87e67.html"
 
-# Whether to allow access to the /db endpoints. Should be FALSE in production.
-allow_db_dashboard = True
-
 # When accessing a table's data in the db admin dashboard, the maximum number of
 # results to display.
 db_admin_return_limit = 100

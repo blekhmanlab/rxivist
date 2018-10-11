@@ -27,7 +27,7 @@ def get_categories(connection):
       results.append(cat[0])
   return results
 
-def most_popular(connection, q, categories, timeframe, metric, page, page_size):
+def paper_query(connection, q, categories, timeframe, metric, page, page_size):
   """Returns a list of the 20 most downloaded papers that meet a given set of constraints.
 
   Arguments:
@@ -169,41 +169,6 @@ def author_rankings(connection, category_list=[]):
     cursor.execute(query, params)
     return [models.SearchResultAuthor(*a) for a in cursor]
 
-def table_results(connection, q):
-  """Returns data about every paper in the db and makes the browser sort em out.
-
-  Arguments:
-    - connection: a database connection object.
-    - q:  A search string to compare against article abstracts
-          and titles. (Title matches are weighted more heavily.)
-  Returns:
-    - An ordered list of Article objects that meet the search criteria.
-
-  """
-
-  query = "SELECT alltime.downloads, ytd.downloads, lastmonth.downloads, a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year"
-  params = ()
-  if q != "": # if there's a text search specified
-    params = (q,)
-    query += ", ts_rank_cd(totalvector, query) as rank"
-  query += """
-  FROM articles AS a
-  INNER JOIN alltime_ranks AS alltime ON alltime.article=a.id
-  INNER JOIN ytd_ranks AS ytd ON ytd.article=a.id
-  INNER JOIN month_ranks AS lastmonth ON lastmonth.article=a.id
-  """
-
-  if q != "":
-    query += """, plainto_tsquery(%s) query,
-    coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'C') || setweight(a.author_vector, 'D')) totalvector
-    WHERE query @@ totalvector
-    """
-  query += " LIMIT 400;" # TODO: Paginate this response like the standard one
-  with connection.db.cursor() as cursor:
-    cursor.execute(query, params)
-    results = [models.TableSearchResultArticle(a, connection) for a in cursor]
-  return results
-
 def author_details(connection, id):
   """Returns a dict of information about a single author, including a list of
       all their papers.
@@ -294,10 +259,13 @@ def paper_downloads(connection, a_id):
     "query": {
       "id": a_id
     },
-    "results": [{"month": x.month, "year": x.year, "downloads": x.downloads} for x in result.traffic]
+    "results": [{"month": x.month, "year": x.year, "downloads": x.downloads, "views": x.views} for x in result.traffic]
   }
 
-def download_distribution(connection, category):
+def get_distribution(connection, category, metric):
+  # "category" param can be either "author" or "paper"
+  # "metric" param is (right now) limited to just "downloads"
+  print("SELECT bucket, count FROM download_distribution WHERE category={} ORDER BY bucket".format(category))
   data = connection.read("SELECT bucket, count FROM download_distribution WHERE category=%s ORDER BY bucket", (category,))
   results = [(entry[0], entry[1]) for entry in data]
   averages = {}
@@ -306,3 +274,17 @@ def download_distribution(connection, category):
     answer = connection.read("SELECT count FROM download_distribution WHERE category=%s", (cat,))
     averages[avg] = answer[0][0]
   return results, averages
+
+def site_stats(connection):
+  resp = connection.read("SELECT COUNT(id) FROM articles;")
+  if len(resp) != 1 or len(resp[0]) != 1:
+    paper_count = 0
+  else:
+    paper_count = resp[0][0]
+
+  resp = connection.read("SELECT COUNT(id) FROM authors;")
+  if len(resp) != 1 or len(resp[0]) != 1:
+    author_count = 0
+  else:
+    author_count = resp[0][0]
+  return paper_count, author_count

@@ -35,25 +35,6 @@ class PaperQueryResponse(object):
       }
     }
 
-class SiteStats(object):
-  """Class that, when initialized, collects and organizes
-  site-wide statistics about the data it is analyzing:
-  number of papers indexed, number of authors profiled etc.
-
-  """
-  def __init__(self, connection):
-    resp = connection.read("SELECT COUNT(id) FROM articles;")
-    if len(resp) != 1 or len(resp[0]) != 1:
-      self.paper_count = 0
-    else:
-      self.paper_count = resp[0][0]
-
-    resp = connection.read("SELECT COUNT(id) FROM authors;")
-    if len(resp) != 1 or len(resp[0]) != 1:
-      self.author_count = 0
-    else:
-      self.author_count = resp[0][0]
-
 class Author(object):
   """Class organizing the basic facts about a single
   author. Most other traits (rankings, a list of all
@@ -148,7 +129,7 @@ class Article:
     self.authors = [Author(a[0], a[1], a[2]) for a in author_data]
 
   def GetDetailedTraffic(self, connection):
-    data = connection.read("SELECT month, year, pdf FROM article_traffic WHERE article_traffic.article=%s ORDER BY year ASC, month ASC;", (self.id,))
+    data = connection.read("SELECT month, year, pdf, abstract FROM article_traffic WHERE article_traffic.article=%s ORDER BY year ASC, month ASC;", (self.id,))
     self.traffic = [TrafficEntry(entry) for entry in data]
 
 class TrafficEntry(object):
@@ -156,6 +137,7 @@ class TrafficEntry(object):
     self.month = sql_entry[0]
     self.year = sql_entry[1]
     self.downloads = sql_entry[2]
+    self.views = sql_entry[3]
 
 class SearchResultArticle(Article):
   "An article as displayed on the main results page."

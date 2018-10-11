@@ -101,7 +101,7 @@ def index():
 
   if error == "": # if nothing's gone wrong yet, fetch results:
     try:
-      results, totalcount = endpoints.most_popular(connection, query, category_filter, timeframe, metric, page, page_size)
+      results, totalcount = endpoints.paper_query(connection, query, category_filter, timeframe, metric, page, page_size)
     except Exception as e:
       print(e)
       error = "There was a problem with the submitted query: {}".format(e)
@@ -150,6 +150,48 @@ def display_author_details(id):
     print(e)
     return {"error": "Server error."}
   return author.json() # TODO: switch this to detailed_authors with ranks
+
+# categories list endpoint
+@bottle.get('/api/v1/collections')
+def get_category_list():
+  try:
+    category_list = endpoints.get_categories(connection)
+  except Exception as e:
+    bottle.response.status = 500
+    print(e)
+    return {"error": "Server error – {}".format(e)}
+  return {
+    "results": category_list
+  }
+
+# categories list endpoint
+@bottle.get('/api/v1/distributions/<entity>/<metric>')
+def get_distros(entity, metric):
+  if entity not in ["paper", "author"]:
+    bottle.response.status = 404
+    return {"error": "Unknown entity: expected 'paper' or 'author'; got '{}'".format(entity)}
+  if metric not in ["downloads"]:
+    bottle.response.status = 404
+    return {"error": "Unknown entity: expected 'downloads'; got '{}'".format(metric)}
+
+  if entity == "paper": # TODO: Fix this silliness
+    entity = "alltime"
+
+  try:
+    results, averages = endpoints.get_distribution(connection, entity, metric)
+  except Exception as e:
+    bottle.response.status = 500
+    print(e)
+    return {"error": "Server error – {}".format(e)}
+  return {
+    "results": {
+      "histogram": [{"bucket_min": x[0], "count": x[1]} for x in results],
+      "averages": {
+        "mean": averages["mean"],
+        "median": averages["median"]
+      }
+    }
+  }
 
 # ---- Errors
 @bottle.error(404)

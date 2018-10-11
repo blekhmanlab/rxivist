@@ -489,7 +489,7 @@ class Spider(object):
     self.log.record("Calculating distribution of download counts with logarithmic scales.")
     tasks = [
       {
-        "name": "alltime",
+        "name": "alltime", # TODO: this should be "papers"
         "scale_power": config.distribution_log_articles
       },
       {
