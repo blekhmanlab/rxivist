@@ -152,7 +152,7 @@ def display_author_details(id):
   return author.json() # TODO: switch this to detailed_authors with ranks
 
 # categories list endpoint
-@bottle.get('/api/v1/collections')
+@bottle.get('/api/v1/data/collections')
 def get_category_list():
   try:
     category_list = endpoints.get_categories(connection)
@@ -164,8 +164,8 @@ def get_category_list():
     "results": category_list
   }
 
-# categories list endpoint
-@bottle.get('/api/v1/distributions/<entity>/<metric>')
+# stat distributions endpoint
+@bottle.get('/api/v1/data/distributions/<entity>/<metric>')
 def get_distros(entity, metric):
   if entity not in ["paper", "author"]:
     bottle.response.status = 404
