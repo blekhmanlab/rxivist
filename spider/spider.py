@@ -187,7 +187,7 @@ class Spider(object):
         if config.polite:
           time.sleep(1)
         stat_table, detailed_authors = self.get_article_stats(url)
-        pub_data = self.check_publication_status(article_id, doi)
+        pub_data = self.check_publication_status(article_id, doi, True)
         if pub_data is not None: # if we found something
           self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
         posted = None
@@ -202,7 +202,7 @@ class Spider(object):
     self.log.record("{} articles refreshed in {}.".format(updated, collection))
     return updated
 
-  def check_publication_status(self, article_id ,doi, retry=True):
+  def check_publication_status(self, article_id, doi, retry=False):
     self.log.record("Determining publication status for DOI {}.".format(doi))
     with self.connection.db.cursor() as cursor:
       # we check for which ones are already recorded because
@@ -219,7 +219,7 @@ class Spider(object):
       if retry:
         self.log.record("Retrying:")
         time.sleep(3)
-        return self.check_publication_status(article_id, False)
+        return self.check_publication_status(article_id, doi)
       else:
         self.log.record("Giving up on this one for now.", "error")
         raise ValueError("Encountered exception making HTTP call to fetch publication information.")
