@@ -36,7 +36,6 @@ import helpers
 import endpoints
 import config
 import models
-import docs
 
 connection = db.Connection(config.db["host"], config.db["db"], config.db["user"], config.db["password"])
 
