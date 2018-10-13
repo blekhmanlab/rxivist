@@ -178,12 +178,10 @@ def get_distros(entity, metric):
     bottle.response.status = 500
     return {"error": "Server error – {}".format(e)}
   return {
-    "results": {
-      "histogram": [{"bucket_min": x[0], "count": x[1]} for x in results],
-      "averages": {
-        "mean": averages["mean"],
-        "median": averages["median"]
-      }
+    "histogram": [{"bucket_min": x[0], "count": x[1]} for x in results],
+    "averages": {
+      "mean": averages["mean"],
+      "median": averages["median"]
     }
   }
 

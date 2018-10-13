@@ -97,7 +97,7 @@ class Author:
       FROM articles
       LEFT JOIN article_detailed_authors ON articles.id=article_detailed_authors.article
       LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article
-      WHERE article_detailed_authors.author=%s ORDER BY alltime_ranks.downloads
+      WHERE article_detailed_authors.author=%s ORDER BY alltime_ranks.downloads DESC
     """
     articles = connection.read(sql, (self.id,))
     articles = [AuthorArticle(a[0], connection) for a in articles]
@@ -205,26 +205,10 @@ class ArticleRanks(object):
 
   def json(self):
     return {
-      "alltime": {
-        "rank": self.alltime.rank,
-        "tie": self.alltime.tie,
-        "downloads": self.alltime.downloads
-      },
-      "ytd": {
-        "rank": self.ytd.rank,
-        "tie": self.ytd.tie,
-        "downloads": self.ytd.downloads
-      },
-      "lastmonth": {
-        "rank": self.lastmonth.rank,
-        "tie": self.lastmonth.tie,
-        "downloads": self.ytd.downloads
-      },
-      "category": {
-        "rank": self.collection.rank,
-        "tie": self.collection.tie,
-        "downloads": self.collection.downloads
-      }
+      "alltime": self.alltime.json(),
+      "ytd": self.ytd.json(),
+      "lastmonth": self.lastmonth.json(),
+      "category": self.collection.json(),
     }
 
 class Article:
@@ -305,9 +289,10 @@ class ArticleDetails(Article):
   "Detailed article info displayed on paper pages."
   def __init__(self, article_id, connection):
     sql = """
-      SELECT url, title, collection, posted, doi, abstract
-      FROM articles
-      WHERE articles.id=%s
+      SELECT a.url, a.title, a.collection, a.posted, a.doi, a.abstract, p.publication, p.doi
+      FROM articles a
+      LEFT JOIN article_publications AS p ON a.id=p.article
+      WHERE a.id=%s;
     """
     sql_entry = connection.read(sql, (article_id,))
     if len(sql_entry) == 0:
@@ -323,11 +308,14 @@ class ArticleDetails(Article):
     self.abstract = sql_entry[5]
     self.ranks = ArticleRanks(self.id, connection)
     self.get_authors(connection)
+    self.publication = sql_entry[6]
+    self.pub_doi = sql_entry[7]
 
   def json(self):
-    return {
+    resp = {
       "id": self.id,
       "doi": self.doi,
+      "first_posted": self.posted.strftime('%Y-%m-%d') if self.posted is not None else "",
       "biorxiv_url": self.url,
       "url": "https://rxivist.org/papers/{}".format(self.id),
       "title": self.title,
@@ -336,6 +324,14 @@ class ArticleDetails(Article):
       "authors": [x.json() for x in self.authors],
       "ranks": self.ranks.json()
     }
+    if self.pub_doi is not None:
+      resp["publication"] = {
+        "journal": self.publication,
+        "doi": self.pub_doi
+      }
+    else:
+      resp["publication"] = {}
+    return resp
 
 class AuthorArticle(Article):
   "Detailed article info displayed on author pages. Less data than ArticleDetails class."

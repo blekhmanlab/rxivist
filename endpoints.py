@@ -231,7 +231,7 @@ def site_stats(connection):
   else:
     paper_count = resp[0][0]
 
-  resp = connection.read("SELECT COUNT(id) FROM authors;")
+  resp = connection.read("SELECT COUNT(id) FROM detailed_authors;")
   if len(resp) != 1 or len(resp[0]) != 1:
     author_count = 0
   else:
