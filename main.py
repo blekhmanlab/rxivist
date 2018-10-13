@@ -74,7 +74,7 @@ def index():
       if cat not in category_list:
         error = "There was a problem with the submitted query: {} is not a recognized category.".format(cat)
         bottle.response.status = 500
-        break
+        return {"error": error}
 
   if page == "":
     page = 0
@@ -106,6 +106,7 @@ def index():
       print(e)
       error = "There was a problem with the submitted query: {}".format(e)
       bottle.response.status = 500
+      return {"error": error}
   resp = models.PaperQueryResponse(results, query, timeframe, category_filter, metric, entity, page, page_size, totalcount)
   return resp.json()
 
@@ -119,8 +120,7 @@ def paper_details(id):
     return {"error": e.message}
   except ValueError as e:
     bottle.response.status = 500
-    print(e)
-    return {"error": "Server error."}
+    return {"error": "Server error – {}".format(e)}
   return paper.json()
 
 # paper download stats
@@ -133,8 +133,7 @@ def paper_downloads(id):
     return {"error": e.message}
   except ValueError as e:
     bottle.response.status = 500
-    print(e)
-    return {"error": "Server error."}
+    return {"error": "Server error – {}".format(e)}
   return details
 
 # author details page
@@ -147,8 +146,7 @@ def display_author_details(id):
     return {"error": e.message}
   except ValueError as e:
     bottle.response.status = 500
-    print(e)
-    return {"error": "Server error."}
+    return {"error": "Server error – {}".format(e)}
   return author.json() # TODO: switch this to detailed_authors with ranks
 
 # categories list endpoint
@@ -158,7 +156,6 @@ def get_category_list():
     category_list = endpoints.get_categories(connection)
   except Exception as e:
     bottle.response.status = 500
-    print(e)
     return {"error": "Server error – {}".format(e)}
   return {
     "results": category_list
@@ -173,7 +170,6 @@ def get_distros(entity, metric):
   if metric not in ["downloads"]:
     bottle.response.status = 404
     return {"error": "Unknown entity: expected 'downloads'; got '{}'".format(metric)}
-
   if entity == "paper": # TODO: Fix this silliness
     entity = "alltime"
 
@@ -181,7 +177,6 @@ def get_distros(entity, metric):
     results, averages = endpoints.get_distribution(connection, entity, metric)
   except Exception as e:
     bottle.response.status = 500
-    print(e)
     return {"error": "Server error – {}".format(e)}
   return {
     "results": {
