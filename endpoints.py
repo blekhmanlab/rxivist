@@ -81,33 +81,36 @@ def paper_query(connection, q, categories, timeframe, metric, page, page_size):
     query += """, plainto_tsquery(%s) query,
     coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'C') || setweight(a.author_vector, 'D')) totalvector
     """
-  query += " WHERE "
-  if metric == "downloads":
-    query += "r.downloads > 0"
-    if q != "" or len(categories) > 0:
-      query += " AND "
-  if q != "":
-    query += "query @@ totalvector "
-    if len(categories) > 0 or metric == "twitter":
-      query += " AND "
-
-  if len(categories) > 0:
-    query += "collection=ANY(%s)"
+  # add a WHERE clause if we need one:
+  # (all-time twitter stats don't require it)
+  if metric == "downloads" or (metric == "twitter" and timeframe != "alltime") or len(categories) > 0:
+    query += " WHERE "
+    if metric == "downloads":
+      query += "r.downloads > 0"
+      if q != "" or len(categories) > 0:
+        query += " AND "
     if q != "":
-      params = (q,categories)
-    else:
-      params = (categories,)
-    if metric == "twitter":
-      query += " AND "
-  if metric == "twitter":
-    query += "r.source_date > now() - interval "
-    query_times = {
-      "day": 2,
-      "week": 7,
-      "month": 30,
-      "year": 365
-    }
-    query += "'{} days' ".format(query_times[timeframe])
+      query += "query @@ totalvector "
+      if len(categories) > 0 or (metric == "twitter" and timeframe != "alltime"):
+        query += " AND "
+
+    if len(categories) > 0:
+      query += "collection=ANY(%s)"
+      if q != "":
+        params = (q,categories)
+      else:
+        params = (categories,)
+      if metric == "twitter" and timeframe != "alltime":
+        query += " AND "
+    if metric == "twitter" and timeframe != "alltime":
+      query += "r.source_date > now() - interval "
+      query_times = {
+        "day": 2,
+        "week": 7,
+        "month": 30,
+        "year": 365
+      }
+      query += "'{} days' ".format(query_times[timeframe])
   # this is the last piece of the query we need for the one
   # that counts the total number of results
   countselect += query
@@ -116,7 +119,7 @@ def paper_query(connection, q, categories, timeframe, metric, page, page_size):
     total = cursor.fetchone()[0]
 
   if metric == "twitter":
-    query += "GROUP BY a.id"
+    query += " GROUP BY a.id"
   query += " ORDER BY "
   if metric == "downloads":
     query += "r.rank ASC"
@@ -128,6 +131,7 @@ def paper_query(connection, q, categories, timeframe, metric, page, page_size):
     query += " OFFSET {}".format(page * page_size)
   query += ";"
   select += query
+  print("\n\n\n{}".format(select))
   with connection.db.cursor() as cursor:
     cursor.execute(select, params)
     results = [models.SearchResultArticle(a, connection) for a in cursor]
