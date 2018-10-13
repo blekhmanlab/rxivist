@@ -18,7 +18,7 @@ QUERIES = {
       articles.id, articles.url, articles.title, articles.abstract, articles.collection,
       category_ranks.rank, articles.origin_month, articles.origin_year, articles.doi
     FROM articles
-    LEFT JOIN article_authors ON articles.id=article_authors.article
+    LEFT JOIN article_detailed_authors ON articles.id=article_detailed_authors.article
     LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article
     LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article
     LEFT JOIN month_ranks ON articles.id=month_ranks.article

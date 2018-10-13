@@ -131,7 +131,6 @@ def paper_query(connection, q, categories, timeframe, metric, page, page_size):
     query += " OFFSET {}".format(page * page_size)
   query += ";"
   select += query
-  print("\n\n\n{}".format(select))
   with connection.db.cursor() as cursor:
     cursor.execute(select, params)
     results = [models.SearchResultArticle(a, connection) for a in cursor]
@@ -173,7 +172,7 @@ def author_rankings(connection, category_list=[]):
     cursor.execute(query, params)
     return [models.SearchResultAuthor(*a) for a in cursor]
 
-def author_details(connection, id):
+def author_details(connection, author_id):
   """Returns a dict of information about a single author, including a list of
       all their papers.
 
@@ -185,46 +184,8 @@ def author_details(connection, id):
         author's publications.
 
   """
-
-  authorq = connection.read("SELECT id, given, surname FROM authors WHERE id = %s;", (id,))
-  if len(authorq) == 0:
-    raise helpers.NotFoundError(id)
-  if len(authorq) > 1:
-    raise ValueError("Multiple authors found with id {}".format(id))
-  authorq = authorq[0]
-  result = models.Author(authorq[0], authorq[1], authorq[2])
-  downloadsq = connection.read("SELECT rank, tie, downloads FROM author_ranks WHERE author=%s;", (id,))
-  if len(downloadsq) == 1:
-    author_count = connection.read("SELECT COUNT(id) FROM authors;")
-    author_count = author_count[0][0]
-    result.alltime_rank = models.RankEntry(downloadsq[0][0], author_count, downloadsq[0][1], downloadsq[0][2])
-
-  categoryq = connection.read("SELECT rank, tie, downloads, category FROM author_ranks_category WHERE author = %s;", (id,))
-  if len(categoryq) > 0:
-    result.categories = [models.RankEntry(cat[0], 0, cat[1], cat[2], cat[3]) for cat in categoryq]
-  for entry in result.categories:
-    query = "SELECT COUNT(author) FROM author_ranks_category WHERE category=%s"
-    author_in_category = connection.read(query, (entry.category,))
-    entry.out_of = author_in_category[0][0]
-
-
-  sql = db.QUERIES["article_ranks"] + "WHERE article_authors.author=%s ORDER BY alltime_ranks.rank"
-  articles = connection.read(sql, (id,))
-
-  alltime_count = connection.read("SELECT COUNT(id) FROM articles")
-  alltime_count = alltime_count[0][0]
-  # NOTE: alltime_count will not be a count of all the papers on the site,
-  #   it excludes papers that don't have any traffic data.
-
-  result.articles = [models.ArticleDetails(a, alltime_count, connection) for a in articles]
-
-  # once we're done processing the results of the last query, go back
-  # and query for some extra info about each article
-  for article in result.articles:
-    query = "SELECT COUNT(id) FROM articles WHERE collection=%s"
-    collection_count = connection.read(query, (article.collection,))
-    article.ranks.collection.out_of = collection_count[0][0]
-
+  result = models.DetailedAuthor(author_id)
+  result.GetInfo(connection)
   return result
 
 def paper_details(connection, id):
@@ -269,7 +230,6 @@ def paper_downloads(connection, a_id):
 def get_distribution(connection, category, metric):
   # "category" param can be either "author" or "paper"
   # "metric" param is (right now) limited to just "downloads"
-  print("SELECT bucket, count FROM download_distribution WHERE category={} ORDER BY bucket".format(category))
   data = connection.read("SELECT bucket, count FROM download_distribution WHERE category=%s ORDER BY bucket", (category,))
   results = [(entry[0], entry[1]) for entry in data]
   averages = {}
@@ -291,4 +251,7 @@ def site_stats(connection):
     author_count = 0
   else:
     author_count = resp[0][0]
-  return paper_count, author_count
+  return {
+    "paper_count": paper_count,
+    "author_count": author_count
+  }

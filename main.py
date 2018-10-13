@@ -136,17 +136,17 @@ def paper_downloads(id):
   return details
 
 # author details page
-@bottle.get('/api/v1/authors/<id:int>')
-def display_author_details(id):
+@bottle.get('/api/v1/authors/<author_id:int>')
+def display_author_details(author_id):
   try:
-    author = endpoints.author_details(connection, id)
+    author = endpoints.author_details(connection, author_id)
   except helpers.NotFoundError as e:
     bottle.response.status = 404
     return {"error": e.message}
   except ValueError as e:
     bottle.response.status = 500
     return {"error": "Server error – {}".format(e)}
-  return author.json() # TODO: switch this to detailed_authors with ranks
+  return author.json()
 
 # categories list endpoint
 @bottle.get('/api/v1/data/collections')
@@ -186,6 +186,10 @@ def get_distros(entity, metric):
       }
     }
   }
+
+@bottle.get('/api/v1/data/counts')
+def get_counts():
+  return endpoints.site_stats(connection)
 
 # ---- Errors
 @bottle.error(404)

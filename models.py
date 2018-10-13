@@ -4,6 +4,7 @@
 """
 import math
 
+import db
 import helpers
 
 class PaperQueryResponse(object):
@@ -17,6 +18,7 @@ class PaperQueryResponse(object):
     self.current_page = current_page
     self.page_size = page_size
     self.final_page = math.ceil(totalcount / page_size) - 1 # zero-indexed
+    self.totalcount = totalcount
 
   def json(self):
     return {
@@ -27,13 +29,85 @@ class PaperQueryResponse(object):
         "metric": self.metric,
         "page_size": self.page_size,
         "current_page": self.current_page,
-        "final_page": self.final_page
+        "final_page": self.final_page,
+        "total_results": self.totalcount
       },
       "results": {
         "ids": [r.id for r in self.results],
         "items": [r.json() for r in self.results]
       }
     }
+
+class DetailedAuthor:
+  def __init__(self, author_id):
+    self.id = author_id
+
+  def GetInfo(self, connection):
+    self.name, self.institution, self.orcid = self._find_vitals(connection)
+    self.articles = self._find_articles(connection)
+    self.emails = self._find_emails(connection)
+    self.ranks = self._find_ranks(connection)
+
+  def json(self):
+    return {
+      "id": self.id,
+      "name": self.name,
+      "institution": self.institution,
+      "orcid": self.orcid,
+      "emails": self.emails,
+      "articles": [x.json() for x in self.articles],
+      "ranks": [x.json() for x in self.ranks]
+    }
+
+  def _find_vitals(self, connection):
+    authorq = connection.read("SELECT name, institution, orcid FROM detailed_authors WHERE id = %s;", (self.id,))
+    if len(authorq) == 0:
+      raise helpers.NotFoundError(id)
+    if len(authorq) > 1:
+      raise ValueError("Multiple authors found with id {}".format(id))
+    name, institution, orcid = authorq[0]
+    if institution == "":
+      institution = None
+    if orcid == "":
+      orcid = None
+    return name, institution, orcid
+
+  def _find_articles(self, connection):
+    sql = db.QUERIES["article_ranks"] + "WHERE article_detailed_authors.author=%s ORDER BY alltime_ranks.rank"
+    articles = connection.read(sql, (self.id,))
+    alltime_count = connection.read("SELECT COUNT(id) FROM articles")
+    alltime_count = alltime_count[0][0]
+    articles = [ArticleDetails(a, alltime_count, connection) for a in articles]
+    for article in articles:
+      query = "SELECT COUNT(id) FROM articles WHERE collection=%s"
+      collection_count = connection.read(query, (article.collection,))
+      article.ranks.collection.out_of = collection_count[0][0]
+
+    return articles
+
+  def _find_emails(self, connection):
+    emails = []
+    emailq = connection.read("SELECT email FROM detailed_authors_email WHERE author=%s;", (self.id,))
+    for entry in emailq:
+      emails.append(entry[0])
+    return emails
+
+  def _find_ranks(self, connection):
+    ranks = []
+    downloadsq = connection.read("SELECT rank, tie, downloads FROM detailed_author_ranks WHERE author=%s;", (self.id,))
+    if len(downloadsq) == 1:
+      author_count = connection.read("SELECT COUNT(id) FROM detailed_authors;")
+      author_count = author_count[0][0]
+      ranks.append(models.RankEntry(downloadsq[0][0], author_count, downloadsq[0][1], downloadsq[0][2]))
+
+    categoryq = connection.read("SELECT rank, tie, downloads, category FROM detailed_author_ranks_category WHERE author = %s;", (self.id,))
+    for cat in categoryq:
+      entry = models.RankEntry(cat[0], 0, cat[1], cat[2], cat[3])
+      author_in_category = connection.read("SELECT COUNT(author) FROM detailed_author_ranks_category WHERE category=%s", (entry.category,))
+      entry.out_of = author_in_category[0][0]
+      ranks.append(entry)
+
+    return ranks
 
 class Author(object):
   """Class organizing the basic facts about a single
@@ -56,7 +130,7 @@ class Author(object):
   def json(self, full=True):
     return {
       "id": self.id,
-      "name": self.full,
+      "name": self.full
     }
 
 class DateEntry(object):
@@ -75,6 +149,15 @@ class RankEntry(object):
     self.rank = rank
     self.out_of = out_of
     self.tie = tie
+
+  def json(self):
+    return {
+      "category": self.category,
+      "downloads": self.downloads,
+      "rank": self.rank,
+      "out_of": self.out_of,
+      "tie": self.tie
+    }
 
 class ArticleRanks(object):
   """Stores information about all of an individual article's
@@ -159,9 +242,9 @@ class SearchResultArticle(Article):
       "url": self.url,
       "doi": self.doi,
       "collection": self.collection,
-      "first_posted": self.posted.strftime('%d-%m-%Y') if self.posted is not None else "",
+      "first_posted": self.posted.strftime('%Y-%m-%d') if self.posted is not None else "",
       "abstract": self.abstract,
-      "authors": [x.full for x in self.authors]
+      "authors": [x.json() for x in self.authors]
     }
 
 class SearchResultAuthor(object):
