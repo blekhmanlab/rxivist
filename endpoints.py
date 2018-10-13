@@ -184,11 +184,11 @@ def author_details(connection, author_id):
         author's publications.
 
   """
-  result = models.DetailedAuthor(author_id)
+  result = models.Author(author_id)
   result.GetInfo(connection)
   return result
 
-def paper_details(connection, id):
+def paper_details(connection, article_id):
   """Returns a dict of information about a single paper.
 
   Arguments:
@@ -199,22 +199,7 @@ def paper_details(connection, id):
         its authors.
 
   """
-  alltime_count = connection.read("SELECT COUNT(id) FROM articles")
-  alltime_count = alltime_count[0][0]
-
-  sql = db.QUERIES["article_ranks"] + "WHERE articles.id=%s"
-  paperq = connection.read(sql, (id,))
-  if len(paperq) == 0:
-    raise helpers.NotFoundError(id)
-
-  paperq = paperq[0] # we get one entry for each author, but don't need them here
-  result = models.ArticleDetails(paperq, alltime_count, connection)
-  # once we're done processing the results of the last query, go back
-  # and query for some extra info about each article
-  query = "SELECT COUNT(id) FROM articles WHERE collection=%s"
-  collection_count = connection.read(query, (result.collection,))
-  result.ranks.collection.out_of = collection_count[0][0]
-
+  result = models.ArticleDetails(article_id, connection) # TODO: some of these functions put id first, some connection first
   return result
 
 def paper_downloads(connection, a_id):

@@ -30,7 +30,7 @@ class Connection(object):
     # The "doi" column can't have a "UNIQUE" constraint because sometimes a paper will be
     # posted to bioRxiv under two different title, so they will show up as two different
     # bioRxiv papers that will eventually share a single journal DOI.
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS article_publications (article integer PRIMARY KEY, doi text, publication text NOT NULL);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS article_publications (article integer PRIMARY KEY, doi text, publication text);")
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS authors (id SERIAL PRIMARY KEY, given text NOT NULL, surname text, UNIQUE (given, surname));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_authors (id SERIAL PRIMARY KEY, article integer NOT NULL, author integer NOT NULL, UNIQUE (article, author));")

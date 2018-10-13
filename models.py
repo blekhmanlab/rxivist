@@ -38,26 +38,45 @@ class PaperQueryResponse(object):
       }
     }
 
-class DetailedAuthor:
+class Author:
   def __init__(self, author_id):
     self.id = author_id
+    self.has_full_info = False
+    self.has_basic_info = False
 
   def GetInfo(self, connection):
     self.name, self.institution, self.orcid = self._find_vitals(connection)
     self.articles = self._find_articles(connection)
     self.emails = self._find_emails(connection)
     self.ranks = self._find_ranks(connection)
+    self.has_full_info = True
+
+  def GetBasicInfo(self, connection):
+    self.name, self.institution, self.orcid = self._find_vitals(connection)
+    self.has_basic_info = True
 
   def json(self):
-    return {
-      "id": self.id,
-      "name": self.name,
-      "institution": self.institution,
-      "orcid": self.orcid,
-      "emails": self.emails,
-      "articles": [x.json() for x in self.articles],
-      "ranks": [x.json() for x in self.ranks]
-    }
+    if self.has_full_info:
+      return {
+        "id": self.id,
+        "name": self.name,
+        "institution": self.institution,
+        "orcid": self.orcid,
+        "emails": self.emails,
+        "articles": [x.json() for x in self.articles],
+        "ranks": [x.json() for x in self.ranks]
+      }
+    elif self.has_basic_info:
+      return {
+        "id": self.id,
+        "name": self.name,
+        "institution": self.institution,
+        "orcid": self.orcid
+      }
+    else:
+      return {
+        "id": self.id
+      }
 
   def _find_vitals(self, connection):
     authorq = connection.read("SELECT name, institution, orcid FROM detailed_authors WHERE id = %s;", (self.id,))
@@ -73,11 +92,17 @@ class DetailedAuthor:
     return name, institution, orcid
 
   def _find_articles(self, connection):
-    sql = db.QUERIES["article_ranks"] + "WHERE article_detailed_authors.author=%s ORDER BY alltime_ranks.rank"
+    # TODO: Maybe grab less stuff for this response? leave out authors, abstract, etc?
+    sql = """
+      SELECT articles.id
+      FROM articles
+      LEFT JOIN article_detailed_authors ON articles.id=article_detailed_authors.article
+      LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article
+      WHERE article_detailed_authors.author=%s ORDER BY alltime_ranks.downloads
+    """
     articles = connection.read(sql, (self.id,))
-    alltime_count = connection.read("SELECT COUNT(id) FROM articles")
-    alltime_count = alltime_count[0][0]
-    articles = [ArticleDetails(a, alltime_count, connection) for a in articles]
+    articles = [AuthorArticle(a[0], connection) for a in articles]
+
     for article in articles:
       query = "SELECT COUNT(id) FROM articles WHERE collection=%s"
       collection_count = connection.read(query, (article.collection,))
@@ -109,30 +134,6 @@ class DetailedAuthor:
 
     return ranks
 
-class Author(object):
-  """Class organizing the basic facts about a single
-  author. Most other traits (rankings, a list of all
-  publications, etc.) is appended later.
-  """
-  def __init__(self, id, first, last):
-    self.id = id
-    self.articles = []
-    self.given = first
-    self.surname = last
-    if self.surname != "":
-      self.full = "{} {}".format(self.given, self.surname)
-    else:
-      self.full = self.given
-    self.downloads = 0
-    self.alltime_rank = RankEntry()
-    self.categories = []
-
-  def json(self, full=True):
-    return {
-      "id": self.id,
-      "name": self.full
-    }
-
 class DateEntry(object):
   "Stores paper publication date info."
   def __init__(self, month, year):
@@ -143,8 +144,7 @@ class DateEntry(object):
 class RankEntry(object):
   """Stores data about a paper's rank within a
   single corpus."""
-  def __init__(self, rank=0, out_of=0, tie=False, downloads=0, category="alltime"):
-    self.category = category
+  def __init__(self, rank=0, out_of=0, tie=False, downloads=0):
     self.downloads = downloads
     self.rank = rank
     self.out_of = out_of
@@ -152,7 +152,6 @@ class RankEntry(object):
 
   def json(self):
     return {
-      "category": self.category,
       "downloads": self.downloads,
       "rank": self.rank,
       "out_of": self.out_of,
@@ -163,29 +162,50 @@ class ArticleRanks(object):
   """Stores information about all of an individual article's
   rankings.
   """
-  def __init__(self, alltime_count, alltime, ytd, lastmonth, collection):
-    self.alltime = RankEntry(alltime, alltime_count)
-    self.ytd = RankEntry(ytd, alltime_count)
-    self.lastmonth = RankEntry(lastmonth, alltime_count)
-    self.collection = RankEntry(collection)
+  def __init__(self, article_id, connection):
+    sql = """
+      SELECT alltime_ranks.rank, ytd_ranks.rank,
+        month_ranks.rank, category_ranks.rank, articles.collection,
+        alltime_ranks.downloads, ytd_ranks.downloads, month_ranks.downloads
+      FROM articles
+      LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article
+      LEFT JOIN ytd_ranks ON articles.id=ytd_ranks.article
+      LEFT JOIN month_ranks ON articles.id=month_ranks.article
+      LEFT JOIN category_ranks ON articles.id=category_ranks.article
+      WHERE articles.id=%s
+    """
+    sql_entry = connection.read(sql, (article_id,))[0]
+    category_count = connection.read("SELECT COUNT(id) FROM articles WHERE collection=%s", (sql_entry[4],))
+    category_count = category_count[0][0]
+    alltime_count = connection.read("SELECT COUNT(id) FROM articles")
+    alltime_count = alltime_count[0][0]
+
+    self.alltime = RankEntry(sql_entry[0], alltime_count, False, sql_entry[5])
+    self.ytd = RankEntry(sql_entry[1], alltime_count, False, sql_entry[6])
+    self.lastmonth = RankEntry(sql_entry[2], alltime_count, sql_entry[7])
+    self.collection = RankEntry(sql_entry[3], category_count, sql_entry[5])
 
   def json(self):
     return {
       "alltime": {
         "rank": self.alltime.rank,
-        "tie": self.alltime.tie
+        "tie": self.alltime.tie,
+        "downloads": self.alltime.downloads
       },
       "ytd": {
         "rank": self.ytd.rank,
-        "tie": self.ytd.tie
+        "tie": self.ytd.tie,
+        "downloads": self.ytd.downloads
       },
       "lastmonth": {
         "rank": self.lastmonth.rank,
-        "tie": self.lastmonth.tie
+        "tie": self.lastmonth.tie,
+        "downloads": self.ytd.downloads
       },
       "category": {
         "rank": self.lastmonth.rank,
-        "tie": self.lastmonth.tie
+        "tie": self.lastmonth.tie,
+        "downloads": self.collection.downloads
       }
     }
 
@@ -206,8 +226,12 @@ class Article:
       a list of Author objects.
 
     """
-    author_data = connection.read("SELECT authors.id, authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s ORDER BY aa.id;", (self.id,))
-    self.authors = [Author(a[0], a[1], a[2]) for a in author_data]
+    self.authors = []
+    author_data = connection.read("SELECT detailed_authors.id, detailed_authors.name FROM article_detailed_authors as aa INNER JOIN detailed_authors ON detailed_authors.id=aa.author WHERE aa.article=%s ORDER BY aa.id;", (self.id,))
+    if len(author_data) > 0:
+      self.authors = [Author(a[0]) for a in author_data]
+      for a in self.authors:
+        a.GetBasicInfo(connection)
 
   def GetDetailedTraffic(self, connection):
     data = connection.read("SELECT month, year, pdf, abstract FROM article_traffic WHERE article_traffic.article=%s ORDER BY year ASC, month ASC;", (self.id,))
@@ -259,34 +283,27 @@ class SearchResultAuthor(object):
       self.full = self.given
     self.rank = RankEntry(rank, 0, tie, downloads)
 
-class TableSearchResultArticle(Article):
-  "An article as displayed on the table-based main results page."
-  def __init__(self, sql_entry, connection):
-    self.alltime_downloads = sql_entry[0]
-    self.ytd_downloads = sql_entry[1]
-    self.month_downloads = sql_entry[2]
-    self.id = sql_entry[3]
-    self.url = sql_entry[4]
-    self.title = sql_entry[5]
-    self.abstract = sql_entry[6]
-    self.collection = sql_entry[7]
-    self.date = DateEntry(sql_entry[8], sql_entry[9])
-    # NOTE: We won't get authors for these results until there's
-    # a way to fetch the first author without sending a separate
-    # query for each paper in the table.
-
 class ArticleDetails(Article):
-  "Detailed article info displayed on, i.e. author pages."
-  def __init__(self, sql_entry, alltime_count, connection):
-    self.downloads = sql_entry[0]
-    self.ranks = ArticleRanks(alltime_count, sql_entry[1], sql_entry[2], sql_entry[3], sql_entry[9])
-    self.id = sql_entry[4]
-    self.url = sql_entry[5]
-    self.title = sql_entry[6]
-    self.abstract = sql_entry[7]
-    self.collection = sql_entry[8]
-    self.date = DateEntry(sql_entry[10], sql_entry[11])
-    self.doi = sql_entry[12]
+  "Detailed article info displayed on paper pages."
+  def __init__(self, article_id, connection):
+    sql = """
+      SELECT url, title, collection, posted, doi, abstract
+      FROM articles
+      WHERE articles.id=%s
+    """
+    sql_entry = connection.read(sql, (article_id,))
+    if len(sql_entry) == 0:
+      raise helpers.NotFoundError(article_id)
+    sql_entry = sql_entry[0]
+
+    self.id = article_id
+    self.url = sql_entry[0]
+    self.title = sql_entry[1]
+    self.collection = sql_entry[2]
+    self.posted = sql_entry[3]
+    self.doi = sql_entry[4]
+    self.abstract = sql_entry[5]
+    self.ranks = ArticleRanks(self.id, connection)
     self.get_authors(connection)
 
   def json(self):
@@ -296,9 +313,40 @@ class ArticleDetails(Article):
       "biorxiv_url": self.url,
       "url": "https://rxivist.org/papers/{}".format(self.id),
       "title": self.title,
-      "abstract": self.abstract,
       "category": self.collection,
-      "downloads": self.downloads,
+      "abstract": self.abstract,
       "authors": [x.json() for x in self.authors],
+      "ranks": self.ranks.json()
+    }
+
+class AuthorArticle(Article):
+  "Detailed article info displayed on author pages. Less data than ArticleDetails class."
+  def __init__(self, article_id, connection):
+    sql = """
+      SELECT url, title, collection, posted, doi
+      FROM articles
+      WHERE articles.id=%s
+    """
+    sql_entry = connection.read(sql, (article_id,))
+    if len(sql_entry) == 0:
+      raise helpers.NotFoundError(article_id)
+    sql_entry = sql_entry[0]
+
+    self.id = article_id
+    self.url = sql_entry[0]
+    self.title = sql_entry[1]
+    self.collection = sql_entry[2]
+    self.posted = sql_entry[3]
+    self.doi = sql_entry[4]
+    self.ranks = ArticleRanks(self.id, connection)
+
+  def json(self):
+    return {
+      "id": self.id,
+      "doi": self.doi,
+      "biorxiv_url": self.url,
+      "url": "https://rxivist.org/papers/{}".format(self.id),
+      "title": self.title,
+      "category": self.collection,
       "ranks": self.ranks.json()
     }
