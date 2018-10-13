@@ -114,9 +114,8 @@ def paper_query(connection, q, categories, timeframe, metric, page, page_size):
   # this is the last piece of the query we need for the one
   # that counts the total number of results
   countselect += query
-  with connection.db.cursor() as cursor:
-    cursor.execute(countselect, params)
-    total = cursor.fetchone()[0]
+  resp = connection.read(countselect, params)
+  total = resp[0][0]
 
   if metric == "twitter":
     query += " GROUP BY a.id"
@@ -131,9 +130,8 @@ def paper_query(connection, q, categories, timeframe, metric, page, page_size):
     query += " OFFSET {}".format(page * page_size)
   query += ";"
   select += query
-  with connection.db.cursor() as cursor:
-    cursor.execute(select, params)
-    results = [models.SearchResultArticle(a, connection) for a in cursor]
+  result = connection.read(select, params)
+  results = [models.SearchResultArticle(a, connection) for a in result]
   return results, total
 
 def author_rankings(connection, category=""):
@@ -163,9 +161,8 @@ def author_rankings(connection, category=""):
     LIMIT {}
   """.format(table, where, config.author_ranks_limit)
 
-  with connection.db.cursor() as cursor:
-    cursor.execute(query, params)
-    return [models.SearchResultAuthor(*a) for a in cursor]
+  authors = connection.read(query, params)
+  return [models.SearchResultAuthor(*a) for a in authors]
 
 def author_details(connection, author_id):
   """Returns a dict of information about a single author, including a list of

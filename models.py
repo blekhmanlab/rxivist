@@ -32,15 +32,16 @@ class PaperQueryResponse(object):
         "final_page": self.final_page,
         "total_results": self.totalcount
       },
-      "results": {
-        "ids": [r.id for r in self.results],
-        "items": [r.json() for r in self.results]
-      }
+      "results": [r.json() for r in self.results]
     }
 
 class Author:
-  def __init__(self, author_id):
+  def __init__(self, author_id, name=""):
     self.id = author_id
+    # Setting the name initially lets us skip all the extra DB calls when
+    # pulling together a list of authors for which we don't need even the
+    # basic info
+    self.name = name
     self.has_full_info = False
     self.has_basic_info = False
 
@@ -75,7 +76,8 @@ class Author:
       }
     else:
       return {
-        "id": self.id
+        "id": self.id,
+        "name": self.name
       }
 
   def _find_vitals(self, connection):
@@ -231,9 +233,7 @@ class Article:
     self.authors = []
     author_data = connection.read("SELECT detailed_authors.id, detailed_authors.name FROM article_detailed_authors as aa INNER JOIN detailed_authors ON detailed_authors.id=aa.author WHERE aa.article=%s ORDER BY aa.id;", (self.id,))
     if len(author_data) > 0:
-      self.authors = [Author(a[0]) for a in author_data]
-      for a in self.authors:
-        a.GetBasicInfo(connection)
+      self.authors = [Author(a[0], a[1]) for a in author_data]
 
   def GetDetailedTraffic(self, connection):
     data = connection.read("SELECT month, year, pdf, abstract FROM article_traffic WHERE article_traffic.article=%s ORDER BY year ASC, month ASC;", (self.id,))
