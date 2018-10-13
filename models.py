@@ -101,8 +101,6 @@ class ArticleRanks(object):
         "tie": self.lastmonth.tie
       },
       "category": {
-        "category": self.collection.category,
-        "downloads": self.lastmonth.downloads,
         "rank": self.lastmonth.rank,
         "tie": self.lastmonth.tie
       }
@@ -216,6 +214,7 @@ class ArticleDetails(Article):
       "url": "https://rxivist.org/papers/{}".format(self.id),
       "title": self.title,
       "abstract": self.abstract,
+      "category": self.collection,
       "downloads": self.downloads,
       "authors": [x.json() for x in self.authors],
       "ranks": self.ranks.json()

@@ -103,7 +103,6 @@ def index():
     try:
       results, totalcount = endpoints.paper_query(connection, query, category_filter, timeframe, metric, page, page_size)
     except Exception as e:
-      print(e)
       error = "There was a problem with the submitted query: {}".format(e)
       bottle.response.status = 500
       return {"error": error}
