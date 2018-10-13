@@ -160,7 +160,7 @@ class Article:
           spider._record_detailed_authors(self.id, detailed_authors)
           if stat_table is not None:
             spider.save_article_stats(self.id, stat_table, None)
-          spider.log.record("Updated revision for article DOI {}: {}\n\n********\n\n\n*\n".format(self.doi, self.title), "info")
+          spider.log.record("Updated revision for article DOI {}: {}".format(self.doi, self.title), "info")
           connection.db.commit()
           return True
     # If it's brand new:

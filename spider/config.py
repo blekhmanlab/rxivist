@@ -63,7 +63,7 @@ biorxiv = {
 crawl = {
   "fetch_new": True,
   "fetch_abstracts": True,
-  "fetch_crossref": False,
+  "fetch_crossref": True,
   "refresh_stats": True,
 }
 
