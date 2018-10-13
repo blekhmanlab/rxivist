@@ -135,6 +135,15 @@ def paper_downloads(id):
     return {"error": "Server error – {}".format(e)}
   return details
 
+# author rankings
+@bottle.get('/api/v1/authors')
+def alltime_author_ranks():
+  category = bottle.request.query.category
+  resp = endpoints.author_rankings(connection, category)
+  return {
+    "results": [x.json() for x in resp]
+  }
+
 # author details page
 @bottle.get('/api/v1/authors/<author_id:int>')
 def display_author_details(author_id):

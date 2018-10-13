@@ -136,7 +136,7 @@ def paper_query(connection, q, categories, timeframe, metric, page, page_size):
     results = [models.SearchResultArticle(a, connection) for a in cursor]
   return results, total
 
-def author_rankings(connection, category_list=[]):
+def author_rankings(connection, category=""):
   """Returns a list of authors with the most cumulative downloads
 
   Arguments:
@@ -146,22 +146,17 @@ def author_rankings(connection, category_list=[]):
     - An ordered list of Author objects that meet the search criteria.
 
   """
-  if len(category_list) == 0:
-    category = ""
-  else:
-    category = category_list[0] # only one category at a time for author searches
-
   if category == "": # all time, all categories
-    table = "author_ranks" # TODO: just make a category called "alltime"
+    table = "detailed_author_ranks" # TODO: just make a category called "alltime"
     where = ""
     params = ()
   else:
-    table = "author_ranks_category"
+    table = "detailed_author_ranks_category"
     where = "WHERE r.category=%s"
     params = (category,)
   query = """
-    SELECT a.id, a.given, a.surname, r.rank, r.downloads, r.tie
-    FROM authors AS a
+    SELECT a.id, a.name, r.rank, r.downloads, r.tie
+    FROM detailed_authors AS a
     INNER JOIN {} r ON a.id=r.author
     {}
     ORDER BY r.rank

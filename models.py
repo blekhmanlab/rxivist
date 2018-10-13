@@ -275,15 +275,19 @@ class SearchResultArticle(Article):
 
 class SearchResultAuthor(object):
   "An author as displayed on the main results page."
-  def __init__(self, id, first, last, rank, downloads, tie):
+  def __init__(self, id, name, rank, downloads, tie):
     self.id = id
-    self.given = first
-    self.surname = last
-    if self.surname != "":
-      self.full = "{} {}".format(self.given, self.surname)
-    else:
-      self.full = self.given
-    self.rank = AuthorRankEntry(rank, 0, tie, downloads)
+    self.name = name
+    self.rank = AuthorRankEntry(rank, 0, tie, downloads) # we don't need the "out_of" field here, so it's 0
+
+  def json(self):
+    return {
+      "id": self.id,
+      "name": self.name,
+      "rank": self.rank.rank,
+      "downloads": self.rank.downloads,
+      "tie": self.rank.tie
+    }
 
 class ArticleDetails(Article):
   "Detailed article info displayed on paper pages."
