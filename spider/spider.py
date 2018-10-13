@@ -446,8 +446,13 @@ class Spider(object):
       load_rankings_from_file("author_ranks", self.log)
       self.activate_tables("author_ranks")
 
+      self._rank_detailed_authors_alltime()
+      load_rankings_from_file("detailed_author_ranks", self.log)
+      self.activate_tables("detailed_author_ranks")
+
     with self.connection.db.cursor() as cursor:
       cursor.execute("TRUNCATE author_ranks_category_working")
+      cursor.execute("TRUNCATE detailed_author_ranks_category_working")
       cursor.execute("TRUNCATE category_ranks_working")
     for category in self.fetch_categories():
       if config.perform_ranks["article_categories"] is not False:
@@ -456,12 +461,16 @@ class Spider(object):
       if config.perform_ranks["author_categories"] is not False:
         self._rank_authors_category(category)
         load_rankings_from_file("author_ranks_category", self.log)
+
+        self._rank_detailed_authors_category(category)
+        load_rankings_from_file("detailed_author_ranks_category", self.log)
     # we wait until all the categories have been loaded before
     # swapping in the fresh batch
     if config.perform_ranks["article_categories"] is not False:
       self.activate_tables("category_ranks")
     if config.perform_ranks["author_categories"] is not False:
       self.activate_tables("author_ranks_category")
+      self.activate_tables("detailed_author_ranks_category")
 
     self._calculate_download_distributions()
     end = datetime.now()
@@ -657,8 +666,48 @@ class Spider(object):
 
     record_ranks_file(params, "author_ranks_working")
 
+  def _rank_detailed_authors_alltime(self):
+    # NOTE: The main query of this function (three lines down from here)
+    # relies on data generated during the spider._rank_articles_alltime()
+    # method, so that one should be called first.
+    self.log.record("Ranking authors by popularity...")
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("TRUNCATE detailed_author_ranks_working")
+      cursor.execute("""
+      SELECT article_detailed_authors.author, SUM(alltime_ranks.downloads) as downloads
+      FROM article_detailed_authors
+      LEFT JOIN alltime_ranks ON article_detailed_authors.article=alltime_ranks.article
+      WHERE downloads > 0
+      GROUP BY article_detailed_authors.author
+      ORDER BY downloads DESC, article_detailed_authors.author DESC
+      """)
+      self.log.record("Retrieved download data.", "debug")
+      ranks = []
+      rankNum = 0
+      for record in cursor:
+        rankNum = rankNum + 1
+        tie = False
+        rank = rankNum # changes if it's a tie
+
+        # if the author has the same download count as the
+        # previous author in the list, record a tie:
+        if len(ranks) > 0:
+          if record[1] == ranks[len(ranks) - 1]["downloads"]:
+            ranks[len(ranks) - 1]["tie"] = True
+            tie = True
+            rank = ranks[len(ranks) - 1]["rank"]
+        ranks.append({
+          "id": record[0],
+          "downloads": record[1],
+          "rank": rank,
+          "tie": tie
+        })
+    params = [(record["id"], record["rank"], record["downloads"], record["tie"]) for record in ranks]
+
+    record_ranks_file(params, "detailed_author_ranks_working")
+
   def _rank_authors_category(self, category):
-    self.log.record("Ranking authors by popularity in category {}...".format(category))
+    self.log.record("Ranking detailed authors by popularity in category {}...".format(category))
     with self.connection.db.cursor() as cursor:
       cursor.execute("""
       SELECT article_authors.author, SUM(alltime_ranks.downloads) as downloads
@@ -694,6 +743,44 @@ class Spider(object):
     params = [(record["id"], category, record["rank"], record["downloads"], record["tie"]) for record in ranks]
 
     record_ranks_file(params, "author_ranks_category_working")
+
+  def _rank_detailed_authors_category(self, category):
+    self.log.record("Ranking detailed authors by popularity in category {}...".format(category))
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("""
+      SELECT article_detailed_authors.author, SUM(alltime_ranks.downloads) as downloads
+      FROM article_detailed_authors
+      LEFT JOIN alltime_ranks ON article_detailed_authors.article=alltime_ranks.article
+      LEFT JOIN articles ON article_detailed_authors.article=articles.id
+      WHERE downloads > 0 AND
+      articles.collection=%s
+      GROUP BY article_detailed_authors.author
+      ORDER BY downloads DESC, article_detailed_authors.author DESC
+      """, (category,))
+      ranks = []
+      rankNum = 0
+      for record in cursor:
+        rankNum = rankNum + 1
+        tie = False
+        rank = rankNum # changes if it's a tie
+
+        # if the author has the same download count as the
+        # previous author in the list, record a tie:
+        if len(ranks) > 0:
+          if record[1] == ranks[len(ranks) - 1]["downloads"]:
+            ranks[len(ranks) - 1]["tie"] = True
+            tie = True
+            rank = ranks[len(ranks) - 1]["rank"]
+        ranks.append({
+          "id": record[0],
+          "downloads": record[1],
+          "rank": rank,
+          "tie": tie
+        })
+
+    params = [(record["id"], category, record["rank"], record["downloads"], record["tie"]) for record in ranks]
+
+    record_ranks_file(params, "detailed_author_ranks_category_working")
 
   def pull_todays_crossref_data(self):
     current = datetime.now()
@@ -769,9 +856,14 @@ def load_rankings_from_file(batch, log):
     query = "\copy {0}_working (article, rank, downloads) FROM '{0}_working.csv' with (format csv);".format(batch)
   elif batch == "author_ranks":
     query = "\copy author_ranks_working (author, rank, downloads, tie) FROM 'author_ranks_working.csv' with (format csv);"
+  elif batch == "detailed_author_ranks":
+    query = "\copy detailed_author_ranks_working (author, rank, downloads, tie) FROM 'detailed_author_ranks_working.csv' with (format csv);"
   elif batch == "author_ranks_category":
     query = "\copy author_ranks_category_working (author, category, rank, downloads, tie) FROM 'author_ranks_category_working.csv' with (format csv);"
     to_delete = "author_ranks_category_working.csv"
+  elif batch == "detailed_author_ranks_category":
+    query = "\copy detailed_author_ranks_category_working (author, category, rank, downloads, tie) FROM 'detailed_author_ranks_category_working.csv' with (format csv);"
+    to_delete = "detailed_author_ranks_category_working.csv"
   elif batch == "category_ranks":
     query = "\copy category_ranks_working (article, rank) FROM 'category_ranks_working.csv' with (format csv);"
     to_delete = "category_ranks_working.csv"

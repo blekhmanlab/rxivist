@@ -92,7 +92,6 @@ class Author:
     return name, institution, orcid
 
   def _find_articles(self, connection):
-    # TODO: Maybe grab less stuff for this response? leave out authors, abstract, etc?
     sql = """
       SELECT articles.id
       FROM articles
@@ -123,13 +122,13 @@ class Author:
     if len(downloadsq) == 1:
       author_count = connection.read("SELECT COUNT(id) FROM detailed_authors;")
       author_count = author_count[0][0]
-      ranks.append(models.RankEntry(downloadsq[0][0], author_count, downloadsq[0][1], downloadsq[0][2]))
+      ranks.append(AuthorRankEntry(downloadsq[0][0], author_count, downloadsq[0][1], downloadsq[0][2], "alltime"))
 
     categoryq = connection.read("SELECT rank, tie, downloads, category FROM detailed_author_ranks_category WHERE author = %s;", (self.id,))
     for cat in categoryq:
-      entry = models.RankEntry(cat[0], 0, cat[1], cat[2], cat[3])
-      author_in_category = connection.read("SELECT COUNT(author) FROM detailed_author_ranks_category WHERE category=%s", (entry.category,))
-      entry.out_of = author_in_category[0][0]
+      authors_in_category = connection.read("SELECT COUNT(author) FROM detailed_author_ranks_category WHERE category=%s", (cat[3],))
+      authors_in_category = authors_in_category[0][0]
+      entry = AuthorRankEntry(cat[0], authors_in_category, cat[1], cat[2], cat[3]) # TODO: this is all wrong
       ranks.append(entry)
 
     return ranks
@@ -141,7 +140,7 @@ class DateEntry(object):
     self.year = year
     self.monthname = helpers.num_to_month(month)
 
-class RankEntry(object):
+class ArticleRankEntry(object):
   """Stores data about a paper's rank within a
   single corpus."""
   def __init__(self, rank=0, out_of=0, tie=False, downloads=0):
@@ -156,6 +155,25 @@ class RankEntry(object):
       "rank": self.rank,
       "out_of": self.out_of,
       "tie": self.tie
+    }
+
+class AuthorRankEntry(object):
+  """Stores data about an author's rank within a
+  single corpus."""
+  def __init__(self, rank=0, out_of=0, tie=False, downloads=0, category=""):
+    self.downloads = downloads
+    self.rank = rank
+    self.out_of = out_of
+    self.tie = tie
+    self.category = category
+
+  def json(self):
+    return {
+      "downloads": self.downloads,
+      "rank": self.rank,
+      "out_of": self.out_of,
+      "tie": self.tie,
+      "category": self.category
     }
 
 class ArticleRanks(object):
@@ -180,10 +198,10 @@ class ArticleRanks(object):
     alltime_count = connection.read("SELECT COUNT(id) FROM articles")
     alltime_count = alltime_count[0][0]
 
-    self.alltime = RankEntry(sql_entry[0], alltime_count, False, sql_entry[5])
-    self.ytd = RankEntry(sql_entry[1], alltime_count, False, sql_entry[6])
-    self.lastmonth = RankEntry(sql_entry[2], alltime_count, sql_entry[7])
-    self.collection = RankEntry(sql_entry[3], category_count, sql_entry[5])
+    self.alltime = ArticleRankEntry(sql_entry[0], alltime_count, False, sql_entry[5])
+    self.ytd = ArticleRankEntry(sql_entry[1], alltime_count, False, sql_entry[6])
+    self.lastmonth = ArticleRankEntry(sql_entry[2], alltime_count, False, sql_entry[7])
+    self.collection = ArticleRankEntry(sql_entry[3], category_count, False, sql_entry[5])
 
   def json(self):
     return {
@@ -203,8 +221,8 @@ class ArticleRanks(object):
         "downloads": self.ytd.downloads
       },
       "category": {
-        "rank": self.lastmonth.rank,
-        "tie": self.lastmonth.tie,
+        "rank": self.collection.rank,
+        "tie": self.collection.tie,
         "downloads": self.collection.downloads
       }
     }
@@ -281,7 +299,7 @@ class SearchResultAuthor(object):
       self.full = "{} {}".format(self.given, self.surname)
     else:
       self.full = self.given
-    self.rank = RankEntry(rank, 0, tie, downloads)
+    self.rank = AuthorRankEntry(rank, 0, tie, downloads)
 
 class ArticleDetails(Article):
   "Detailed article info displayed on paper pages."
