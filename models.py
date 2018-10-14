@@ -278,9 +278,7 @@ class ArticleRankEntry(object):
 
 class AuthorRankEntry(object):
   """Stores data about an author's rank within a
-  single corpus.
-
-  """
+  single corpus."""
   def __init__(self, rank=0, out_of=0, tie=False, downloads=0, category=""):
     self.downloads = downloads
     self.rank = rank
@@ -345,6 +343,7 @@ class ArticleRanks(object):
 class Article:
   """Base class for the different formats in which articles
   are presented throughout the site.
+
   """
   def __init__(self, a_id=None):
     self.id = a_id
@@ -431,7 +430,7 @@ class SearchResultAuthor(object):
 class ArticleDetails(Article):
   "Article info as returned by the article details endpoint."
   def __init__(self, article_id, connection):
-     """Retrieves all required information for a single article.
+    """Retrieves all required information for a single article.
 
     Arguments:
       - article_id: The Rxivist ID of the article in question
@@ -439,7 +438,7 @@ class ArticleDetails(Article):
 
     """
     sql = """
-      SELECT a.url, a.title, a.collection, a.posted, a.doi, a.abstract, p.publication, p.doi
+    SELECT a.url, a.title, a.collection, a.posted, a.doi, a.abstract, p.publication, p.doi
       FROM articles a
       LEFT JOIN article_publications AS p ON a.id=p.article
       WHERE a.id=%s;
@@ -489,18 +488,15 @@ class AuthorArticle(Article):
 
   """
   def __init__(self, article_id, connection):
-     """Retrieves all required information for a single article.
+    """Retrieves all required information for a single article.
 
     Arguments:
       - article_id: The Rxivist ID of the article in question
       - connection: A database Connection object
 
     """
-    sql = """
-      SELECT url, title, collection, posted, doi
-      FROM articles
-      WHERE articles.id=%s
-    """
+
+    sql = "SELECT url, title, collection, posted, doi FROM articles WHERE articles.id=%s"
     sql_entry = connection.read(sql, (article_id,))
     if len(sql_entry) == 0:
       raise helpers.NotFoundError(article_id)
