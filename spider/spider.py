@@ -510,11 +510,15 @@ class Spider(object):
       },
     ]
     for task in tasks:
+      if task["name"] == "author": # TODO: get rid of this once we're done with the old authors
+        table = "detailed_author"
+      else:
+        table = task["name"]
       results = defaultdict(int)
       self.log.record("Calculating download distributions for {}".format(task["name"]))
       with self.connection.db.cursor() as cursor:
         # first, figure out the biggest bucket:
-        cursor.execute("SELECT MAX(downloads) FROM {}_ranks;".format(task["name"]))
+        cursor.execute("SELECT MAX(downloads) FROM {}_ranks;".format(table))
         biggest = cursor.fetchone()[0]
         # then set up all the empty buckets (so they aren't missing when we draw the graph)
         buckets = [0, task["scale_power"]]
@@ -528,7 +532,7 @@ class Spider(object):
         for bucket in buckets:
           results[bucket] = 0
         # now fill in the buckets:
-        cursor.execute("SELECT downloads FROM {}_ranks ORDER BY downloads ASC;".format(task["name"]))
+        cursor.execute("SELECT downloads FROM {}_ranks ORDER BY downloads ASC;".format(table))
         values = []
         for entity in cursor:
           if len(entity) > 0:
