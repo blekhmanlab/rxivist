@@ -1,23 +1,29 @@
 """Functions linked directly to functionality called from API endpoints.
 
-This module is used to pull logic out of the controllers in main.py.
-Some of these functions maybe called from MULTIPLE controllers, so
-look around before modifying the API of one of them.
 """
 
 import bottle
+
+import config
 import db
 import helpers
 import models
-import config
+
 
 def get_categories(connection):
-  """Returns a list of all known bioRxiv categories.
+  """Fetches a list of all known bioRxiv categories.
 
   bioRxiv separates all papers into categories (or "collections"), such
   as "bioinformatics", "genomics", etc. This function lists all the ones
-  we've pulled from the site so far. Used to generate the "select categories"
-  selector in the advanced search interface.
+  we've pulled from the site so far. Rxivist uses the term "categories"
+  instead of "collections" to make this more broadly applicable in case
+  it's one day expanded to index more than just bioRxiv.
+
+  Arguments:
+    - connection: a Connection object with an active database session
+
+  Returns:
+    - a list of strings, one for each bioRxiv collection
 
   """
   results = []
@@ -28,23 +34,23 @@ def get_categories(connection):
   return results
 
 def paper_query(connection, q, categories, timeframe, metric, page, page_size):
-  """Returns a list of the 20 most downloaded papers that meet a given set of constraints.
+  """Returns a list of the most downloaded papers that meet a given set of constraints.
 
   Arguments:
-    - connection: a database connection object.
-    - q:  A search string to compare against article abstracts
-          and titles. (Title matches are weighted more heavily.)
+    - connection: a database Connection object.
+    - q:  A search string to compare against article abstracts,
+          titles and author names. (Title matches are weighted more heavily.)
     - categories: A list of bioRxiv categories the results can be in.
     - timeframe: A description of the range of dates on which to
           base the rankings (i.e. "alltime" or "lastmonth")
     - metric: Which article-level statistic to use when sorting results
-    - page: Which page of the results to display (0 indexed)
+    - page: Which page of the results to display (0-indexed)
     - page_size: How many entries should be returned
   Returns:
-    - An ordered list of Article objects that meet the search criteria.
+    - An list of Article objects that meet the search criteria, sorted by the
+          specified metric in descending order.
 
   """
-
   # We build two queries, 'select' and 'countselect': one to get the
   # current page of results, and one to figure out the total number
   # of results
@@ -116,7 +122,7 @@ def paper_query(connection, q, categories, timeframe, metric, page, page_size):
   countselect += query
   resp = connection.read(countselect, params)
   total = resp[0][0]
-
+  # continue building the query to get the full list of results:
   if metric == "twitter":
     query += " GROUP BY a.id"
   query += " ORDER BY "
@@ -135,13 +141,13 @@ def paper_query(connection, q, categories, timeframe, metric, page, page_size):
   return results, total
 
 def author_rankings(connection, category=""):
-  """Returns a list of authors with the most cumulative downloads
+  """Fetches a list of authors with the most cumulative downloads.
 
   Arguments:
-    - connection: a database connection object.
-    - category: can specify a single bioRxiv collection to base download rankings on.
+    - connection: a database Connection object.
+    - category: (Optionally) a single bioRxiv collection to base download rankings on.
   Returns:
-    - An ordered list of Author objects that meet the search criteria.
+    - A list of Author objects that meet the search criteria.
 
   """
   if category == "": # all time, all categories
@@ -165,15 +171,15 @@ def author_rankings(connection, category=""):
   return [models.SearchResultAuthor(*a) for a in authors]
 
 def author_details(connection, author_id):
-  """Returns a dict of information about a single author, including a list of
+  """Returns information about a single author, including a list of
       all their papers.
 
   Arguments:
-    - connection: a database connection object.
-    - id: the ID given to the author being queried.
+    - connection: a database Connection object.
+    - author_id: the Rxivist-issued ID of the author being queried.
   Returns:
     - An Author object containing information about that
-        author's publications.
+        author's publications and contact info.
 
   """
   result = models.Author(author_id)
@@ -181,11 +187,11 @@ def author_details(connection, author_id):
   return result
 
 def paper_details(connection, article_id):
-  """Returns a dict of information about a single paper.
+  """Returns information about a single paper.
 
   Arguments:
-    - connection: a database connection object.
-    - id: the ID given to the author being queried.
+    - connection: a database Connection object.
+    - article_id: the ID given to the author being queried.
   Returns:
     - A Paper object containing details about the paper and
         its authors.
@@ -195,6 +201,16 @@ def paper_details(connection, article_id):
   return result
 
 def paper_downloads(connection, a_id):
+  """Returns time-series data from bioRxiv about how many
+  times a paper's webpage and PDF have been downloaded.
+
+  Arguments:
+    - connection: a database Connection object.
+    - a_id: the Rxivist-issued ID given to the paper being queried.
+  Returns:
+    - A list of months and the download stats for each month
+
+  """
   result = models.Article(a_id)
   result.GetDetailedTraffic(connection)
   return {
@@ -205,6 +221,16 @@ def paper_downloads(connection, a_id):
   }
 
 def get_distribution(connection, category, metric):
+  """Returns time-series data from bioRxiv about how many
+  times a paper's webpage and PDF have been downloaded.
+
+  Arguments:
+    - connection: a database Connection object.
+    - a_id: the Rxivist-issued ID given to the paper being queried.
+  Returns:
+    - A list of months and the download stats for each month
+
+  """
   # "category" param can be either "author" or "paper"
   # "metric" param is (right now) limited to just "downloads"
   data = connection.read("SELECT bucket, count FROM download_distribution WHERE category=%s ORDER BY bucket", (category,))
@@ -217,6 +243,14 @@ def get_distribution(connection, category, metric):
   return results, averages
 
 def site_stats(connection):
+  """Returns a (very) brief summary of the information indexed by Rxivist
+
+  Arguments:
+    - connection: a database Connection object.
+  Returns:
+    - A dict with the total indexed papers and authors
+
+  """
   resp = connection.read("SELECT COUNT(id) FROM articles;")
   if len(resp) != 1 or len(resp[0]) != 1:
     paper_count = 0

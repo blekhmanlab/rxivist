@@ -1,5 +1,12 @@
+"""Application-specific settings and configuration to
+dictate the behavior of the API.
+
+"""
+
 import os
 
+# Information about how to connect to a postgres database will
+# all the Rxivist data
 db = {
   "host": os.environ['RX_DBHOST'],
   "db": "rxdb",
@@ -21,8 +28,6 @@ use_prod_webserver = False
 # how many search results are returned at a time
 default_page_size = 20
 
-# the largest page a web user can request
-max_page_size_site = 100
 # the most results an API user can request at one time
 max_page_size_api = 250
 
@@ -31,10 +36,6 @@ google_tag = "UA-125076477-1"
 # The validation file provided by the Google Webmaster Tools.
 # (Should be placed in the /static directory)
 google_validation_file = "google3d18e8a680b87e67.html"
-
-# When accessing a table's data in the db admin dashboard, the maximum number of
-# results to display.
-db_admin_return_limit = 100
 
 # When displaying a leaderboard of author rankings, how many names should appear
 author_ranks_limit = 200

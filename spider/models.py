@@ -1,5 +1,6 @@
-import psycopg2
 import re
+
+import psycopg2
 
 class Author:
   def __init__(self, given, surname):

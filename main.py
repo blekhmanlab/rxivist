@@ -31,10 +31,10 @@ import re
 
 import bottle
 
-import db
-import helpers
-import endpoints
 import config
+import db
+import endpoints
+import helpers
 import models
 
 connection = db.Connection(config.db["host"], config.db["db"], config.db["user"], config.db["password"])
@@ -105,7 +105,7 @@ def index():
       error = "There was a problem with the submitted query: {}".format(e)
       bottle.response.status = 500
       return {"error": error}
-  resp = models.PaperQueryResponse(results, query, timeframe, category_filter, metric, entity, page, page_size, totalcount)
+  resp = models.PaperQueryResponse(results, query, timeframe, category_filter, metric, page, page_size, totalcount)
   return resp.json()
 
 # paper details
@@ -157,7 +157,7 @@ def display_author_details(author_id):
   return author.json()
 
 # categories list endpoint
-@bottle.get('/api/v1/data/collections')
+@bottle.get('/api/v1/data/categories')
 def get_category_list():
   try:
     category_list = endpoints.get_categories(connection)

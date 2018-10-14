@@ -1,6 +1,8 @@
-"""Data models used to organize data mostly for sending to the presentation layer.
+"""Data models used to organize data and retrieve information from the database.
 
-
+Some classes here just organize data that's been collected elsewhere in the
+application, but some initialization methods DO reach out to the db to find
+additional information.
 """
 import math
 
@@ -8,19 +10,45 @@ import db
 import helpers
 
 class PaperQueryResponse(object):
-  def __init__(self, results, query, timeframe, category_filter, metric, entity, current_page, page_size, totalcount):
+  """The object that is serialized and returned to the user after requesting
+  a list of papers that match a given set of criteria. Combines the results
+  AND the query parameters used to find them; both are included in case a
+  user sent query parameters that were out of range (or omitted some altogether);
+  that way users will have a way of finding out if they've bumped against a limit.
+
+  """
+  def __init__(self, results, query, timeframe, category_filter, metric, current_page, page_size, totalcount):
+    """The initialization method takes all the required information and stores it in
+    memory; nothing except the final page number is calculated here.
+
+    Arguments:
+      - results: A list of SearchResultArticle objects
+      - query: A string containing any text-based search parameters
+      - timeframe: A string indicating what slice of the available metrics to
+          use for the ranking
+      - category_filter: A list of strings, each signifying an acceptable
+          category for a result to be in.
+      - metric: Which metadata (downloads, tweets, etc.) was used when ranking
+          the results.
+      - current_page: When results are broken down into groups of $page_size elements,
+          which one is currently being returned.
+      - page_size: How many results to return at one time.
+      - totalcount: How many results there are on all pages combined.
+
+    """
     self.results = results
     self.query = query
     self.timeframe = timeframe
     self.category_filter = category_filter
     self.metric = metric
-    self.entity = entity
     self.current_page = current_page
     self.page_size = page_size
     self.final_page = math.ceil(totalcount / page_size) - 1 # zero-indexed
     self.totalcount = totalcount
 
   def json(self):
+    """Turns the PaperQueryResponse object into a dict that can be more
+    easily serialized into JSON."""
     return {
       "query": {
         "text_search": self.query,
@@ -36,16 +64,49 @@ class PaperQueryResponse(object):
     }
 
 class Author:
+  """Stores information about an individual person associated with
+  one or more papers."""
   def __init__(self, author_id, name=""):
+    """Because the Author class is used in several different areas
+    that have different requirements for how detailed the info needs
+    to be, little is done in the initialization method. One optional
+    parameter is author name, which can be specified in cases where
+    we know we won't be fetching any more information. It can be left
+    out, but would then require another entire DB call to retrieve it,
+    which can slow things down dramatically when building up lists of
+    authors.
+
+    Arguments:
+      - author_id: The Rxivist ID of the author in question; this is
+            used in all further steps to determine which information
+            to fetch.
+      - name: A string indicating the author's name. Optional.
+
+    """
     self.id = author_id
-    # Setting the name initially lets us skip all the extra DB calls when
-    # pulling together a list of authors for which we don't need even the
-    # basic info
     self.name = name
     self.has_full_info = False
     self.has_basic_info = False
 
   def GetInfo(self, connection):
+    """Fetches all of the information we have about a particular author.
+
+    Arguments:
+      - connection: A database Connection object
+
+    Side effects:
+      - self.name: The author's name
+      - self.institution: One of the author's institutional affiliations
+      - self.orcid: The ORCID universal identifier specified by the author
+      - self.articles: A list of AuthorArticle objects associated with the author
+      - self.emails: Any email addresses associated with the author
+      - self.ranks: A list of AuthorRankEntry objects indicating the author's
+          position in all-time downloads, relative to all other authors and also
+          relative to the other authors of any categories in which the author
+          also has at least one paper.
+      - self.has_full_info: A boolean indicating all of these values have been fetched.
+
+    """
     self.name, self.institution, self.orcid = self._find_vitals(connection)
     self.articles = self._find_articles(connection)
     self.emails = self._find_emails(connection)
@@ -53,10 +114,26 @@ class Author:
     self.has_full_info = True
 
   def GetBasicInfo(self, connection):
+    """Fetches a more limited subset of the author's information
+
+    Arguments:
+      - connection: A database Connection object
+
+    Side effects:
+      - self.name: The author's name
+      - self.institution: One of the author's institutional affiliations
+      - self.orcid: The ORCID universal identifier specified by the author
+      - self.has_basic_info: A boolean indicating all of these values have been fetched.
+
+    """
     self.name, self.institution, self.orcid = self._find_vitals(connection)
     self.has_basic_info = True
 
   def json(self):
+    """Returns a dict of information we have about the author, based on
+    how much has been fetched to this point.
+
+    """
     if self.has_full_info:
       return {
         "id": self.id,
@@ -81,6 +158,17 @@ class Author:
       }
 
   def _find_vitals(self, connection):
+    """Retrieves any identifying information about an author.
+
+    Arguments:
+      - connection: A database Connection object
+
+    Returns:
+      - name: A string with the author's name
+      - institution: A string indicating one of the author's institutional affiliations
+      - orcid: The ORCID universal identifier specified by the author
+
+    """
     authorq = connection.read("SELECT name, institution, orcid FROM detailed_authors WHERE id = %s;", (self.id,))
     if len(authorq) == 0:
       raise helpers.NotFoundError(id)
@@ -94,6 +182,16 @@ class Author:
     return name, institution, orcid
 
   def _find_articles(self, connection):
+    """Retrieves basic information about any articles for which the individual
+    is listed as one of the authors.
+
+    Arguments:
+      - connection: A database Connection object
+
+    Returns:
+      - A list of AuthorArticle objects with basic info and rankings for each paper
+
+    """
     sql = """
       SELECT articles.id
       FROM articles
@@ -112,6 +210,16 @@ class Author:
     return articles
 
   def _find_emails(self, connection):
+    """Retrieves any email addresses that have been found on bioRxiv associated with
+    the author.
+
+    Arguments:
+      - connection: A database Connection object
+
+    Returns:
+      - A list of strings, each a unique email address
+
+    """
     emails = []
     emailq = connection.read("SELECT email FROM detailed_authors_email WHERE author=%s;", (self.id,))
     for entry in emailq:
@@ -119,6 +227,15 @@ class Author:
     return emails
 
   def _find_ranks(self, connection):
+    """Retrieves pre-calculated ranking information about an author's position relative to others.
+
+    Arguments:
+      - connection: A database Connection object
+
+    Returns:
+      - A list of AuthorRankEntry objects
+
+    """
     ranks = []
     downloadsq = connection.read("SELECT rank, tie, downloads FROM detailed_author_ranks WHERE author=%s;", (self.id,))
     if len(downloadsq) == 1:
@@ -161,7 +278,9 @@ class ArticleRankEntry(object):
 
 class AuthorRankEntry(object):
   """Stores data about an author's rank within a
-  single corpus."""
+  single corpus.
+
+  """
   def __init__(self, rank=0, out_of=0, tie=False, downloads=0, category=""):
     self.downloads = downloads
     self.rank = rank
@@ -180,9 +299,19 @@ class AuthorRankEntry(object):
 
 class ArticleRanks(object):
   """Stores information about all of an individual article's
-  rankings.
+  rankings: One for each available timeframe, and one reflecting the
+  all-time ranking of the article relative only to other articles in
+  the same category.
+
   """
   def __init__(self, article_id, connection):
+    """Retrieves all required ranking information for a single article.
+
+    Arguments:
+      - article_id: The Rxivist ID of the article in question
+      - connection: A database Connection object
+
+    """
     sql = """
       SELECT alltime_ranks.rank, ytd_ranks.rank,
         month_ranks.rank, category_ranks.rank, articles.collection,
@@ -226,8 +355,9 @@ class Article:
 
     Arguments:
       - connection: a database connection object.
-    Returns nothing. Sets the article's "authors" field to
-      a list of Author objects.
+
+    Side effects:
+      - self.authors: A list of Author objects associated with the article
 
     """
     self.authors = []
@@ -240,6 +370,7 @@ class Article:
     self.traffic = [TrafficEntry(entry) for entry in data]
 
 class TrafficEntry(object):
+  "Stores the bioRxiv traffic information for a single month"
   def __init__(self, sql_entry):
     self.month = sql_entry[0]
     self.year = sql_entry[1]
@@ -249,6 +380,14 @@ class TrafficEntry(object):
 class SearchResultArticle(Article):
   "An article as displayed on the main results page."
   def __init__(self, sql_entry, connection):
+    """Organizes all the known information about a single article.
+
+    Arguments:
+      - sql_entry: The results of the large query built up in the
+          endpoints.paper_query() function.
+      - connection: A database Connection object.
+
+    """
     self.downloads = sql_entry[0] # NOTE: This can be "downloads" OR "tweet count"
     self.id = sql_entry[1]
     self.url = sql_entry[2]
@@ -267,14 +406,14 @@ class SearchResultArticle(Article):
       "title": self.title,
       "url": self.url,
       "doi": self.doi,
-      "collection": self.collection,
+      "category": self.collection,
       "first_posted": self.posted.strftime('%Y-%m-%d') if self.posted is not None else "",
       "abstract": self.abstract,
       "authors": [x.json() for x in self.authors]
     }
 
 class SearchResultAuthor(object):
-  "An author as displayed on the main results page."
+  "An author, as returned by the author rankings endpoint."
   def __init__(self, id, name, rank, downloads, tie):
     self.id = id
     self.name = name
@@ -290,8 +429,15 @@ class SearchResultAuthor(object):
     }
 
 class ArticleDetails(Article):
-  "Detailed article info displayed on paper pages."
+  "Article info as returned by the article details endpoint."
   def __init__(self, article_id, connection):
+     """Retrieves all required information for a single article.
+
+    Arguments:
+      - article_id: The Rxivist ID of the article in question
+      - connection: A database Connection object
+
+    """
     sql = """
       SELECT a.url, a.title, a.collection, a.posted, a.doi, a.abstract, p.publication, p.doi
       FROM articles a
@@ -338,8 +484,18 @@ class ArticleDetails(Article):
     return resp
 
 class AuthorArticle(Article):
-  "Detailed article info displayed on author pages. Less data than ArticleDetails class."
+  """Article info returned by the author details endpoint.
+  Less data than ArticleDetails class.
+
+  """
   def __init__(self, article_id, connection):
+     """Retrieves all required information for a single article.
+
+    Arguments:
+      - article_id: The Rxivist ID of the article in question
+      - connection: A database Connection object
+
+    """
     sql = """
       SELECT url, title, collection, posted, doi
       FROM articles

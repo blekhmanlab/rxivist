@@ -36,10 +36,10 @@ import psycopg2
 from requests_html import HTMLSession
 import requests
 
-import db
 import config
-import models
+import db
 from log import Logger
+import models
 
 def determine_page_count(html):
   # takes a biorxiv results page and
@@ -176,7 +176,10 @@ class Spider(object):
   def refresh_article_stats(self, collection, cap=10000): # TODO: should be article method
     self.log.record("Refreshing article download stats for collection {}...".format(collection))
     with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT id, url, posted, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
+      # cursor.execute("SELECT id, url, posted, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
+      # TODO: UNCOMMENT this piece and remove the line that looks for refresh candidates
+      # based on posted date; that's just to accellerate the transition to the improved schema
+      cursor.execute("SELECT id, url, posted, doi FROM articles WHERE collection=%s AND posted IS NULL;", (collection,))
       updated = 0
       for article in cursor:
         url = article[1]
