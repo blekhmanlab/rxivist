@@ -439,11 +439,6 @@ class Spider(object):
       self._rank_articles_month()
       load_rankings_from_file("month_ranks", self.log)
       self.activate_tables("month_ranks")
-    # if config.perform_ranks["bouncerate"] is not False:
-    #   self._rank_articles_bouncerate()
-    #   load_rankings_from_file("bounce_ranks", self.log)
-    #   self.activate_tables("bounce_ranks")
-
     if config.perform_ranks["authors"] is not False:
       self._rank_authors_alltime()
       load_rankings_from_file("author_ranks", self.log)
@@ -815,6 +810,141 @@ class Spider(object):
       cursor.execute("UPDATE articles SET abstract_vector = to_tsvector(coalesce(abstract,'')) WHERE abstract_vector IS NULL;")
       self.connection.db.commit()
 
+  def find_new_authorids(self):
+    import pickle
+    # Grab the list of articles we can skip
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT done FROM articles_processed ORDER BY done")
+      done = [x[0] for x in cursor]
+    print("Found {} articles that are done already".format(len(done)))
+
+    # Grab the length of the author list for the old lists:
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT article, COUNT(author) FROM article_authors GROUP BY article ORDER BY article LIMIT 100")
+      articles = [(x[0], x[1]) for x in cursor]
+    print("Found {} articles with old authors".format(len(articles)))
+    old = []
+    for a in articles:
+      if a[0] not in done:
+        old.append(a)
+    print("After removing done articles, we have {} old articles to evaluate".format(len(old)))
+
+    # Grab the length of the author list for the new lists:
+    # (this one gets put in a dict for easier lookup)
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT article, COUNT(author) FROM article_detailed_authors GROUP BY article ORDER BY article")
+      articles = [(x[0], x[1]) for x in cursor]
+    print("Found {} articles with new authors".format(len(articles)))
+    new = {}
+    for a in articles:
+      if a[0] not in done:
+        new[a[0]] = a[1]
+    print("After removing done articles, we have {} new articles to compare to".format(len(new.keys())))
+
+    # compare the length of the old and new lists for each article
+    matches = []
+    for oldcount in old:
+      if oldcount[0] not in new.keys():
+        continue # New authors not recorded yet
+      if new[oldcount[0]] != oldcount[1]:
+        print("Author counts don't match for {}".format(oldcount[0]))
+        continue
+      elif oldcount[1] == 0:
+        print("Weird: no authors for this one")
+        continue
+      else:
+        with self.connection.db.cursor() as cursor:
+          cursor.execute("SELECT author FROM article_authors WHERE article=%s ORDER BY id", (oldcount[0],))
+          old_ids = [x[0] for x in cursor]
+        with self.connection.db.cursor() as cursor:
+          cursor.execute("SELECT author FROM article_detailed_authors WHERE article=%s ORDER BY id", (oldcount[0],))
+          new_ids = [x[0] for x in cursor]
+
+        for i in range(len(old_ids)):
+          matches.append( (old_ids[i], new_ids[i], oldcount[0]) ) # the IDs to link, and which article told us to
+    print("Before filtering, we have {} authors we can link".format(len(matches)))
+
+    with open('matches.pickle', 'wb') as f:
+      pickle.dump(matches, f, pickle.HIGHEST_PROTOCOL)
+    print("Pickled matches, don't worry")
+
+    # remove duplicates from the list
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT old FROM author_translations ORDER BY old")
+      old_ids = [x[0] for x in cursor]
+    print("Found {} old author IDs we can skip".format(len(old_ids)))
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT new FROM author_translations ORDER BY new")
+      new_ids = [x[0] for x in cursor]
+    print("Found {} new author IDs we can skip".format(len(new_ids)))
+
+    no_dupes = []
+    for match in matches:
+      if match[0] not in old_ids and match[1] not in new_ids:
+        old_ids.append(match[0])
+        new_ids.append(match[1])
+        no_dupes.append(match)
+    print("After internal dupe processing, we have {} authors we can link".format(len(no_dupes)))
+
+    with open('no_dupes.pickle', 'wb') as f:
+      pickle.dump(no_dupes, f, pickle.HIGHEST_PROTOCOL)
+    print("Pickled no_dupes, don't worry")
+    print("Recording the translations......")
+    with self.connection.db.cursor() as cursor:
+      params = [(x[0], x[1]) for x in no_dupes]
+      cursor.executemany("INSERT INTO author_translations (old, new) VALUES (%s, %s);", params)
+    print("Recorded the translations!")
+    with self.connection.db.cursor() as cursor:
+      # make a list of the articles we used
+      processed = []
+      for x in no_dupes:
+        if x[2] not in processed:
+          processed.append(x[2])
+      params = [(x,) for x in processed]
+      print("Saving {} articles that we can skip next time".format(len(processed)))
+      cursor.executemany("INSERT INTO articles_processed (done) VALUES (%s);", params)
+    print("Recorded the done articles!")
+
+  def browse_new_authorids(self):
+    import pickle
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT old, new FROM author_translations ORDER BY old")
+      id_pairs = [x for x in cursor]
+
+    print("Comparing {} translations".format(len(id_pairs)))
+    old_names = []
+    with self.connection.db.cursor() as cursor:
+      for pair in id_pairs:
+        cursor.execute("SELECT given, surname FROM authors WHERE id=%s", (pair[0],))
+        for x in cursor:
+          old_names.append("{} {}".format(x[0], x[1]))
+    with open('old_names.pickle', 'wb') as f:
+      pickle.dump(old_names, f, pickle.HIGHEST_PROTOCOL)
+    print("Pickled old_names, don't worry")
+
+    new_names = []
+    with self.connection.db.cursor() as cursor:
+      for pair in id_pairs:
+        cursor.execute("SELECT name FROM detailed_authors WHERE id=%s", (pair[1],))
+        for x in cursor:
+          new_names.append(x[0])
+    with open('new_names.pickle', 'wb') as f:
+      pickle.dump(new_names, f, pickle.HIGHEST_PROTOCOL)
+    print("Pickled new_names, don't worry")
+    # with open('new_names.pickle', 'rb') as f:
+    #   new_names = pickle.load(f)
+    # with open('old_names.pickle', 'rb') as f:
+    #   old_names = pickle.load(f)
+
+    for i in range(len(old_names)):
+      if old_names[i] != new_names[i]:
+        one = old_names[i].encode('utf-8')
+        two = new_names[i].encode('utf-8')
+        try:
+          print("{}    ||    {}".format(one.decode('utf-8'), two.decode('utf-8')))
+        except Exception:
+          print("{}    ||    {}".format(one, two))
+
   def build_sitemap(self):
     """Utility function used to pull together a list of all pages on the site.
     Not used for day-to-day operations."""
@@ -1001,6 +1131,7 @@ if __name__ == "__main__":
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   elif sys.argv[1] == "test": # placeholder for temporary commands
-    spider._pull_crossref_data("2018-09-27")
+    spider.find_new_authorids()
+    # spider.browse_new_authorids()
   else:
     full_run(spider, sys.argv[1])
