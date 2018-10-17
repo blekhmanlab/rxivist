@@ -1,5 +1,7 @@
 import os
 
+# Information about how to connect to a postgres database will
+# all the Rxivist data
 db = {
   "host": os.environ['RX_DBHOST'],
   "db": "rxdb",
@@ -7,6 +9,7 @@ db = {
   "password": os.environ['RX_DBPASSWORD']
 }
 
+# How much output to send to application logs
 log_level = "debug"
 # Whether to print messages to stdout
 log_to_stdout = True
@@ -49,26 +52,41 @@ delete_csv = True
 # stats should be before we refresh them. (This string MUST
 # be able to be interpreted by Postgres as a time interval
 # to subtract from the current date.)
-refresh_interval = "4 weeks"
-limit_refresh = False
+refresh_interval = "20 days"
+limit_refresh = True
 refresh_category_cap = 150
 
 # information about the biorxiv web addresses to be scraped
 biorxiv = {
   "endpoints": {
-    "collection": "https://www.biorxiv.org/collection"
+    "collection": "https://www.biorxiv.org/collection",
+    "pub_doi": "https://connect.biorxiv.org/bx_pub_doi_get.php"
   }
 }
 
+crossref = {
+  "endpoints": {
+    "events": "https://api.eventdata.crossref.org/v1/events"
+  },
+  "parameters": {
+    "email": "blekhmanlab@gmail.com" # an email address to attach to each Crossref call, per their request
+  }
+}
+
+rxivist = {
+  "base_url": "https://rxivist.org" # used for building sitemaps
+}
+
+# Which actions to take as part of the crawling session
 crawl = {
-  "fetch_new": True,
-  "fetch_abstracts": True,
-  "fetch_crossref": True,
-  "refresh_stats": True,
+  "fetch_new": True, # Check for new papers in each collection
+  "fetch_abstracts": True, # Check for any Rxivist papers missing an abstract and fill it in (Papers don't have an abstract when first crawled)
+  "fetch_crossref": False, # Update daily Crossref stats
+  "refresh_stats": True, # Look for articles with outdated download info and re-crawl them
 }
 
 perform_ranks = {
-  "enabled": True,  # set to False to disable all below
+  "enabled": False,  # set to False to disable all below
   "alltime": True,
   "ytd": True,
   "month": True,

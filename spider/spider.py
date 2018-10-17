@@ -93,7 +93,7 @@ class Spider(object):
       cursor.execute("DELETE FROM crossref_daily WHERE source_date=%s;", (datestring,))
 
     headers = {'user-agent': config.user_agent}
-    r = requests.get("https://api.eventdata.crossref.org/v1/events?obj-id.prefix=10.1101&from-occurred-date={0}&until-occurred-date={0}&source=twitter&mailto=rabdill@umn.edu&rows=10000".format(datestring), headers=headers)
+    r = requests.get("{0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), headers=headers)
     if r.status_code != 200:
       self.log.record("Got weird status code: {}. {}".format(r.status_code, r.text()), "error")
       return
@@ -216,7 +216,7 @@ class Spider(object):
         self.log.record("Paper already has publication recorded. Skipping.", "debug")
         return
     try:
-      resp = self.session.get("https://connect.biorxiv.org/bx_pub_doi_get.php?doi={}".format(doi))
+      resp = self.session.get("{}?doi={}".format(config.biorxiv["endpoints"]["pub_doi"], doi))
     except Exception as e:
       self.log.record("Error fetching publication data: {}".format(e), "warn")
       if retry:
@@ -811,6 +811,8 @@ class Spider(object):
       self.connection.db.commit()
 
   def find_new_authorids(self):
+    limit = 100000
+
     import pickle
     # Grab the list of articles we can skip
     with self.connection.db.cursor() as cursor:
@@ -820,7 +822,7 @@ class Spider(object):
 
     # Grab the length of the author list for the old lists:
     with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT article, COUNT(author) FROM article_authors GROUP BY article ORDER BY article LIMIT 100")
+      cursor.execute("SELECT article, COUNT(author) FROM article_authors GROUP BY article ORDER BY article LIMIT {}".format(limit))
       articles = [(x[0], x[1]) for x in cursor]
     print("Found {} articles with old authors".format(len(articles)))
     old = []
@@ -884,7 +886,7 @@ class Spider(object):
         old_ids.append(match[0])
         new_ids.append(match[1])
         no_dupes.append(match)
-    print("After internal dupe processing, we have {} authors we can link".format(len(no_dupes)))
+    print("After dupe processing, we have {} authors we can link".format(len(no_dupes)))
 
     with open('no_dupes.pickle', 'wb') as f:
       pickle.dump(no_dupes, f, pickle.HIGHEST_PROTOCOL)
@@ -937,7 +939,7 @@ class Spider(object):
     #   old_names = pickle.load(f)
 
     for i in range(len(old_names)):
-      if old_names[i] != new_names[i]:
+      if old_names[i].replace(" ", "") != new_names[i].replace(" ", ""):
         one = old_names[i].encode('utf-8')
         two = new_names[i].encode('utf-8')
         try:
@@ -957,7 +959,7 @@ class Spider(object):
       self.log.record("Recording papers.")
       lines = 0
       for a in cursor:
-        f.write('https://rxivist.org/papers/{}\n'.format(a[0]))
+        f.write('{}/papers/{}\n'.format(config.rxivist["base_url"], a[0]))
         lines += 1
         if lines >= 48000:
           lines = 0
@@ -971,7 +973,7 @@ class Spider(object):
       cursor.execute("SELECT id FROM authors ORDER BY id;")
       self.log.record("Recording authors.")
       for a in cursor:
-        f.write('https://rxivist.org/authors/{}\n'.format(a[0]))
+        f.write('{}/authors/{}\n'.format(config.rxivist["base_url"], a[0]))
         lines += 1
         if lines >= 48000:
           lines = 0

@@ -171,9 +171,9 @@ class Author:
     """
     authorq = connection.read("SELECT name, institution, orcid FROM detailed_authors WHERE id = %s;", (self.id,))
     if len(authorq) == 0:
-      raise helpers.NotFoundError(id)
+      raise helpers.NotFoundError(self.id)
     if len(authorq) > 1:
-      raise ValueError("Multiple authors found with id {}".format(id))
+      raise ValueError("Multiple authors found with id {}".format(self.id))
     name, institution, orcid = authorq[0]
     if institution == "":
       institution = None
