@@ -393,9 +393,8 @@ class SearchResultArticle(Article):
     self.title = sql_entry[3]
     self.abstract = sql_entry[4]
     self.collection = sql_entry[5]
-    self.date = DateEntry(sql_entry[6], sql_entry[7])
-    self.posted = sql_entry[8]
-    self.doi = sql_entry[9]
+    self.posted = sql_entry[6]
+    self.doi = sql_entry[7]
     self.get_authors(connection)
 
   def json(self):

@@ -30,7 +30,7 @@ class Author:
 class DetailedAuthor:
   def __init__(self, name, institution, email, orcid=None):
     if institution == "":
-      institution = None
+      self.institution = None
     if email == "":
       email = None
     if orcid == "":
@@ -40,6 +40,8 @@ class DetailedAuthor:
     # lots of "institution" strings from biorxiv for some reason end in semicolons
     if institution is not None:
       self.institution = re.sub(r";$", "", institution)
+    else:
+      self.institution = None
     self.email = email
     self.orcid = orcid
     self.id = None

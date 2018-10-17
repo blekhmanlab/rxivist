@@ -59,7 +59,7 @@ def paper_query(q, categories, timeframe, metric, page, page_size, connection):
     select += "r.downloads"
   elif metric == "twitter":
     select += "SUM(r.count)"
-  select += ", a.id, a.url, a.title, a.abstract, a.collection, a.origin_month, a.origin_year, a.posted, a.doi"
+  select += ", a.id, a.url, a.title, a.abstract, a.collection, a.posted, a.doi"
 
   countselect = "SELECT COUNT(DISTINCT a.id)"
   params = ()

@@ -391,22 +391,6 @@ class Spider(object):
         cursor.execute("UPDATE articles SET posted = %s WHERE id=%s", (posted, article_id))
       self.log.record("Recorded {} stats for ID {}".format(len(to_record), article_id), "debug")
 
-      cursor.execute("SELECT origin_month FROM articles WHERE id=%s", (article_id,))
-      paper = cursor.fetchone()
-      if len(paper) == 0:
-        self.log.record("No origin date recorded for paper; determining.", "info")
-        # figure out the earliest date we have traffic, and make that the paper's birthday
-        try:
-          cursor.execute("SELECT MIN(year) FROM article_traffic WHERE article=%s", (article_id,))
-          year = cursor.fetchone()
-          if year is not None:
-            cursor.execute("SELECT MIN(month) FROM article_traffic WHERE article=%s AND year=%s", (article_id,year))
-            month = cursor.fetchone()
-            if month is not None:
-              cursor.execute("UPDATE articles SET origin_month = %s, origin_year = %s, last_crawled = CURRENT_DATE WHERE id=%s", (month, year, article_id))
-        except Exception as e:
-          self.log.record("ERROR determining age of article: {}".format(e), "warn")
-
   def _record_detailed_authors(self, article_id, authors, overwrite=False):
     if overwrite:
       with self.connection.db.cursor() as cursor:
