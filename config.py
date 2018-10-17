@@ -31,6 +31,10 @@ default_page_size = 20
 # the most results an API user can request at one time
 max_page_size_api = 250
 
+# Amount of time that can pass since an article has been updated before
+# it is included in the tally of "outdated" articles
+outdated_limit = "2 weeks"
+
 # The entity ID provided by Google Analytics
 google_tag = "UA-125076477-1"
 # The validation file provided by the Google Webmaster Tools.

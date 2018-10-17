@@ -42,7 +42,7 @@ connection = db.Connection(config.db["host"], config.db["db"], config.db["user"]
 # - ROUTES -
 
 #  paper query endpoint
-@bottle.get('/api/v1/papers')
+@bottle.get('/v1/papers')
 def index():
   query = bottle.request.query.q
   timeframe = bottle.request.query.timeframe
@@ -109,7 +109,7 @@ def index():
   return resp.json()
 
 # paper details
-@bottle.get('/api/v1/papers/<id:int>')
+@bottle.get('/v1/papers/<id:int>')
 def paper_details(id):
   try:
     paper = endpoints.paper_details(connection, id)
@@ -122,7 +122,7 @@ def paper_details(id):
   return paper.json()
 
 # paper download stats
-@bottle.get('/api/v1/papers/<id:int>/downloads')
+@bottle.get('/v1/papers/<id:int>/downloads')
 def paper_downloads(id):
   try:
     details = endpoints.paper_downloads(connection, id)
@@ -135,7 +135,7 @@ def paper_downloads(id):
   return details
 
 # author rankings
-@bottle.get('/api/v1/authors')
+@bottle.get('/v1/authors')
 def alltime_author_ranks():
   category = bottle.request.query.category
   resp = endpoints.author_rankings(connection, category)
@@ -144,7 +144,7 @@ def alltime_author_ranks():
   }
 
 # author details page
-@bottle.get('/api/v1/authors/<author_id:int>')
+@bottle.get('/v1/authors/<author_id:int>')
 def display_author_details(author_id):
   try:
     author = endpoints.author_details(connection, author_id)
@@ -157,7 +157,7 @@ def display_author_details(author_id):
   return author.json()
 
 # categories list endpoint
-@bottle.get('/api/v1/data/categories')
+@bottle.get('/v1/data/categories')
 def get_category_list():
   try:
     category_list = endpoints.get_categories(connection)
@@ -169,7 +169,7 @@ def get_category_list():
   }
 
 # stat distributions endpoint
-@bottle.get('/api/v1/data/distributions/<entity>/<metric>')
+@bottle.get('/v1/data/distributions/<entity>/<metric>')
 def get_distros(entity, metric):
   if entity not in ["paper", "author"]:
     bottle.response.status = 404
@@ -193,7 +193,7 @@ def get_distros(entity, metric):
     }
   }
 
-@bottle.get('/api/v1/data/counts')
+@bottle.get('/v1/data/stats')
 def get_counts():
   return endpoints.site_stats(connection)
 

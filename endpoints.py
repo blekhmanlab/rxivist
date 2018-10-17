@@ -251,6 +251,8 @@ def site_stats(connection):
     - A dict with the total indexed papers and authors
 
   """
+
+  # Counting up how many of each entity we have
   resp = connection.read("SELECT COUNT(id) FROM articles;")
   if len(resp) != 1 or len(resp[0]) != 1:
     paper_count = 0
@@ -262,7 +264,32 @@ def site_stats(connection):
     author_count = 0
   else:
     author_count = resp[0][0]
+
+  resp = connection.read("SELECT COUNT(id) FROM articles WHERE abstract IS NULL;")
+  if len(resp) != 1 or len(resp[0]) != 1:
+    no_abstract = 0
+  else:
+    no_abstract = resp[0][0]
+
+  resp = connection.read("SELECT COUNT(id) FROM articles WHERE posted IS NULL;")
+  if len(resp) != 1 or len(resp[0]) != 1:
+    no_posted = 0
+  else:
+    no_posted = resp[0][0]
+
+  outdated = {}
+  resp = connection.read("SELECT collection, COUNT(id) FROM articles WHERE last_crawled < now() - interval %s GROUP BY collection ORDER BY collection;", (config.outdated_limit,))
+  if len(resp) > 0:
+    for entry in resp:
+      if len(entry) < 2:
+        continue # something fishy with this entry
+      outdated[entry[0]] = entry[1]
+
+
   return {
-    "paper_count": paper_count,
-    "author_count": author_count
+    "papers_indexed": paper_count,
+    "authors_indexed": author_count,
+    "missing_abstract": no_abstract,
+    "missing_date": no_posted,
+    "outdated_count": outdated
   }
