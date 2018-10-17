@@ -7,6 +7,8 @@ RUN echo 'APT::Default-Release "stable";' | tee -a /etc/apt/apt.conf.d/00local
 RUN apt-get update
 RUN apt-get -t testing install -y python3.6 python3-pip
 
+RUN echo "LC_ALL=en_US.UTF-8\nLANG=en_US.UTF-8" > /etc/default/locale
+
 ADD . /app
 WORKDIR /app
 RUN pip3 install -r requirements.txt

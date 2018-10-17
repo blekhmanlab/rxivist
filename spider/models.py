@@ -38,7 +38,8 @@ class DetailedAuthor:
 
     self.name = name
     # lots of "institution" strings from biorxiv for some reason end in semicolons
-    self.institution = re.sub(r";$", "", institution)
+    if institution is not None:
+      self.institution = re.sub(r";$", "", institution)
     self.email = email
     self.orcid = orcid
     self.id = None
