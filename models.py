@@ -247,7 +247,7 @@ class Author:
     for cat in categoryq:
       authors_in_category = connection.read("SELECT COUNT(author) FROM detailed_author_ranks_category WHERE category=%s", (cat[3],))
       authors_in_category = authors_in_category[0][0]
-      entry = AuthorRankEntry(cat[0], authors_in_category, cat[1], cat[2], cat[3]) # TODO: this is all wrong
+      entry = AuthorRankEntry(cat[0], authors_in_category, cat[1], cat[2], cat[3])
       ranks.append(entry)
 
     return ranks

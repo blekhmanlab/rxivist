@@ -149,8 +149,8 @@ class Spider(object):
 
     results = pull_out_articles(r.html, collection, self.log)
     consecutive_recognized = 0
-    for x in results:
-      if not x.record(self.connection, self): # TODO: don't pass the whole damn spider here
+    for article in results:
+      if not article.record(self.connection, self):
         consecutive_recognized += 1
         if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
       else:
@@ -192,7 +192,7 @@ class Spider(object):
         except ValueError as e:
           self.log.record("Error retrieving abstract: {}".format(e))
 
-  def refresh_article_stats(self, collection, cap=10000): # TODO: should be article method
+  def refresh_article_stats(self, collection, cap=10000):
     self.log.record("Refreshing article download stats for collection {}...".format(collection))
     with self.connection.db.cursor() as cursor:
       # cursor.execute("SELECT id, url, posted, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
@@ -291,7 +291,7 @@ class Spider(object):
       raise ValueError("Successfully made HTTP call to fetch paper information, but did not find an abstract.")
     return abstract[0].text
 
-  def get_article_stats(self, url, retry_count=0): # TODO: This should be an article method, right?
+  def get_article_stats(self, url, retry_count=0):
     try:
       resp = self.session.get("{}.article-metrics".format(url))
     except Exception as e:
@@ -353,10 +353,15 @@ class Spider(object):
     # First, delete the most recently fetched month, because it was probably recorded before
     # that month was complete:
     with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT MAX(month) FROM article_traffic WHERE year = 2018 AND article=%s;", (article_id,)) # TODO: don't hardcode the date, good luck
-      month = cursor.fetchone()
-      if month is not None and len(month) > 0:
-        cursor.execute("DELETE FROM article_traffic WHERE year = 2018 AND article=%s AND month = %s", (article_id, month[0]))
+      cursor.execute("SELECT MAX(year) FROM article_traffic WHERE article=%s;", (article_id,))
+      max_year = cursor.fetchone()
+    if max_year is not None and len(max_year) > 0:
+      max_year = max_year[0]
+      with self.connection.db.cursor() as cursor:
+        cursor.execute("SELECT MAX(month) FROM article_traffic WHERE year = %s AND article=%s;", (max_year, article_id))
+        month = cursor.fetchone()
+        if month is not None and len(month) > 0:
+          cursor.execute("DELETE FROM article_traffic WHERE year = %s AND month = %s AND article=%s", (max_year, month[0], article_id))
 
     with self.connection.db.cursor() as cursor:
       # we check for which ones are already recorded because
@@ -530,7 +535,7 @@ class Spider(object):
     self.log.record("Calculating distribution of download counts with logarithmic scales.")
     tasks = [
       {
-        "name": "alltime", # TODO: this should be "papers"
+        "name": "alltime", # NOTE: this means alltime for PAPERS
         "scale_power": config.distribution_log_articles
       },
       {
@@ -623,41 +628,44 @@ class Spider(object):
       params = [(record[0], rank) for rank, record in enumerate(cursor, start=1)]
     record_ranks_file(params, "category_ranks_working")
 
-  def _rank_articles_bouncerate(self):
-    # Ranking articles by the proportion of abstract views to downloads
-    self.log.record("Ranking papers by bounce rate...")
-    with self.connection.db.cursor() as cursor:
-      cursor.execute("TRUNCATE bounce_ranks_working")
-      # TODO: only calculate ranks for papers with more than some minimum number of downloads
-      cursor.execute("SELECT article, CAST (SUM(pdf) AS FLOAT)/SUM(abstract) AS bounce FROM article_traffic GROUP BY article ORDER BY bounce DESC")
-      params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
-
-    record_ranks_file(params, "bounce_ranks_working")
-
   def _rank_articles_ytd(self):
     self.log.record("Ranking papers by popularity, year to date...")
     with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT MAX(year) FROM article_traffic;")
+      max_year = cursor.fetchone()
+      if max_year is None or len(max_year) == 0:
+        self.log.record("Could not determine current year for ranking YTD; exiting", "fatal")
+    with self.connection.db.cursor() as cursor:
       cursor.execute("TRUNCATE ytd_ranks_working")
-      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 GROUP BY article ORDER BY downloads DESC") # TODO don't hard-code the year
+      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = %s GROUP BY article ORDER BY downloads DESC", (max_year,))
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
 
     record_ranks_file(params, "ytd_ranks_working")
 
   def _rank_articles_month(self):
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT MAX(year) FROM article_traffic")
+      year = cursor.fetchone()
+      if year is None or len(year) == 0:
+        self.log.record("Couldn't determine year for monthly rankings; bailing on this ranking", "error")
+        return
+      year = year[0]
     self.log.record("Ranking papers by popularity, since last month...")
     with self.connection.db.cursor() as cursor:
       # Determine most recent month
-      cursor.execute("SELECT MAX(month) FROM article_traffic WHERE year = 2018;")
+      cursor.execute("SELECT MAX(month) FROM article_traffic WHERE year = %s;", (year,))
       month = cursor.fetchone()
       if month is None or len(month) < 1:
         self.log.record("Could not determine current month.", "error")
         return
       month = month[0] - 1 # "since LAST month" prevents nonsense results early in the current month
-
+      if month == 0: # if it's January, roll back one year
+        month =  12
+        year = year - 1
     with self.connection.db.cursor() as cursor:
       self.log.record("Ranking articles based on traffic since {}/2018".format(month))
       cursor.execute("TRUNCATE month_ranks_working")
-      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = 2018 AND month >= %s GROUP BY article ORDER BY downloads DESC", (month,)) # TODO don't hard-code the year
+      cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = %s AND month >= %s GROUP BY article ORDER BY downloads DESC", (year, month))
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
 
     record_ranks_file(params, "month_ranks_working")
@@ -831,7 +839,6 @@ class Spider(object):
     self._pull_crossref_data_date(current.strftime('%Y-%m-%d'))
 
   def update_article(self, article_id, abstract):
-    # TODO: seems like this thing should be in the Article class maybe?
     with self.connection.db.cursor() as cursor:
       cursor.execute("UPDATE articles SET abstract = %s WHERE id = %s;", (abstract, article_id))
       self.connection.db.commit()
@@ -1042,7 +1049,7 @@ def load_rankings_from_file(batch, log):
     to_delete = "category_ranks_working.csv"
   else:
     log.record("Unrecognized rankings source passed to load_rankings_from_file: {}".format(batch), "warn")
-    return # TODO: Should this be an exception?
+    return
 
   subprocess.run(["psql", "-h", config.db["host"], "-U", config.db["user"], "-d", config.db["db"], "-c", query], check=True)
   # Some files get rewritten a bunch of times; if we encounter one of those,

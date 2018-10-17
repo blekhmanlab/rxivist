@@ -102,7 +102,7 @@ def index():
 
   if error == "": # if nothing's gone wrong yet, fetch results:
     try:
-      results, totalcount = endpoints.paper_query(connection, query, category_filter, timeframe, metric, page, page_size)
+      results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, connection)
     except Exception as e:
       error = "There was a problem with the submitted query: {}".format(e)
       bottle.response.status = 500
@@ -114,7 +114,7 @@ def index():
 @bottle.get('/v1/papers/<id:int>')
 def paper_details(id):
   try:
-    paper = endpoints.paper_details(connection, id)
+    paper = endpoints.paper_details(id, connection)
   except helpers.NotFoundError as e:
     bottle.response.status = 404
     return {"error": e.message}
@@ -127,7 +127,7 @@ def paper_details(id):
 @bottle.get('/v1/papers/<id:int>/downloads')
 def paper_downloads(id):
   try:
-    details = endpoints.paper_downloads(connection, id)
+    details = endpoints.paper_downloads(id ,connection)
   except helpers.NotFoundError as e:
     bottle.response.status = 404
     return {"error": e.message}
@@ -149,7 +149,7 @@ def alltime_author_ranks():
 @bottle.get('/v1/authors/<author_id:int>')
 def display_author_details(author_id):
   try:
-    author = endpoints.author_details(connection, author_id)
+    author = endpoints.author_details(author_id, connection)
   except helpers.NotFoundError as e:
     bottle.response.status = 404
     return {"error": e.message}
@@ -179,11 +179,9 @@ def get_distros(entity, metric):
   if metric not in ["downloads"]:
     bottle.response.status = 404
     return {"error": "Unknown entity: expected 'downloads'; got '{}'".format(metric)}
-  if entity == "paper": # TODO: Fix this silliness
-    entity = "alltime"
 
   try:
-    results, averages = endpoints.get_distribution(connection, entity, metric)
+    results, averages = endpoints.get_distribution(entity, metric, connection)
   except Exception as e:
     bottle.response.status = 500
     return {"error": "Server error – {}".format(e)}

@@ -93,6 +93,9 @@ class DetailedAuthor:
           cursor.execute("INSERT INTO detailed_authors_email (author, email) VALUES (%s, %s);", (self.id, self.email))
 
 class Article:
+  # This class is disconcertingly intermingled with the Spider class,
+  # a problem that is probably most easily remedied by folding the whole
+  # thing into the spider rather than trying to pry them apart, unfortunately
   def __init__(self):
     pass
 
@@ -150,7 +153,7 @@ class Article:
       else:
         log.record("NOT adding author to list: {} {}".format(first, last), "warn")
 
-  def record(self, connection, spider):
+  def record(self, connection, spider): # TODO: requiring the whole spider here is code smell of the first order
     with connection.db.cursor() as cursor:
       # check to see if we've seen this article before
       if self.doi == "":

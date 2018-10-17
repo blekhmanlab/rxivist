@@ -33,7 +33,7 @@ def get_categories(connection):
       results.append(cat[0])
   return results
 
-def paper_query(connection, q, categories, timeframe, metric, page, page_size):
+def paper_query(q, categories, timeframe, metric, page, page_size, connection):
   """Returns a list of the most downloaded papers that meet a given set of constraints.
 
   Arguments:
@@ -151,7 +151,7 @@ def author_rankings(connection, category=""):
 
   """
   if category == "": # all time, all categories
-    table = "detailed_author_ranks" # TODO: just make a category called "alltime"
+    table = "detailed_author_ranks"
     where = ""
     params = ()
   else:
@@ -170,7 +170,7 @@ def author_rankings(connection, category=""):
   authors = connection.read(query, params)
   return [models.SearchResultAuthor(*a) for a in authors]
 
-def author_details(connection, author_id):
+def author_details(author_id, connection):
   """Returns information about a single author, including a list of
       all their papers.
 
@@ -186,7 +186,7 @@ def author_details(connection, author_id):
   result.GetInfo(connection)
   return result
 
-def paper_details(connection, article_id):
+def paper_details(article_id, connection):
   """Returns information about a single paper.
 
   Arguments:
@@ -197,10 +197,10 @@ def paper_details(connection, article_id):
         its authors.
 
   """
-  result = models.ArticleDetails(article_id, connection) # TODO: some of these functions put id first, some connection first
+  result = models.ArticleDetails(article_id, connection)
   return result
 
-def paper_downloads(connection, a_id):
+def paper_downloads(a_id, connection):
   """Returns time-series data from bioRxiv about how many
   times a paper's webpage and PDF have been downloaded.
 
@@ -220,7 +220,7 @@ def paper_downloads(connection, a_id):
     "results": [{"month": x.month, "year": x.year, "downloads": x.downloads, "views": x.views} for x in result.traffic]
   }
 
-def get_distribution(connection, category, metric):
+def get_distribution(category, metric, connection):
   """Returns time-series data from bioRxiv about how many
   times a paper's webpage and PDF have been downloaded.
 
@@ -233,6 +233,9 @@ def get_distribution(connection, category, metric):
   """
   # "category" param can be either "author" or "paper"
   # "metric" param is (right now) limited to just "downloads"
+
+  if category == "paper":
+    category = "alltime"
   data = connection.read("SELECT bucket, count FROM download_distribution WHERE category=%s ORDER BY bucket", (category,))
   results = [(entry[0], entry[1]) for entry in data]
   averages = {}
