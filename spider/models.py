@@ -52,6 +52,10 @@ class DetailedAuthor:
         if a_id is not None:
           self.id = a_id[0]
           log.record("ORCiD: Author {} exists with ID {}".format(self.name, self.id), "debug")
+          log.record("Recording ORCiD {} for known author".format(self.orcid), "info")
+          if self.institution is not None: # institution should always be set to the one we've seen most recently
+            log.record("Updating author institution")
+            cursor.execute("UPDATE detailed_authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
 
       if self.id is None:
         # if they don't have an ORCiD, check for duplicates based on name.
@@ -68,6 +72,9 @@ class DetailedAuthor:
           if self.orcid is not None:
             log.record("Recording ORCiD {} for known author".format(self.orcid), "info")
             cursor.execute("UPDATE detailed_authors SET orcid=%s WHERE id=%s;", (self.orcid, self.id))
+          if self.institution is not None:
+            log.record("Updating author institution")
+            cursor.execute("UPDATE detailed_authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
 
       if self.id is None: # if they're definitely brand new
         cursor.execute("INSERT INTO detailed_authors (name, orcid, institution) VALUES (%s, %s, %s) RETURNING id;", (self.name, self.orcid, self.institution))
