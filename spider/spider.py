@@ -137,7 +137,16 @@ class Spider(object):
   def find_record_new_articles(self, collection):
     # we need to grab the first page to figure out how many pages there are
     self.log.record("Fetching page 0 in {}".format(collection))
-    r = self.session.get("{}/{}".format(config.biorxiv["endpoints"]["collection"], collection))
+    try:
+      r = self.session.get("{}/{}".format(config.biorxiv["endpoints"]["collection"], collection))
+    except Exception as e:
+      log.record("Error requesting first page of results for collection. Retrying: {}".format(e), "error")
+      try:
+        r = self.session.get("{}/{}".format(config.biorxiv["endpoints"]["collection"], collection))
+      except Exception as e:
+        log.record("Error AGAIN requesting first page of results for collection. Bailing: {}".format(e), "error")
+        return
+
     results = pull_out_articles(r.html, collection, self.log)
     consecutive_recognized = 0
     for x in results:
@@ -151,7 +160,17 @@ class Spider(object):
       if config.polite:
         time.sleep(3)
       self.log.record("Fetching page {} in {}".format(p, collection)) # pages are zero-indexed
-      r = self.session.get("{}/{}?page={}".format(config.biorxiv["endpoints"]["collection"], collection, p))
+      try:
+        r = self.session.get("{}/{}?page={}".format(config.biorxiv["endpoints"]["collection"], collection, p))
+      except Exception as e:
+        log.record("Error requesting page of results for collection {}. Retrying: {}".format(collection, e), "error")
+        try:
+          r = self.session.get("{}/{}?page={}".format(config.biorxiv["endpoints"]["collection"], collection, p))
+        except Exception as e:
+          log.record("Error AGAIN requesting page of results for collection {}: {}".format(collection, e), "error")
+          log.record("Crawling of category {} failed in the middle; unrecorded new articles are likely being skipped. Exiting to avoid losing them.", "fatal")
+          return
+
       results = pull_out_articles(r.html, collection, self.log)
       for x in results:
         if not x.record(self.connection, self):
@@ -272,10 +291,17 @@ class Spider(object):
       raise ValueError("Successfully made HTTP call to fetch paper information, but did not find an abstract.")
     return abstract[0].text
 
-  def get_article_stats(self, url): # TODO: This should be an article method, right?
-    resp = self.session.get("{}.article-metrics".format(url))
+  def get_article_stats(self, url, retry_count=0): # TODO: This should be an article method, right?
+    try:
+      resp = self.session.get("{}.article-metrics".format(url))
+    except Exception as e:
+      if retry_count < 3:
+        log.record("Error requesting article metrics. Retrying: {}".format(collection, e), "error")
+        self.get_article_stats(url, retry_count+1)
+      else:
+        log.record("Error AGAIN requesting article metrics. Bailing: {}".format(collection, e), "error")
 
-    detailed_authors = find_detailed_authors(resp) # TODO: Record this
+    detailed_authors = find_detailed_authors(resp)
 
     entries = iter(resp.html.find("td"))
     stats = []
@@ -288,9 +314,17 @@ class Spider(object):
       stats.append((month, year, abstract, pdf))
     return stats, detailed_authors
 
-  def get_article_posted_date(self, url):
+  def get_article_posted_date(self, url, retry_count=0):
     self.log.record("Determining posting date.")
-    resp = self.session.get("{}.article-info".format(url))
+    try:
+      resp = self.session.get("{}.article-info".format(url))
+    except Exception as e:
+      if retry_count < 3:
+        log.record("Error requesting article posted-on date. Retrying: {}".format(e), "error")
+        self.get_article_posted_date(url, retry_count+1)
+      else:
+        log.record("Error AGAIN requesting article posted-on date. Bailing: {}".format(e), "error")
+        return None
     # This assumes that revisions continue to be listed with oldest version first:
     older = resp.html.find('.hw-version-previous-link', first=True)
     # Also grab the "Posted on" date on this page:
