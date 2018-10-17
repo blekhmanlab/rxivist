@@ -82,6 +82,8 @@ def index():
       page = int(page)
     except Exception as e:
       error = "Problem recognizing specified page number: {}".format(e)
+  if page < 0:
+    page = 0
 
   if page_size == "":
     page_size = config.default_page_size
