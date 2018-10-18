@@ -195,16 +195,12 @@ class Spider(object):
   def refresh_article_stats(self, collection, cap=10000):
     self.log.record("Refreshing article download stats for collection {}...".format(collection))
     with self.connection.db.cursor() as cursor:
-      # cursor.execute("SELECT id, url, posted, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
-      # TODO: UNCOMMENT this piece and remove the line that looks for refresh candidates
-      # based on posted date; that's just to accellerate the transition to the improved schema
-      cursor.execute("SELECT id, url, posted, doi FROM articles WHERE collection=%s AND posted IS NULL;", (collection,))
+      cursor.execute("SELECT id, url, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
       updated = 0
       for article in cursor:
-        url = article[1]
         article_id = article[0]
-        known_posted = article[2]
-        doi = article[3]
+        url = article[1]
+        doi = article[2]
         self.log.record("\nRefreshing article {}".format(article_id), "debug")
         if config.polite:
           time.sleep(1)
@@ -212,10 +208,7 @@ class Spider(object):
         pub_data = self.check_publication_status(article_id, doi, True)
         if pub_data is not None: # if we found something
           self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
-        posted = None
-        if known_posted is None: # record the 'posted on' date if we don't know it
-          posted = self.get_article_posted_date(url)
-        self.save_article_stats(article_id, stat_table, posted)
+        self.save_article_stats(article_id, stat_table)
         self._record_detailed_authors(article_id, detailed_authors)
         updated += 1
         if config.limit_refresh is not False and updated >= cap:
@@ -385,10 +378,10 @@ class Spider(object):
 
       cursor.execute("UPDATE articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
 
-      # TODO: once we update the backlog with this info, we can probably clear this part out
       if posted is not None:
         self.log.record("Determined 'posted on' date: {}".format(posted), "debug")
         cursor.execute("UPDATE articles SET posted = %s WHERE id=%s", (posted, article_id))
+
       self.log.record("Recorded {} stats for ID {}".format(len(to_record), article_id), "debug")
 
   def _record_detailed_authors(self, article_id, authors, overwrite=False):
@@ -479,11 +472,9 @@ class Spider(object):
       if config.perform_ranks["article_categories"] is not False:
         self._rank_articles_categories(category)
         load_rankings_from_file("category_ranks", self.log)
+      if config.perform_ranks["category_distributions"] is not False:
         self._calculate_category_download_distributions(category)
       if config.perform_ranks["author_categories"] is not False:
-        self._rank_authors_category(category)
-        load_rankings_from_file("author_ranks_category", self.log)
-
         self._rank_detailed_authors_category(category)
         load_rankings_from_file("detailed_author_ranks_category", self.log)
     # we wait until all the categories have been loaded before
@@ -491,7 +482,6 @@ class Spider(object):
     if config.perform_ranks["article_categories"] is not False:
       self.activate_tables("category_ranks")
     if config.perform_ranks["author_categories"] is not False:
-      self.activate_tables("author_ranks_category")
       self.activate_tables("detailed_author_ranks_category")
 
     self._calculate_download_distributions()
@@ -807,44 +797,6 @@ class Spider(object):
     params = [(record["id"], record["rank"], record["downloads"], record["tie"]) for record in ranks]
 
     record_ranks_file(params, "detailed_author_ranks_working")
-
-  def _rank_authors_category(self, category):
-    self.log.record("Ranking detailed authors by popularity in category {}...".format(category))
-    with self.connection.db.cursor() as cursor:
-      cursor.execute("""
-      SELECT article_authors.author, SUM(alltime_ranks.downloads) as downloads
-      FROM article_authors
-      LEFT JOIN alltime_ranks ON article_authors.article=alltime_ranks.article
-      LEFT JOIN articles ON article_authors.article=articles.id
-      WHERE downloads > 0 AND
-      articles.collection=%s
-      GROUP BY article_authors.author
-      ORDER BY downloads DESC, article_authors.author DESC
-      """, (category,))
-      ranks = []
-      rankNum = 0
-      for record in cursor:
-        rankNum = rankNum + 1
-        tie = False
-        rank = rankNum # changes if it's a tie
-
-        # if the author has the same download count as the
-        # previous author in the list, record a tie:
-        if len(ranks) > 0:
-          if record[1] == ranks[len(ranks) - 1]["downloads"]:
-            ranks[len(ranks) - 1]["tie"] = True
-            tie = True
-            rank = ranks[len(ranks) - 1]["rank"]
-        ranks.append({
-          "id": record[0],
-          "downloads": record[1],
-          "rank": rank,
-          "tie": tie
-        })
-
-    params = [(record["id"], category, record["rank"], record["downloads"], record["tie"]) for record in ranks]
-
-    record_ranks_file(params, "author_ranks_category_working")
 
   def _rank_detailed_authors_category(self, category):
     self.log.record("Ranking detailed authors by popularity in category {}...".format(category))
