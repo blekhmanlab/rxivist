@@ -459,6 +459,9 @@ class ArticleDetails(Article):
     self.publication = sql_entry[6]
     self.pub_doi = sql_entry[7]
 
+    for author in self.authors:
+      author.GetBasicInfo(connection)
+
   def json(self):
     resp = {
       "id": self.id,

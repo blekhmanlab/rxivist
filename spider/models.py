@@ -169,10 +169,11 @@ class Article:
           connection.db.commit()
           return False
         else:
+          # If it's a revision
           cursor.execute("UPDATE articles SET url=%s, title=%s, collection=%s WHERE doi=%s RETURNING id;", (self.url, self.title, self.collection, self.doi))
           self.id = cursor.fetchone()[0]
           stat_table, detailed_authors = spider.get_article_stats(self.url)
-          spider._record_detailed_authors(self.id, detailed_authors)
+          spider._record_detailed_authors(self.id, detailed_authors, True)
           if stat_table is not None:
             spider.save_article_stats(self.id, stat_table, None)
           spider.log.record("Updated revision for article DOI {}: {}".format(self.doi, self.title), "info")
