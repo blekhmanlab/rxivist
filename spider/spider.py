@@ -902,6 +902,29 @@ class Spider(object):
     f.close()
     self.log.record("Sitemapping complete.")
 
+  def update_ids(self):
+    print("Pulling all translations...")
+    with self.connection.db.cursor() as cursor:
+      # first, figure out the biggest bucket:
+      cursor.execute("SELECT new, old FROM author_translations;")
+      translations = [x for x in cursor]
+    with self.connection.db.cursor() as cursor:
+      print("HERE WE GOOOOO")
+      cursor.executemany("UPDATE detailed_authors SET id=%s WHERE id=%s", translations)
+      print("Author IDs done")
+    with self.connection.db.cursor() as cursor:
+      cursor.executemany("UPDATE article_detailed_authors SET author=%s WHERE author=%s", translations)
+      print("Article authors done")
+    with self.connection.db.cursor() as cursor:
+      cursor.executemany("UPDATE detailed_authors_email SET author=%s WHERE author=%s", translations)
+      print("Author emails done")
+    with self.connection.db.cursor() as cursor:
+      cursor.executemany("UPDATE detailed_author_ranks SET author=%s WHERE author=%s", translations)
+      print("Author ranks done")
+    with self.connection.db.cursor() as cursor:
+      cursor.executemany("UPDATE detailed_author_ranks_category SET author=%s WHERE author=%s", translations)
+      print("Author category ranks done")
+
 def load_rankings_from_file(batch, log):
   os.environ["PGPASSWORD"] = config.db["password"]
   to_delete = None
@@ -1041,8 +1064,8 @@ if __name__ == "__main__":
       spider._pull_crossref_data_date(sys.argv[2])
     else:
       spider.pull_todays_crossref_data()
-  elif sys.argv[1] == "authorvector":
-    fill_in_author_vectors(spider)
+  elif sys.argv[1] == "rumble":
+    spider.update_ids()
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   else:
