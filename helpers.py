@@ -17,6 +17,17 @@ class NotFoundError(Exception):
     """
     self.message = "Entity could not be found with id {}".format(id)
 
+def find_new_id(old, connection):
+  """If a request comes in for an author of an ID that indicates
+  it's part of the old numbering scheme, this will check to see if
+  we have an updated number to redirect to."""
+  result = connection.read("SELECT new FROM author_translations WHERE old=%s", (old,))
+  if len(result) == 0:
+    return False
+  if len(result[0]) == 0:
+    return False
+  return result[0][0]
+
 def num_to_month(monthnum):
   """Converts a (1-indexed) numerical representation of a month
   of the year into a three-character string for printing. If

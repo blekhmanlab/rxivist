@@ -75,7 +75,7 @@ def index():
         bottle.response.status = 500
         return {"error": error}
 
-  if page == "":
+  if page == "" or page == None:
     page = 0
   else:
     try:
@@ -148,6 +148,13 @@ def alltime_author_ranks():
 # author details page
 @bottle.get('/v1/authors/<author_id:int>')
 def display_author_details(author_id):
+  if author_id < 200000: # old author pages indexed by google already
+    new_id = helpers.find_new_id(author_id, connection)
+    if new_id:
+      return bottle.redirect("/v1/authors/{}".format(new_id), 301)
+    else:
+      bottle.response.status = 404
+      return {"error": e.message}
   try:
     author = endpoints.author_details(author_id, connection)
   except helpers.NotFoundError as e:
