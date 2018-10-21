@@ -169,7 +169,7 @@ class Author:
       - orcid: The ORCID universal identifier specified by the author
 
     """
-    authorq = connection.read("SELECT name, institution, orcid FROM detailed_authors WHERE id = %s;", (self.id,))
+    authorq = connection.read("SELECT name, institution, orcid FROM authors WHERE id = %s;", (self.id,))
     if len(authorq) == 0:
       raise helpers.NotFoundError(self.id)
     if len(authorq) > 1:
@@ -195,9 +195,9 @@ class Author:
     sql = """
       SELECT articles.id
       FROM articles
-      LEFT JOIN article_detailed_authors ON articles.id=article_detailed_authors.article
+      LEFT JOIN article_authors ON articles.id=article_authors.article
       LEFT JOIN alltime_ranks ON articles.id=alltime_ranks.article
-      WHERE article_detailed_authors.author=%s ORDER BY alltime_ranks.downloads DESC
+      WHERE article_authors.author=%s ORDER BY alltime_ranks.downloads DESC
     """
     articles = connection.read(sql, (self.id,))
     articles = [AuthorArticle(a[0], connection) for a in articles]
@@ -221,7 +221,7 @@ class Author:
 
     """
     emails = []
-    emailq = connection.read("SELECT email FROM detailed_authors_email WHERE author=%s;", (self.id,))
+    emailq = connection.read("SELECT email FROM authors_email WHERE author=%s;", (self.id,))
     for entry in emailq:
       emails.append(entry[0])
     return emails
@@ -237,15 +237,15 @@ class Author:
 
     """
     ranks = []
-    downloadsq = connection.read("SELECT rank, tie, downloads FROM detailed_author_ranks WHERE author=%s;", (self.id,))
+    downloadsq = connection.read("SELECT rank, tie, downloads FROM author_ranks WHERE author=%s;", (self.id,))
     if len(downloadsq) == 1:
-      author_count = connection.read("SELECT COUNT(id) FROM detailed_authors;")
+      author_count = connection.read("SELECT COUNT(id) FROM authors;")
       author_count = author_count[0][0]
       ranks.append(AuthorRankEntry(downloadsq[0][0], author_count, downloadsq[0][1], downloadsq[0][2], "alltime"))
 
-    categoryq = connection.read("SELECT rank, tie, downloads, category FROM detailed_author_ranks_category WHERE author = %s;", (self.id,))
+    categoryq = connection.read("SELECT rank, tie, downloads, category FROM author_ranks_category WHERE author = %s;", (self.id,))
     for cat in categoryq:
-      authors_in_category = connection.read("SELECT COUNT(author) FROM detailed_author_ranks_category WHERE category=%s", (cat[3],))
+      authors_in_category = connection.read("SELECT COUNT(author) FROM author_ranks_category WHERE category=%s", (cat[3],))
       authors_in_category = authors_in_category[0][0]
       entry = AuthorRankEntry(cat[0], authors_in_category, cat[1], cat[2], cat[3])
       ranks.append(entry)
@@ -360,7 +360,7 @@ class Article:
 
     """
     self.authors = []
-    author_data = connection.read("SELECT detailed_authors.id, detailed_authors.name FROM article_detailed_authors as aa INNER JOIN detailed_authors ON detailed_authors.id=aa.author WHERE aa.article=%s ORDER BY aa.id;", (self.id,))
+    author_data = connection.read("SELECT authors.id, authors.name FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s ORDER BY aa.id;", (self.id,))
     if len(author_data) > 0:
       self.authors = [Author(a[0], a[1]) for a in author_data]
 

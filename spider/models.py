@@ -26,7 +26,7 @@ class Author:
     with connection.db.cursor() as cursor:
       if self.orcid is not None:
         log.record("Author has ORCiD; determining whether they exist in DB.", "debug")
-        cursor.execute("SELECT id FROM detailed_authors WHERE orcid = %s;", (self.orcid,))
+        cursor.execute("SELECT id FROM authors WHERE orcid = %s;", (self.orcid,))
         a_id = cursor.fetchone()
         if a_id is not None:
           self.id = a_id[0]
@@ -34,13 +34,13 @@ class Author:
           log.record("Recording ORCiD {} for known author".format(self.orcid), "info")
           if self.institution is not None: # institution should always be set to the one we've seen most recently
             log.record("Updating author institution")
-            cursor.execute("UPDATE detailed_authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
+            cursor.execute("UPDATE authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
 
       if self.id is None:
         # if they don't have an ORCiD, check for duplicates based on name.
         # NOTE: We don't use email as a signifier of uniqueness because some authors who hate
         # me record the same email address for multiple people.
-        cursor.execute("SELECT id FROM detailed_authors WHERE name = %s;", (self.name,))
+        cursor.execute("SELECT id FROM authors WHERE name = %s;", (self.name,))
         a_id = cursor.fetchone()
         if a_id is not None:
           self.id = a_id[0]
@@ -50,24 +50,24 @@ class Author:
           # if they have an orcid but we didn't know about it before:
           if self.orcid is not None:
             log.record("Recording ORCiD {} for known author".format(self.orcid), "info")
-            cursor.execute("UPDATE detailed_authors SET orcid=%s WHERE id=%s;", (self.orcid, self.id))
+            cursor.execute("UPDATE authors SET orcid=%s WHERE id=%s;", (self.orcid, self.id))
           if self.institution is not None:
             log.record("Updating author institution")
-            cursor.execute("UPDATE detailed_authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
+            cursor.execute("UPDATE authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
 
       if self.id is None: # if they're definitely brand new
-        cursor.execute("INSERT INTO detailed_authors (name, orcid, institution) VALUES (%s, %s, %s) RETURNING id;", (self.name, self.orcid, self.institution))
+        cursor.execute("INSERT INTO authors (name, orcid, institution) VALUES (%s, %s, %s) RETURNING id;", (self.name, self.orcid, self.institution))
         self.id = cursor.fetchone()[0]
         log.record("Recorded author {} with ID {}".format(self.name, self.id), "info")
         recorded = True
 
       if self.email is not None:
         # check if we know about this email already:
-        cursor.execute("SELECT COUNT(id) FROM detailed_authors_email WHERE author=%s AND email=%s", (self.id,self.email))
+        cursor.execute("SELECT COUNT(id) FROM author_emails WHERE author=%s AND email=%s", (self.id,self.email))
         emailcount = cursor.fetchone()[0]
         if emailcount == 0:
           log.record("Recording email {} for author".format(self.email), "debug")
-          cursor.execute("INSERT INTO detailed_authors_email (author, email) VALUES (%s, %s);", (self.id, self.email))
+          cursor.execute("INSERT INTO author_emails (author, email) VALUES (%s, %s);", (self.id, self.email))
 
 class Article:
   # This class is disconcertingly intermingled with the Spider class,

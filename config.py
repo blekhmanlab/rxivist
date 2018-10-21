@@ -33,7 +33,7 @@ max_page_size_api = 250
 
 # Amount of time that can pass since an article has been updated before
 # it is included in the tally of "outdated" articles
-outdated_limit = "2 weeks"
+outdated_limit = "4 weeks"
 
 # The entity ID provided by Google Analytics
 google_tag = "UA-125076477-1"

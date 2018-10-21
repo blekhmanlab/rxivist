@@ -40,9 +40,9 @@ class Connection(object):
     # bioRxiv papers that will eventually share a single journal DOI.
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_publications (article integer PRIMARY KEY, doi text, publication text);")
 
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS detailed_authors (id SERIAL PRIMARY KEY, name text NOT NULL, institution text, orcid text UNIQUE);")
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS detailed_authors_email (id SERIAL PRIMARY KEY, author integer NOT NULL, email text);")
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS article_detailed_authors (id SERIAL PRIMARY KEY, article integer NOT NULL, author integer NOT NULL, UNIQUE (article, author));")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS authors (id SERIAL PRIMARY KEY, name text NOT NULL, institution text, orcid text UNIQUE);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS authors_email (id SERIAL PRIMARY KEY, author integer NOT NULL, email text);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS article_authors (id SERIAL PRIMARY KEY, article integer NOT NULL, author integer NOT NULL, UNIQUE (article, author));")
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_traffic (id SERIAL PRIMARY KEY, article integer NOT NULL, month integer, year integer NOT NULL, abstract integer, pdf integer, UNIQUE (article, month, year));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS crossref_daily (id SERIAL PRIMARY KEY, source_date DATE, doi text NOT NULL, count integer, crawled DATE NOT NULL DEFAULT CURRENT_DATE, UNIQUE(doi, source_date));")
@@ -56,10 +56,10 @@ class Connection(object):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS month_ranks            (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS month_ranks_working    (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
 
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS detailed_author_ranks           (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS detailed_author_ranks_working   (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS detailed_author_ranks_category  (id SERIAL PRIMARY KEY, author integer, category text NOT NULL, rank integer NOT NULL, tie boolean, downloads integer NOT NULL, UNIQUE (author, category));")
-    self.cursor.execute("CREATE TABLE IF NOT EXISTS detailed_author_ranks_category_working   (id SERIAL PRIMARY KEY, author integer, category text NOT NULL,  rank integer NOT NULL, tie boolean, downloads integer NOT NULL, UNIQUE (author, category));")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks           (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_working   (author integer PRIMARY KEY, rank integer NOT NULL, tie boolean, downloads integer NOT NULL);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_category  (id SERIAL PRIMARY KEY, author integer, category text NOT NULL, rank integer NOT NULL, tie boolean, downloads integer NOT NULL, UNIQUE (author, category));")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS author_ranks_category_working   (id SERIAL PRIMARY KEY, author integer, category text NOT NULL,  rank integer NOT NULL, tie boolean, downloads integer NOT NULL, UNIQUE (author, category));")
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS download_distribution (id SERIAL PRIMARY KEY, bucket integer NOT NULL, count integer NOT NULL, category text NOT NULL);")
     self.db.commit()

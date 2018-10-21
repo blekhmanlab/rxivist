@@ -151,16 +151,16 @@ def author_rankings(connection, category=""):
 
   """
   if category == "": # all time, all categories
-    table = "detailed_author_ranks"
+    table = "author_ranks"
     where = ""
     params = ()
   else:
-    table = "detailed_author_ranks_category"
+    table = "author_ranks_category"
     where = "WHERE r.category=%s"
     params = (category,)
   query = """
     SELECT a.id, a.name, r.rank, r.downloads, r.tie
-    FROM detailed_authors AS a
+    FROM authors AS a
     INNER JOIN {} r ON a.id=r.author
     {}
     ORDER BY r.rank
@@ -262,7 +262,7 @@ def site_stats(connection):
   else:
     paper_count = resp[0][0]
 
-  resp = connection.read("SELECT COUNT(id) FROM detailed_authors;")
+  resp = connection.read("SELECT COUNT(id) FROM authors;")
   if len(resp) != 1 or len(resp[0]) != 1:
     author_count = 0
   else:

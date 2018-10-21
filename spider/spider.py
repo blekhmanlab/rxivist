@@ -391,10 +391,10 @@ class Spider(object):
         # we set the article ID to 0 before deleting them so if the spider dies in
         # between removing the old authors and updating the new ones, we can go in
         # and fix it manually.
-        cursor.execute("UPDATE article_detailed_authors SET article=0 WHERE article=%s;", (article_id,))
+        cursor.execute("UPDATE article_authors SET article=0 WHERE article=%s;", (article_id,))
     else:
       with self.connection.db.cursor() as cursor:
-        cursor.execute("SELECT COUNT(article) FROM article_detailed_authors WHERE article=%s;", (article_id,))
+        cursor.execute("SELECT COUNT(article) FROM article_authors WHERE article=%s;", (article_id,))
         count = cursor.fetchone()[0]
         if count > 0:
           self.log.record("Article authors already recorded; skipping.", "info")
@@ -407,7 +407,7 @@ class Spider(object):
 
     try:
       with self.connection.db.cursor() as cursor:
-        sql = "INSERT INTO article_detailed_authors (article, author) VALUES (%s, %s);"
+        sql = "INSERT INTO article_authors (article, author) VALUES (%s, %s);"
         cursor.executemany(sql, [(article_id, x) for x in author_ids])
     except Exception as e:
       # If there's an error associating all the authors with their paper all at once,
@@ -418,7 +418,7 @@ class Spider(object):
       for x in author_ids:
         try:
           with self.connection.db.cursor() as cursor:
-            cursor.execute("INSERT INTO article_detailed_authors (article, author) VALUES (%s, %s);", (article_id, x))
+            cursor.execute("INSERT INTO article_authors (article, author) VALUES (%s, %s);", (article_id, x))
         except Exception as e:
           self.log.record("Another problem associating author {} to article {}. Moving on.".format(x, article_id), "error")
           pass
@@ -426,7 +426,7 @@ class Spider(object):
       # if we marked authors for deletion earlier, it's safe to delete them now.
       self.log.record("Removing outdated authors.", "info")
       with self.connection.db.cursor() as cursor:
-        cursor.execute("DELETE FROM article_detailed_authors WHERE article=0;")
+        cursor.execute("DELETE FROM article_authors WHERE article=0;")
 
   def fetch_categories(self):
     categories = []
@@ -458,12 +458,12 @@ class Spider(object):
       self.activate_tables("month_ranks")
     if config.perform_ranks["authors"] is not False:
       self._rank_authors_alltime()
-      load_rankings_from_file("detailed_author_ranks", self.log)
-      self.activate_tables("detailed_author_ranks")
+      load_rankings_from_file("author_ranks", self.log)
+      self.activate_tables("author_ranks")
 
     with self.connection.db.cursor() as cursor:
       cursor.execute("TRUNCATE author_ranks_category_working")
-      cursor.execute("TRUNCATE detailed_author_ranks_category_working")
+      cursor.execute("TRUNCATE author_ranks_category_working")
       cursor.execute("TRUNCATE category_ranks_working")
     for category in self.fetch_categories():
       if config.perform_ranks["article_categories"] is not False:
@@ -473,13 +473,13 @@ class Spider(object):
         self._calculate_category_download_distributions(category)
       if config.perform_ranks["author_categories"] is not False:
         self._rank_authors_category(category)
-        load_rankings_from_file("detailed_author_ranks_category", self.log)
+        load_rankings_from_file("author_ranks_category", self.log)
     # we wait until all the categories have been loaded before
     # swapping in the fresh batch
     if config.perform_ranks["article_categories"] is not False:
       self.activate_tables("category_ranks")
     if config.perform_ranks["author_categories"] is not False:
-      self.activate_tables("detailed_author_ranks_category")
+      self.activate_tables("author_ranks_category")
 
     self._calculate_download_distributions()
     end = datetime.now()
@@ -516,15 +516,11 @@ class Spider(object):
       },
     ]
     for task in tasks:
-      if task["name"] == "author": # TODO: get rid of this once we're done with the old authors
-        table = "detailed_author"
-      else:
-        table = task["name"]
       results = defaultdict(int)
       self.log.record("Calculating download distributions for {}".format(task["name"]))
       with self.connection.db.cursor() as cursor:
         # first, figure out the biggest bucket:
-        cursor.execute("SELECT MAX(downloads) FROM {}_ranks;".format(table))
+        cursor.execute("SELECT MAX(downloads) FROM {}_ranks;".format(task["name"]))
         biggest = cursor.fetchone()[0]
         # then set up all the empty buckets (so they aren't missing when we draw the graph)
         buckets = [0, round(task["scale_power"])]
@@ -542,7 +538,7 @@ class Spider(object):
         for bucket in buckets:
           results[bucket] = 0
         # now fill in the buckets:
-        cursor.execute("SELECT downloads FROM {}_ranks ORDER BY downloads ASC;".format(table))
+        cursor.execute("SELECT downloads FROM {}_ranks ORDER BY downloads ASC;".format(task["name"]))
         values = []
         for entity in cursor:
           if len(entity) > 0:
@@ -721,14 +717,14 @@ class Spider(object):
     # method, so that one should be called first.
     self.log.record("Ranking authors by popularity...")
     with self.connection.db.cursor() as cursor:
-      cursor.execute("TRUNCATE detailed_author_ranks_working")
+      cursor.execute("TRUNCATE author_ranks_working")
       cursor.execute("""
-      SELECT article_detailed_authors.author, SUM(alltime_ranks.downloads) as downloads
-      FROM article_detailed_authors
-      LEFT JOIN alltime_ranks ON article_detailed_authors.article=alltime_ranks.article
+      SELECT article_authors.author, SUM(alltime_ranks.downloads) as downloads
+      FROM article_authors
+      LEFT JOIN alltime_ranks ON article_authors.article=alltime_ranks.article
       WHERE downloads > 0
-      GROUP BY article_detailed_authors.author
-      ORDER BY downloads DESC, article_detailed_authors.author DESC
+      GROUP BY article_authors.author
+      ORDER BY downloads DESC, article_authors.author DESC
       """)
       self.log.record("Retrieved download data.", "debug")
       ranks = []
@@ -753,20 +749,20 @@ class Spider(object):
         })
     params = [(record["id"], record["rank"], record["downloads"], record["tie"]) for record in ranks]
 
-    record_ranks_file(params, "detailed_author_ranks_working")
+    record_ranks_file(params, "author_ranks_working")
 
   def _rank_authors_category(self, category):
     self.log.record("Ranking authors by popularity in category {}...".format(category))
     with self.connection.db.cursor() as cursor:
       cursor.execute("""
-      SELECT article_detailed_authors.author, SUM(alltime_ranks.downloads) as downloads
-      FROM article_detailed_authors
-      LEFT JOIN alltime_ranks ON article_detailed_authors.article=alltime_ranks.article
-      LEFT JOIN articles ON article_detailed_authors.article=articles.id
+      SELECT article_authors.author, SUM(alltime_ranks.downloads) as downloads
+      FROM article_authors
+      LEFT JOIN alltime_ranks ON article_authors.article=alltime_ranks.article
+      LEFT JOIN articles ON article_authors.article=articles.id
       WHERE downloads > 0 AND
       articles.collection=%s
-      GROUP BY article_detailed_authors.author
-      ORDER BY downloads DESC, article_detailed_authors.author DESC
+      GROUP BY article_authors.author
+      ORDER BY downloads DESC, article_authors.author DESC
       """, (category,))
       ranks = []
       rankNum = 0
@@ -791,7 +787,7 @@ class Spider(object):
 
     params = [(record["id"], category, record["rank"], record["downloads"], record["tie"]) for record in ranks]
 
-    record_ranks_file(params, "detailed_author_ranks_category_working")
+    record_ranks_file(params, "author_ranks_category_working")
 
   def pull_todays_crossref_data(self):
     current = datetime.now()
@@ -841,7 +837,7 @@ class Spider(object):
             append = "0".format(filecount)
           f = open("sitemaps/sitemap{}{}.txt".format(append, filecount), 'w')
       self.log.record("Papers complete.")
-      cursor.execute("SELECT id FROM detailed_authors ORDER BY id;")
+      cursor.execute("SELECT id FROM authors ORDER BY id;")
       self.log.record("Recording authors.")
       for a in cursor:
         f.write('{}/authors/{}\n'.format(config.rxivist["base_url"], a[0]))
@@ -866,14 +862,14 @@ def load_rankings_from_file(batch, log):
     query = "\copy {0}_working (article, rank, downloads) FROM '{0}_working.csv' with (format csv);".format(batch)
   elif batch == "author_ranks":
     query = "\copy author_ranks_working (author, rank, downloads, tie) FROM 'author_ranks_working.csv' with (format csv);"
-  elif batch == "detailed_author_ranks":
-    query = "\copy detailed_author_ranks_working (author, rank, downloads, tie) FROM 'detailed_author_ranks_working.csv' with (format csv);"
+  elif batch == "author_ranks":
+    query = "\copy author_ranks_working (author, rank, downloads, tie) FROM 'author_ranks_working.csv' with (format csv);"
   elif batch == "author_ranks_category":
     query = "\copy author_ranks_category_working (author, category, rank, downloads, tie) FROM 'author_ranks_category_working.csv' with (format csv);"
     to_delete = "author_ranks_category_working.csv"
-  elif batch == "detailed_author_ranks_category":
-    query = "\copy detailed_author_ranks_category_working (author, category, rank, downloads, tie) FROM 'detailed_author_ranks_category_working.csv' with (format csv);"
-    to_delete = "detailed_author_ranks_category_working.csv"
+  elif batch == "author_ranks_category":
+    query = "\copy author_ranks_category_working (author, category, rank, downloads, tie) FROM 'author_ranks_category_working.csv' with (format csv);"
+    to_delete = "author_ranks_category_working.csv"
   elif batch == "category_ranks":
     query = "\copy category_ranks_working (article, rank) FROM 'category_ranks_working.csv' with (format csv);"
     to_delete = "category_ranks_working.csv"
@@ -935,7 +931,7 @@ def fill_in_author_vectors(spider):
   with spider.connection.db.cursor() as cursor:
     for article in article_ids:
       author_string = ""
-      cursor.execute("SELECT detailed_authors.name FROM article_detailed_authors as aa INNER JOIN detailed_authors ON detailed_authors.id=aa.author WHERE aa.article=%s;", (article,))
+      cursor.execute("SELECT authors.name FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s;", (article,))
       for record in cursor:
         author_string += "{} {}, ".format(record[0], record[1])
       cursor.execute("UPDATE articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, article))
