@@ -868,6 +868,127 @@ def fill_in_author_vectors(spider):
       if to_do % 100 == 0:
         spider.log.record("{} - {} left to go.".format(datetime.now(), to_do))
 
+# helper method to fill in newly added field author_vector
+def consolidate_author_punctuation(spider):
+  changes = []
+  tocheck = []
+  with spider.connection.db.cursor() as cursor:
+    cursor.execute("SELECT id, name, orcid FROM authors WHERE name LIKE '%.%'")
+    for record in cursor:
+      if len(record) > 0:
+        tocheck.append(record)
+  print("Determined {} authors to check for punctuation-related dupes".format(len(tocheck)))
+
+  replacements = defaultdict(list)
+  ids = [] # which ones we already know about
+  for i, author in enumerate(tocheck):
+    ids.append(author[0])
+    if i % 100 == 0:
+      print("{} done".format(i))
+    stripped = author[1].replace(".", "")
+    with spider.connection.db.cursor() as cursor:
+      cursor.execute("SELECT id, name, orcid FROM authors WHERE noperiodname=%s AND id != %s;", (stripped, author[0]))
+      for record in cursor:
+        message = "{} ({}) matches {} ({})".format(author[1], author[0], record[1], record[0]).encode('utf-8')
+        try:
+          print(message.decode('utf-8'))
+        except Exception:
+          print(message)
+        if record[0] not in ids:
+          ids.append(record[0])
+          replacements[author].append(record)
+        else:
+          print("  Skipping entry; ID already recorded elsewhere")
+  print("\n\n--\n\nPickling...")
+  with open('replacements.pickle', 'wb') as f:
+    pickle.dump(replacements, f, pickle.HIGHEST_PROTOCOL)
+  print("Found {} authors with duplicates; {} IDs total.\n\n".format(len(replacements.keys()), len(ids)))
+
+  deleted = 0
+  with open('to_review.txt', 'w') as f:
+    for entry in replacements.keys():
+      bail = False
+      print("Evaluating {} ({}):".format(entry[1], entry[0]))
+      # make sure (at most) one entry had an ORCID:
+      orcid = None
+      lowest_id = entry[0]
+      if entry[2] is not None:
+        print("  Entry has an ORCID")
+        orcid = entry[2]
+      for replacement in replacements[entry]:
+        if replacement[0] < lowest_id:
+          lowest_id = replacement[0]
+        if replacement[2] is not None:
+          if orcid is None:
+            print("  Replacement {} ({}) has an ORCID".format(replacement[1], replacement[0]))
+            orcid = replacement[2]
+          else:
+            print("  Multiple ORCIDs detected for entry. Recording IDs and skipping.")
+            towrite = entry[0]
+            for replacement in replacements[entry]:
+              towrite += ", {}".format(replacement[0])
+            f.write("{}\n".format(towrite))
+            bail = True
+            break
+      if bail:
+        continue
+
+      # Reassign all papers:
+      for replacement in replacements[entry]:
+        if replacement[0] == lowest_id:
+          continue
+        print("  Reassigning all papers from {} to {}".format(replacement[0], lowest_id))
+        with spider.connection.db.cursor() as cursor:
+          cursor.execute("UPDATE article_authors SET author=%s WHERE author=%s;", (lowest_id, replacement[0]))
+      if entry[0] != lowest_id:
+        print("  Reassigning all papers from {} to {}".format(entry[0], lowest_id))
+        with spider.connection.db.cursor() as cursor:
+          cursor.execute("UPDATE article_authors SET author=%s WHERE author=%s;", (lowest_id, entry[0]))
+
+      print("  Collecting unique email addresses")
+      done_emails = []
+      emails = []
+      # start with the emails associated with the lowest ID so we don't reassign them a million times
+      with spider.connection.db.cursor() as cursor:
+        cursor.execute("SELECT email FROM author_emails WHERE id=%s;", (lowest_id,))
+        for email in cursor:
+          done_emails.append(email)
+          emails.append(email)
+      with spider.connection.db.cursor() as cursor:
+        cursor.execute("SELECT email FROM author_emails WHERE id=%s;", (entry[0],))
+        for email in cursor:
+          if email not in emails and email not in done_emails:
+            emails.append(email)
+      for replacement in replacements[entry]:
+        with spider.connection.db.cursor() as cursor:
+          cursor.execute("SELECT email FROM author_emails WHERE id=%s;", (replacement[0],))
+          for email in cursor:
+            if email not in emails and email not in done_emails:
+              emails.append(email)
+      for email in emails:
+        print("  Adding {} to ID {}".format(email, lowest_id))
+        with spider.connection.db.cursor() as cursor:
+          cursor.execute("INSERT INTO author_emails (author, email) VALUES (%s, %s);", (lowest_id, email))
+      if entry[0] != lowest_id:
+
+        with spider.connection.db.cursor() as cursor:
+          print("  Removing emails for {}".format(entry[0]))
+          cursor.execute("DELETE FROM author_emails WHERE author=%s;", (entry[0],))
+          print("  Removing author entry for {}".format(entry[0]))
+          cursor.execute("DELETE FROM authors WHERE id=%s", (entry[0],))
+          deleted += 1
+      for replacement in replacements[entry]:
+        if replacement[0] == lowest_id:
+          continue
+        with spider.connection.db.cursor() as cursor:
+          print("  Removing emails for {}".format(replacement[0]))
+          cursor.execute("DELETE FROM author_emails WHERE author=%s;", (replacement[0],))
+          print("  Removing author entry for {}".format(replacement[0]))
+          cursor.execute("DELETE FROM authors WHERE id=%s", (replacement[0],))
+          deleted += 1
+
+  print("Found {} authors with duplicates; {} IDs total. DONE: {} deleted.".format(len(replacements.keys()), len(ids), deleted))
+
 def find_authors(response):
   # Determine author details:
   authors = []
@@ -916,7 +1037,7 @@ if __name__ == "__main__":
     else:
       spider.pull_todays_crossref_data()
   elif sys.argv[1] == "rumble":
-    fill_in_author_vectors(spider)
+    consolidate_author_punctuation(spider)
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   else:
