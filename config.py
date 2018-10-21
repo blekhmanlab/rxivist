@@ -19,6 +19,8 @@ db = {
   },
 }
 
+host = "api.rxivist.org" # for building redirects
+
 # Whether to launch the application with gunicorn as the web server, or
 # with Bottle's default. The default can be handy for development because
 # it includes the option to reload the application any time there is a

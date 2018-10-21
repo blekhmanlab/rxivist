@@ -151,7 +151,7 @@ def display_author_details(author_id):
   if author_id < 200000: # old author pages indexed by google already
     new_id = helpers.find_new_id(author_id, connection)
     if new_id:
-      return bottle.redirect("/v1/authors/{}".format(new_id), 301)
+      return bottle.redirect("{}/v1/authors/{}".format(config.host, new_id), 301)
     else:
       bottle.response.status = 404
       return {"error": e.message}
