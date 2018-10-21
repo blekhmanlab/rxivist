@@ -457,10 +457,6 @@ class Spider(object):
       load_rankings_from_file("month_ranks", self.log)
       self.activate_tables("month_ranks")
     if config.perform_ranks["authors"] is not False:
-      self._rank_authors_alltime()
-      load_rankings_from_file("author_ranks", self.log)
-      self.activate_tables("author_ranks")
-
       self._rank_detailed_authors_alltime()
       load_rankings_from_file("detailed_author_ranks", self.log)
       self.activate_tables("detailed_author_ranks")
@@ -719,46 +715,6 @@ class Spider(object):
 
     record_ranks_file(params, "month_ranks_working")
 
-  def _rank_authors_alltime(self):
-    # NOTE: The main query of this function (three lines down from here)
-    # relies on data generated during the spider._rank_articles_alltime()
-    # method, so that one should be called first.
-    self.log.record("Ranking authors by popularity...")
-    with self.connection.db.cursor() as cursor:
-      cursor.execute("TRUNCATE author_ranks_working")
-      cursor.execute("""
-      SELECT article_authors.author, SUM(alltime_ranks.downloads) as downloads
-      FROM article_authors
-      LEFT JOIN alltime_ranks ON article_authors.article=alltime_ranks.article
-      WHERE downloads > 0
-      GROUP BY article_authors.author
-      ORDER BY downloads DESC, article_authors.author DESC
-      """)
-      self.log.record("Retrieved download data.", "debug")
-      ranks = []
-      rankNum = 0
-      for record in cursor:
-        rankNum = rankNum + 1
-        tie = False
-        rank = rankNum # changes if it's a tie
-
-        # if the author has the same download count as the
-        # previous author in the list, record a tie:
-        if len(ranks) > 0:
-          if record[1] == ranks[len(ranks) - 1]["downloads"]:
-            ranks[len(ranks) - 1]["tie"] = True
-            tie = True
-            rank = ranks[len(ranks) - 1]["rank"]
-        ranks.append({
-          "id": record[0],
-          "downloads": record[1],
-          "rank": rank,
-          "tie": tie
-        })
-    params = [(record["id"], record["rank"], record["downloads"], record["tie"]) for record in ranks]
-
-    record_ranks_file(params, "author_ranks_working")
-
   def _rank_detailed_authors_alltime(self):
     # NOTE: The main query of this function (three lines down from here)
     # relies on data generated during the spider._rank_articles_alltime()
@@ -885,7 +841,7 @@ class Spider(object):
             append = "0".format(filecount)
           f = open("sitemaps/sitemap{}{}.txt".format(append, filecount), 'w')
       self.log.record("Papers complete.")
-      cursor.execute("SELECT id FROM authors ORDER BY id;")
+      cursor.execute("SELECT id FROM detailed_authors ORDER BY id;")
       self.log.record("Recording authors.")
       for a in cursor:
         f.write('{}/authors/{}\n'.format(config.rxivist["base_url"], a[0]))
@@ -901,29 +857,6 @@ class Spider(object):
       self.log.record("Authors complete.")
     f.close()
     self.log.record("Sitemapping complete.")
-
-  def update_ids(self):
-    print("Pulling all translations...")
-    with self.connection.db.cursor() as cursor:
-      # first, figure out the biggest bucket:
-      cursor.execute("SELECT new, old FROM author_translations;")
-      translations = [x for x in cursor]
-    with self.connection.db.cursor() as cursor:
-      print("HERE WE GOOOOO")
-      cursor.executemany("UPDATE detailed_authors SET id=%s WHERE id=%s", translations)
-      print("Author IDs done")
-    with self.connection.db.cursor() as cursor:
-      cursor.executemany("UPDATE article_detailed_authors SET author=%s WHERE author=%s", translations)
-      print("Article authors done")
-    with self.connection.db.cursor() as cursor:
-      cursor.executemany("UPDATE detailed_authors_email SET author=%s WHERE author=%s", translations)
-      print("Author emails done")
-    with self.connection.db.cursor() as cursor:
-      cursor.executemany("UPDATE detailed_author_ranks SET author=%s WHERE author=%s", translations)
-      print("Author ranks done")
-    with self.connection.db.cursor() as cursor:
-      cursor.executemany("UPDATE detailed_author_ranks_category SET author=%s WHERE author=%s", translations)
-      print("Author category ranks done")
 
 def load_rankings_from_file(batch, log):
   os.environ["PGPASSWORD"] = config.db["password"]
@@ -989,7 +922,7 @@ def full_run(spider, collection=None):
 
 # helper method to fill in newly added field author_vector
 def fill_in_author_vectors(spider):
-  spider.log.record("Filling in empty author_vector fields for all articles.")
+  spider.log.record("\n\n!!!!!!\n\nFilling in empty author_vector fields for all articles.")
   article_ids = []
   with spider.connection.db.cursor() as cursor:
     cursor.execute("SELECT id FROM articles WHERE author_vector IS NULL;")
@@ -1002,7 +935,7 @@ def fill_in_author_vectors(spider):
   with spider.connection.db.cursor() as cursor:
     for article in article_ids:
       author_string = ""
-      cursor.execute("SELECT authors.given, authors.surname FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s;", (article,))
+      cursor.execute("SELECT detailed_authors.name FROM article_detailed_authors as aa INNER JOIN detailed_authors ON detailed_authors.id=aa.author WHERE aa.article=%s;", (article,))
       for record in cursor:
         author_string += "{} {}, ".format(record[0], record[1])
       cursor.execute("UPDATE articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, article))
@@ -1065,7 +998,7 @@ if __name__ == "__main__":
     else:
       spider.pull_todays_crossref_data()
   elif sys.argv[1] == "rumble":
-    spider.update_ids()
+    fill_in_author_vectors(spider)
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   else:
