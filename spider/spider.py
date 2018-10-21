@@ -862,7 +862,7 @@ def fill_in_author_vectors(spider):
       author_string = ""
       cursor.execute("SELECT authors.name FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s;", (article,))
       for record in cursor:
-        author_string += "{} {}, ".format(record[0], record[1])
+        author_string += "{}, ".format(record[0])
       cursor.execute("UPDATE articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, article))
       to_do -= 1
       if to_do % 100 == 0:

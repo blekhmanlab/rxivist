@@ -154,7 +154,7 @@ def display_author_details(author_id):
       return bottle.redirect("{}/v1/authors/{}".format(config.host, new_id), 301)
     else:
       bottle.response.status = 404
-      return {"error": e.message}
+      return {"error": "Could not find author with ID {}".format(author_id)}
   try:
     author = endpoints.author_details(author_id, connection)
   except helpers.NotFoundError as e:

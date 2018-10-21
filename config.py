@@ -19,7 +19,7 @@ db = {
   },
 }
 
-host = "api.rxivist.org" # for building redirects behind a CDN
+host = "https://api.rxivist.org" # for building redirects behind a CDN
 
 # Whether to launch the application with gunicorn as the web server, or
 # with Bottle's default. The default can be handy for development because
