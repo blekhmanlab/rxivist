@@ -221,7 +221,7 @@ class Author:
 
     """
     emails = []
-    emailq = connection.read("SELECT email FROM authors_email WHERE author=%s;", (self.id,))
+    emailq = connection.read("SELECT email FROM author_emails WHERE author=%s;", (self.id,))
     for entry in emailq:
       emails.append(entry[0])
     return emails
