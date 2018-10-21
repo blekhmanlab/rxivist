@@ -2,7 +2,7 @@ import re
 
 import psycopg2
 
-class DetailedAuthor:
+class Author:
   def __init__(self, name, institution, email, orcid=None):
     if institution == "":
       self.institution = None
@@ -58,7 +58,7 @@ class DetailedAuthor:
       if self.id is None: # if they're definitely brand new
         cursor.execute("INSERT INTO detailed_authors (name, orcid, institution) VALUES (%s, %s, %s) RETURNING id;", (self.name, self.orcid, self.institution))
         self.id = cursor.fetchone()[0]
-        log.record("Recorded detailed author {} with ID {}".format(self.name, self.id), "info")
+        log.record("Recorded author {} with ID {}".format(self.name, self.id), "info")
         recorded = True
 
       if self.email is not None:
@@ -127,8 +127,8 @@ class Article:
           # If it's a revision
           cursor.execute("UPDATE articles SET url=%s, title=%s, collection=%s WHERE doi=%s RETURNING id;", (self.url, self.title, self.collection, self.doi))
           self.id = cursor.fetchone()[0]
-          stat_table, detailed_authors = spider.get_article_stats(self.url)
-          spider._record_detailed_authors(self.id, detailed_authors, True)
+          stat_table, authors = spider.get_article_stats(self.url)
+          spider._record_authors(self.id, authors, True)
           if stat_table is not None:
             spider.save_article_stats(self.id, stat_table, None)
           spider.log.record("Updated revision for article DOI {}: {}".format(self.doi, self.title), "info")
@@ -145,22 +145,22 @@ class Article:
       spider.log.record("Recording stats for new article", "debug")
       stat_table = None
       try:
-        stat_table, detailed_authors = spider.get_article_stats(self.url)
+        stat_table, authors = spider.get_article_stats(self.url)
       except Exception as e:
         spider.log.record("Error fetching stats: {}. Trying one more time...".format(e), "warn")
       try:
-        stat_table, detailed_authors = spider.get_article_stats(self.url)
+        stat_table, authors = spider.get_article_stats(self.url)
       except Exception as e:
         spider.log.record("Error fetching stats again. Giving up on this one.", "error")
 
-      spider._record_detailed_authors(self.id, detailed_authors)
+      spider._record_authors(self.id, authors)
       posted = spider.get_article_posted_date(self.url)
       if stat_table is not None:
         spider.save_article_stats(self.id, stat_table, posted)
 
       # build the long string of author names:
       author_string = ""
-      for a in detailed_authors:
+      for a in authors:
         author_string += "{}, ".format(a.name)
       cursor.execute("UPDATE articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, self.id))
       spider.log.record("Recorded article {}".format(self.title))

@@ -364,7 +364,7 @@ class Article:
     if len(author_data) > 0:
       self.authors = [Author(a[0], a[1]) for a in author_data]
 
-  def GetDetailedTraffic(self, connection):
+  def GetTraffic(self, connection):
     data = connection.read("SELECT month, year, pdf, abstract FROM article_traffic WHERE article_traffic.article=%s ORDER BY year ASC, month ASC;", (self.id,))
     self.traffic = [TrafficEntry(entry) for entry in data]
 

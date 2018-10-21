@@ -212,7 +212,7 @@ def paper_downloads(a_id, connection):
 
   """
   result = models.Article(a_id)
-  result.GetDetailedTraffic(connection)
+  result.GetTraffic(connection)
   return {
     "query": {
       "id": a_id

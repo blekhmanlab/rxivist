@@ -204,12 +204,12 @@ class Spider(object):
         self.log.record("\nRefreshing article {}".format(article_id), "debug")
         if config.polite:
           time.sleep(1)
-        stat_table, detailed_authors = self.get_article_stats(url)
+        stat_table, authors = self.get_article_stats(url)
         pub_data = self.check_publication_status(article_id, doi, True)
         if pub_data is not None: # if we found something
           self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
         self.save_article_stats(article_id, stat_table)
-        self._record_detailed_authors(article_id, detailed_authors)
+        self._record_authors(article_id, authors)
         updated += 1
         if config.limit_refresh is not False and updated >= cap:
           self.log.record("Maximum articles reached for this session. Returning.")
@@ -294,7 +294,7 @@ class Spider(object):
       else:
         log.record("Error AGAIN requesting article metrics. Bailing: {}".format(collection, e), "error")
 
-    detailed_authors = find_detailed_authors(resp)
+    authors = find_authors(resp)
 
     entries = iter(resp.html.find("td"))
     stats = []
@@ -305,7 +305,7 @@ class Spider(object):
       abstract = int(next(entries).text)
       pdf = int(next(entries).text)
       stats.append((month, year, abstract, pdf))
-    return stats, detailed_authors
+    return stats, authors
 
   def get_article_posted_date(self, url, retry_count=0):
     self.log.record("Determining posting date.")
@@ -384,7 +384,7 @@ class Spider(object):
 
       self.log.record("Recorded {} stats for ID {}".format(len(to_record), article_id), "debug")
 
-  def _record_detailed_authors(self, article_id, authors, overwrite=False):
+  def _record_authors(self, article_id, authors, overwrite=False):
     if overwrite:
       with self.connection.db.cursor() as cursor:
         self.log.record("Marking currently recorded authors for deletion.", "debug")
@@ -400,27 +400,27 @@ class Spider(object):
           self.log.record("Article authors already recorded; skipping.", "info")
           return
 
-    detailed_author_ids = []
+    author_ids = []
     for a in authors:
       a.record(self.connection, self.log)
-      detailed_author_ids.append(a.id)
+      author_ids.append(a.id)
 
     try:
       with self.connection.db.cursor() as cursor:
         sql = "INSERT INTO article_detailed_authors (article, author) VALUES (%s, %s);"
-        cursor.executemany(sql, [(article_id, x) for x in detailed_author_ids])
+        cursor.executemany(sql, [(article_id, x) for x in author_ids])
     except Exception as e:
       # If there's an error associating all the authors with their paper all at once,
       # send separate queries for each one
       # (This came up last time because an author was listed twice on the same paper.)
-      self.log.record("Error associating detailed authors to paper: {}".format(e), "warn")
+      self.log.record("Error associating authors to paper: {}".format(e), "warn")
       self.log.record("Recording article associations one at a time.", "info")
-      for x in detailed_author_ids:
+      for x in author_ids:
         try:
           with self.connection.db.cursor() as cursor:
             cursor.execute("INSERT INTO article_detailed_authors (article, author) VALUES (%s, %s);", (article_id, x))
         except Exception as e:
-          self.log.record("Another problem associating detailed author {} to article {}. Moving on.".format(x, article_id), "error")
+          self.log.record("Another problem associating author {} to article {}. Moving on.".format(x, article_id), "error")
           pass
     if overwrite:
       # if we marked authors for deletion earlier, it's safe to delete them now.
@@ -457,7 +457,7 @@ class Spider(object):
       load_rankings_from_file("month_ranks", self.log)
       self.activate_tables("month_ranks")
     if config.perform_ranks["authors"] is not False:
-      self._rank_detailed_authors_alltime()
+      self._rank_authors_alltime()
       load_rankings_from_file("detailed_author_ranks", self.log)
       self.activate_tables("detailed_author_ranks")
 
@@ -472,7 +472,7 @@ class Spider(object):
       if config.perform_ranks["category_distributions"] is not False:
         self._calculate_category_download_distributions(category)
       if config.perform_ranks["author_categories"] is not False:
-        self._rank_detailed_authors_category(category)
+        self._rank_authors_category(category)
         load_rankings_from_file("detailed_author_ranks_category", self.log)
     # we wait until all the categories have been loaded before
     # swapping in the fresh batch
@@ -715,7 +715,7 @@ class Spider(object):
 
     record_ranks_file(params, "month_ranks_working")
 
-  def _rank_detailed_authors_alltime(self):
+  def _rank_authors_alltime(self):
     # NOTE: The main query of this function (three lines down from here)
     # relies on data generated during the spider._rank_articles_alltime()
     # method, so that one should be called first.
@@ -755,8 +755,8 @@ class Spider(object):
 
     record_ranks_file(params, "detailed_author_ranks_working")
 
-  def _rank_detailed_authors_category(self, category):
-    self.log.record("Ranking detailed authors by popularity in category {}...".format(category))
+  def _rank_authors_category(self, category):
+    self.log.record("Ranking authors by popularity in category {}...".format(category))
     with self.connection.db.cursor() as cursor:
       cursor.execute("""
       SELECT article_detailed_authors.author, SUM(alltime_ranks.downloads) as downloads
@@ -943,9 +943,9 @@ def fill_in_author_vectors(spider):
       if to_do % 100 == 0:
         spider.log.record("{} - {} left to go.".format(datetime.now(), to_do))
 
-def find_detailed_authors(response):
+def find_authors(response):
   # Determine author details:
-  detailed_authors = []
+  authors = []
   author_tags = response.html.find('meta[name^="citation_author"]')
   current_name = ""
   current_institution = ""
@@ -954,7 +954,7 @@ def find_detailed_authors(response):
   for tag in author_tags:
     if tag.attrs["name"] == "citation_author":
       if current_name != "": # if this isn't the first author
-        detailed_authors.append(models.DetailedAuthor(current_name, current_institution, current_email, current_orcid))
+        authors.append(models.Author(current_name, current_institution, current_email, current_orcid))
       current_name = tag.attrs["content"]
       current_institution = ""
       current_email = ""
@@ -969,9 +969,9 @@ def find_detailed_authors(response):
   # next author's entry, the last step has to be to record whichever
   # author we were looking at when the author list ended:
   if current_name != "": # if we somehow didn't find a single author
-    detailed_authors.append(models.DetailedAuthor(current_name, current_institution, current_email, current_orcid))
+    authors.append(models.Author(current_name, current_institution, current_email, current_orcid))
 
-  return detailed_authors
+  return authors
 
 def month_to_num(month):
   # helper for converting month names (string) to numbers (int)
@@ -985,13 +985,6 @@ if __name__ == "__main__":
   spider = Spider()
   if len(sys.argv) == 1: # if no action is specified, do everything
     full_run(spider)
-  elif sys.argv[1] == "rankings":
-    spider.process_rankings()
-  elif sys.argv[1] == "traffic":
-    if len(sys.argv) > 2:
-      spider.refresh_article_stats(sys.argv[2])
-    else:
-      spider.log.record("Must specify collection to refresh traffic stats for.", "fatal")
   elif sys.argv[1] == "crossref":
     if len(sys.argv) > 2:
       spider._pull_crossref_data_date(sys.argv[2])
