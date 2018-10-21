@@ -469,8 +469,6 @@ class Spider(object):
       if config.perform_ranks["article_categories"] is not False:
         self._rank_articles_categories(category)
         load_rankings_from_file("category_ranks", self.log)
-      if config.perform_ranks["category_distributions"] is not False:
-        self._calculate_category_download_distributions(category)
       if config.perform_ranks["author_categories"] is not False:
         self._rank_authors_category(category)
         load_rankings_from_file("author_ranks_category", self.log)
@@ -575,75 +573,6 @@ class Spider(object):
         cursor.execute("DELETE FROM download_distribution WHERE category='{}_mean'".format(task["name"]))
         sql = "INSERT INTO download_distribution (category, bucket, count) VALUES ('{}_mean', 0, %s);".format(task["name"])
         cursor.execute(sql, (mean,))
-
-  def _calculate_category_download_distributions(self, category):
-    # Builds data for a category-specific histogram of downloads
-    self.log.record("Calculating distribution of download counts with logarithmic scales, BY CATEGORY {}.".format(category))
-    results = defaultdict(int)
-    self.log.record("Calculating download distributions for {}".format(category))
-    with self.connection.db.cursor() as cursor:
-      # first, figure out the biggest bucket:
-      cursor.execute("SELECT MAX(downloads) FROM alltime_ranks;")
-      biggest = cursor.fetchone()[0]
-      # then set up all the empty buckets (so they aren't missing when we draw the graph)
-      buckets = [0, round(config.distribution_log_articles)]
-      current = round(config.distribution_log_articles)
-      while True: # TODO: We can avoid re-calculating the same buckets for every category
-        next_bucket = round(current * config.distribution_log_articles)
-        if next_bucket == current: # making sure we don't get stuck at 1.0
-          current += 1
-        else:
-          current = next_bucket
-        buckets.append(current)
-        if current > biggest:
-          break
-      self.log.record("Buckets determined! {} buckets between 0 and {}".format(len(buckets), buckets[-1]))
-      for bucket in buckets:
-        results[bucket] = 0
-      # now fill in the buckets:
-      cursor.execute("""
-        SELECT r.downloads
-        FROM alltime_ranks AS r
-        LEFT JOIN articles AS a ON r.article=a.id
-        WHERE a.collection=%s
-        ORDER BY downloads ASC;
-      """, (category,))
-      values = []
-      for entity in cursor:
-        if len(entity) > 0:
-          values.append(entity[0])
-          # determine what bucket it's in:
-          target = 0
-          for bucket_num, bucket in enumerate(buckets):
-            if entity[0] < bucket:
-              results[buckets[bucket_num-1]] += 1
-              break
-      cursor.execute("DELETE FROM download_distribution WHERE category=%s", (category,))
-      sql = "INSERT INTO download_distribution (bucket, count, category) VALUES (%s, %s, %s);"
-      params = [(bucket, count, category) for bucket, count in results.items()]
-      self.log.record("Recording distributions...")
-      cursor.executemany(sql, params)
-
-      self.log.record("Calculating median for {}".format(category))
-      if len(values) % 2 == 1:
-        median = values[int((len(values) - 1) / 2)]
-      else:
-        median = (values[int((len(values)/ 2) - 1)] + values[int(len(values)/ 2)]) / 2
-      self.log.record("Median is {}".format(median), "debug")
-      # HACK: This data doesn't fit in this table. Maybe move to site stats table?
-      cursor.execute("DELETE FROM download_distribution WHERE category='{}_median'".format(category))
-      sql = "INSERT INTO download_distribution (category, bucket, count) VALUES ('{}_median', 0, %s);".format(category)
-      cursor.execute(sql, (median,))
-
-      self.log.record("Calculating mean for {}".format(category))
-      total = 0
-      for x in values:
-        total += x
-      mean = total / len(values)
-      self.log.record("Mean is {}".format(mean), "debug")
-      cursor.execute("DELETE FROM download_distribution WHERE category='{}_mean'".format(category))
-      sql = "INSERT INTO download_distribution (category, bucket, count) VALUES ('{}_mean', 0, %s);".format(category)
-      cursor.execute(sql, (mean,))
 
   def _rank_articles_alltime(self):
     self.log.record("Ranking papers by popularity...")

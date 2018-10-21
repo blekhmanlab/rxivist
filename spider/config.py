@@ -52,9 +52,9 @@ delete_csv = True
 # stats should be before we refresh them. (This string MUST
 # be able to be interpreted by Postgres as a time interval
 # to subtract from the current date.)
-refresh_interval = "20 days"
+refresh_interval = "4 weeks"
 limit_refresh = True
-refresh_category_cap = 150
+refresh_category_cap = 100
 
 # information about the biorxiv web addresses to be scraped
 biorxiv = {
@@ -81,16 +81,15 @@ rxivist = {
 crawl = {
   "fetch_new": True, # Check for new papers in each collection
   "fetch_abstracts": True, # Check for any Rxivist papers missing an abstract and fill it in (Papers don't have an abstract when first crawled)
-  "fetch_crossref": False, # Update daily Crossref stats
+  "fetch_crossref": True, # Update daily Crossref stats
   "refresh_stats": True, # Look for articles with outdated download info and re-crawl them
 }
 
 perform_ranks = {
-  "enabled": False,  # set to False to disable all below
+  "enabled": True,  # set to False to disable all below
   "alltime": True,
   "ytd": True,
   "month": True,
-  "bouncerate": False,
   "authors": True,
   "article_categories": True,
   "author_categories": True

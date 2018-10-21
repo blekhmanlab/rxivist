@@ -94,8 +94,8 @@ def index():
       error = "Problem recognizing specified page size: {}".format(e)
       page_size = 0
 
-  if page_size > config.max_page_size_api:
-    page_size = config.max_page_size_api # cap the page size users can ask for
+  if page_size > config.max_page_size:
+    page_size = config.max_page_size # cap the page size users can ask for
 
   results = {} # a list of articles for the current page
   totalcount = 0 # how many results there are in total
