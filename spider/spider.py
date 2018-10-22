@@ -868,8 +868,16 @@ def fill_in_author_vectors(spider):
       if to_do % 100 == 0:
         spider.log.record("{} - {} left to go.".format(datetime.now(), to_do))
 
+def safeprint(message):
+  message = message.encode('utf-8')
+  try:
+    print(message.decode('utf-8'))
+  except Exception:
+    print(message)
+
 # helper method to fill in newly added field author_vector
 def consolidate_author_punctuation(spider):
+  import pickle
   changes = []
   tocheck = []
   with spider.connection.db.cursor() as cursor:
@@ -889,17 +897,11 @@ def consolidate_author_punctuation(spider):
     with spider.connection.db.cursor() as cursor:
       cursor.execute("SELECT id, name, orcid FROM authors WHERE noperiodname=%s AND id != %s;", (stripped, author[0]))
       for record in cursor:
-        message = "{} ({}) matches {} ({})".format(author[1], author[0], record[1], record[0]).encode('utf-8')
-        try:
-          print(message.decode('utf-8'))
-        except Exception:
-          print(message)
+        safeprint("{} ({}) matches {} ({})".format(author[1], author[0], record[1], record[0]))
         if record[0] not in ids:
           ids.append(record[0])
           replacements[author].append(record)
-        else:
-          print("  Skipping entry; ID already recorded elsewhere")
-  print("\n\n--\n\nPickling...")
+  print("\n\n--\n\nCOMPLETE! Pickling...")
   with open('replacements.pickle', 'wb') as f:
     pickle.dump(replacements, f, pickle.HIGHEST_PROTOCOL)
   print("Found {} authors with duplicates; {} IDs total.\n\n".format(len(replacements.keys()), len(ids)))
@@ -908,7 +910,7 @@ def consolidate_author_punctuation(spider):
   with open('to_review.txt', 'w') as f:
     for entry in replacements.keys():
       bail = False
-      print("Evaluating {} ({}):".format(entry[1], entry[0]))
+      safeprint("Evaluating {} ({}):".format(entry[1], entry[0]))
       # make sure (at most) one entry had an ORCID:
       orcid = None
       lowest_id = entry[0]
@@ -920,11 +922,11 @@ def consolidate_author_punctuation(spider):
           lowest_id = replacement[0]
         if replacement[2] is not None:
           if orcid is None:
-            print("  Replacement {} ({}) has an ORCID".format(replacement[1], replacement[0]))
+            safeprint("  Replacement {} ({}) has an ORCID".format(replacement[1], replacement[0]))
             orcid = replacement[2]
           else:
             print("  Multiple ORCIDs detected for entry. Recording IDs and skipping.")
-            towrite = entry[0]
+            towrite = "{}".format(entry[0])
             for replacement in replacements[entry]:
               towrite += ", {}".format(replacement[0])
             f.write("{}\n".format(towrite))
@@ -986,8 +988,24 @@ def consolidate_author_punctuation(spider):
           print("  Removing author entry for {}".format(replacement[0]))
           cursor.execute("DELETE FROM authors WHERE id=%s", (replacement[0],))
           deleted += 1
+  print("\n\n*** DONE! ***\n")
+  multiplematches = 0
+  max_matches = 1
+  max_match_key = ""
+  for entry in replacements.keys():
+    if len(replacements[entry]) > 1:
+      safeprint("Multiple matches for {}:".format(entry[1]))
+      for r in replacements[entry]:
+        safeprint("  {}".format(r[1]))
+      multiplematches += 1
+      if len(replacements[entry]) > max_matches:
+        max_matches = len(replacements[entry])
+        max_match_key = entry
 
-  print("Found {} authors with duplicates; {} IDs total. DONE: {} deleted.".format(len(replacements.keys()), len(ids), deleted))
+  safeprint("\n\nMost matches was {}, for {}:".format(max_matches, max_match_key[1]))
+  for entry in replacements[max_match_key]:
+    safeprint("  {}".format(entry[1]))
+  safeprint("\n\nFound {} authors with duplicates; {} IDs total. DONE: {} deleted.".format(len(replacements.keys()), len(ids), deleted))
 
 def find_authors(response):
   # Determine author details:
