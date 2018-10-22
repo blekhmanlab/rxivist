@@ -40,7 +40,7 @@ class Author:
         # if they don't have an ORCiD, check for duplicates based on name.
         # NOTE: We don't use email as a signifier of uniqueness because some authors who hate
         # me record the same email address for multiple people.
-        cursor.execute("SELECT id FROM authors WHERE name = %s;", (self.name,))
+        cursor.execute("SELECT id FROM authors WHERE noperiodname = %s;", (self.name.replace(".", ""),))
         a_id = cursor.fetchone()
         if a_id is not None:
           self.id = a_id[0]
@@ -56,7 +56,7 @@ class Author:
             cursor.execute("UPDATE authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
 
       if self.id is None: # if they're definitely brand new
-        cursor.execute("INSERT INTO authors (name, orcid, institution) VALUES (%s, %s, %s) RETURNING id;", (self.name, self.orcid, self.institution))
+        cursor.execute("INSERT INTO authors (name, orcid, institution, noperiodname) VALUES (%s, %s, %s, %s) RETURNING id;", (self.name, self.orcid, self.institution, self.name.replace(".", "")))
         self.id = cursor.fetchone()[0]
         log.record("Recorded author {} with ID {}".format(self.name, self.id), "info")
         recorded = True
