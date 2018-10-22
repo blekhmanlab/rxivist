@@ -6,6 +6,7 @@ additional information.
 """
 import math
 
+import config
 import db
 import helpers
 
@@ -402,7 +403,8 @@ class SearchResultArticle(Article):
       "id": self.id,
       "metric": self.downloads,
       "title": self.title,
-      "url": self.url,
+      "url": "{}/v1/papers/{}".format(config.host, self.id),
+      "biorxiv_url": self.url,
       "doi": self.doi,
       "category": self.collection,
       "first_posted": self.posted.strftime('%Y-%m-%d') if self.posted is not None else "",
@@ -468,7 +470,7 @@ class ArticleDetails(Article):
       "doi": self.doi,
       "first_posted": self.posted.strftime('%Y-%m-%d') if self.posted is not None else "",
       "biorxiv_url": self.url,
-      "url": "https://rxivist.org/papers/{}".format(self.id),
+      "url":  "{}/v1/papers/{}".format(config.host, self.id),
       "title": self.title,
       "category": self.collection,
       "abstract": self.abstract,
@@ -517,7 +519,7 @@ class AuthorArticle(Article):
       "id": self.id,
       "doi": self.doi,
       "biorxiv_url": self.url,
-      "url": "https://rxivist.org/papers/{}".format(self.id),
+      "url": "{}/v1/papers/{}".format(config.host, self.id),
       "title": self.title,
       "category": self.collection,
       "ranks": self.ranks.json()

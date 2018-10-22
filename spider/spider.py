@@ -209,7 +209,10 @@ class Spider(object):
         if pub_data is not None: # if we found something
           self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
         self.save_article_stats(article_id, stat_table)
-        self._record_authors(article_id, authors)
+        # TODO 21 Oct 2018: we can REMOVE this "True" flag below at some point soon;
+        # it was added to re-evaluate all authors because the emails of the duplicated
+        # authors were lost.
+        self._record_authors(article_id, authors, True)
         updated += 1
         if config.limit_refresh is not False and updated >= cap:
           self.log.record("Maximum articles reached for this session. Returning.")
