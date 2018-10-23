@@ -871,13 +871,6 @@ def fill_in_author_vectors(spider):
       if to_do % 100 == 0:
         spider.log.record("{} - {} left to go.".format(datetime.now(), to_do))
 
-def safeprint(message):
-  message = message.encode('utf-8')
-  try:
-    print(message.decode('utf-8'))
-  except Exception:
-    print(message)
-
 def find_authors(response):
   # Determine author details:
   authors = []
@@ -908,6 +901,31 @@ def find_authors(response):
 
   return authors
 
+def cachewarmer(spider):
+  api = "https://api.rxivist.org/v1"
+  website = "https://rxivist.org"
+
+  finalpage = requests.get("{}/papers".format(api)).json()["query"]["final_page"]
+  print("About to fetch {} pages".format(finalpage+1))
+  for page in range(finalpage):
+    print("PAGE {}".format(page))
+    papersearch = requests.get("{}/papers?page={}".format(api, page)).json()
+    for paper in papersearch["results"]:
+      print("  Grabbing paper {}".format(paper["id"]))
+      paperdata = requests.get("{}/papers/{}".format(api, paper["id"])).json()
+      webpage = requests.get("{}/papers/{}".format(website, paper["id"]))
+      for author in paperdata["authors"]:
+        print("    Grabbing author {}".format(author["id"]))
+        requests.get("{}/authors/{}".format(api, author["id"]))
+        requests.get("{}/authors/{}".format(website, author["id"]))
+  print("Done the top papers!")
+  topauthors = requests.get("{}/authors".format(api)).json()["results"]
+  for author in topauthors:
+    print("  Grabbing author {}".format(author["id"]))
+    requests.get("{}/authors/{}".format(api, author["id"]))
+    requests.get("{}/authors/{}".format(website, author["id"]))
+
+
 def month_to_num(month):
   # helper for converting month names (string) to numbers (int)
   if len(month) > 3: # if it's the full name, truncate it
@@ -925,8 +943,8 @@ if __name__ == "__main__":
       spider._pull_crossref_data_date(sys.argv[2])
     else:
       spider.pull_todays_crossref_data()
-  elif sys.argv[1] == "rumble":
-    consolidate_author_punctuation(spider)
+  elif sys.argv[1] == "test":
+    cachewarmer(spider)
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   else:
