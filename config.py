@@ -12,6 +12,7 @@ db = {
   "db": "rxdb",
   "user": "root",
   "password": os.environ['RX_DBPASSWORD'],
+  "schema": 'prod', # Each environment has a schema, theoretically
   "connection": {
     "timeout": 3,
     "max_attempts": 10,

@@ -44,9 +44,15 @@ class Connection(object):
 
     attempts += 1
     print("Connecting. Attempt {} of {}.".format(attempts, config.db["connection"]["max_attempts"]))
-    params = 'host={} dbname={} user={} password={} connect_timeout={}'.format(self.host, self.dbname, self.user, self.password, config.db["connection"]["timeout"])
     try:
-      self.db = psycopg2.connect(params)
+      self.db = psycopg2.connect(
+        host=self.host,
+        dbname=self.dbname,
+        user=self.user,
+        password=self.password,
+        connect_timeout=config.db["connection"]["timeout"],
+        options='-c search_path={}'.format(config.db["schema"])
+      )
       self.db.set_session(autocommit=True)
     except:
       if attempts >= config.db["connection"]["max_attempts"]:
