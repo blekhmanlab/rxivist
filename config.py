@@ -19,7 +19,10 @@ db = {
   },
 }
 
-host = "https://api.rxivist.org" # for building redirects behind a CDN
+# Hostname (and protocol) where users will find your site.
+# This is needed to build redirect URLs that don't
+# break when the web server is behind a reverse proxy.
+host = "https://api.url_goes_in_here.org"
 
 # Whether to launch the application with gunicorn as the web server, or
 # with Bottle's default. The default can be handy for development because
