@@ -205,14 +205,18 @@ class Spider(object):
         if config.polite:
           time.sleep(1)
         stat_table, authors = self.get_article_stats(url)
-        pub_data = self.check_publication_status(article_id, doi, True)
+        try:
+          pub_data = self.check_publication_status(article_id, doi, True)
+        except ValueError:
+          continue
         if pub_data is not None: # if we found something
           self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
         self.save_article_stats(article_id, stat_table)
-        # TODO 21 Oct 2018: we can REMOVE this "True" flag below at some point soon;
-        # it was added to re-evaluate all authors because the emails of the duplicated
-        # authors were lost.
-        self._record_authors(article_id, authors, True)
+
+        overwrite = False
+        if config.record_authors_on_refresh is True:
+          overwrite = True
+        self._record_authors(article_id, authors, overwrite)
         updated += 1
         if config.limit_refresh is not False and updated >= cap:
           self.log.record("Maximum articles reached for this session. Returning.")
