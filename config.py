@@ -10,7 +10,7 @@ import os
 db = {
   "host": os.environ['RX_DBHOST'],
   "db": "rxdb",
-  "user": "root",
+  "user": os.environ['RX_DBUSER'],
   "password": os.environ['RX_DBPASSWORD'],
   "schema": 'prod', # Each environment has a schema, theoretically
   "connection": {
