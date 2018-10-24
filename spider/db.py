@@ -1,4 +1,5 @@
 import psycopg2
+import config
 
 class Connection(object):
   def __init__(self, host, db, user, password):
@@ -6,8 +7,13 @@ class Connection(object):
     self.db = None
     self._ensure_database_exists(dbname, host, user, password)
 
-    params = 'host={} dbname={} user={} password={}'.format(host, dbname, user, password)
-    self.db = psycopg2.connect(params)
+    self.db = psycopg2.connect(
+      host=host,
+      dbname=dbname,
+      user=user,
+      password=password,
+      options='-c search_path={}'.format(config.db["schema"])
+    )
     self.db.set_session(autocommit=True)
     self.cursor = self.db.cursor()
 
