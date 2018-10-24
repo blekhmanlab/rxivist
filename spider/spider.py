@@ -65,11 +65,11 @@ def pull_out_articles(html, collection, log):
   return articles
 
 def record_ranks_file(to_record, filename):
-  with open("{}.csv".format(filename), 'w') as f:
+  with open(f"{filename}.csv", 'w') as f:
     for entry in to_record:
       to_write = ""
       for i, field in enumerate(entry):
-        to_write += "{}".format(field)
+        to_write += str(field)
         if i < len(entry) - 1:
           to_write += ","
       to_write += "\n"
@@ -83,7 +83,7 @@ class Spider(object):
     self.log = Logger()
 
   def _pull_crossref_data_date(self, datestring):
-    self.log.record("Beginning retrieval of Crossref data for {}".format(datestring), "info")
+    self.log.record(f"Beginning retrieval of Crossref data for {datestring}", "info")
     # (If we have multiple results for the same 24-hour period, the
     # query that displays the most popular displays the same articles
     # multiple times, and the aggregation function to clean that up
@@ -95,12 +95,12 @@ class Spider(object):
     headers = {'user-agent': config.user_agent}
     r = requests.get("{0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), headers=headers)
     if r.status_code != 200:
-      self.log.record("Got weird status code: {}. {}".format(r.status_code, r.text()), "error")
+      self.log.record(f"Got weird status code: {r.status_code}. {r.text()}", "error")
       return
     results = r.json()
 
     if results["status"] != "ok":
-      self.log.record("Crossref responded, but with unexpected status: {}".format(results["status"]), "error")
+      self.log.record(f'Crossref responded, but with unexpected status: {results["status"]}', "error")
       return
     if "message" not in results.keys() or "events" not in results["message"].keys() or len(results["message"]["events"]) == 0:
       self.log.record("Events not found in response.", "error")
@@ -111,10 +111,10 @@ class Spider(object):
       # Odds are we're never going to get more than one page here, so
       # let's put off the implemention of pagination until that day
       # is upon us
-      self.log.record("TOO MANY RESULTS: {}".format(results["message"]["total-results"]), "fatal")
+      self.log.record(f'TOO MANY RESULTS: {results["message"]["total-results"]}', "fatal")
     for event in results["message"]["events"]:
       if event.get("source_id") != "twitter": # double-check that it's filtering right
-        self.log.record("Unrecognized source_id field: {}. Skipping.".format(event.get("source_id", "(not provided)")), "info")
+        self.log.record(f'Unrecognized source_id field: {event.get("source_id", "(not provided)")}. Skipping.', "info")
         continue
       try:
         doi_search = re.search('https://doi.org/(.*)', event["obj_id"])
@@ -129,22 +129,22 @@ class Spider(object):
 
     sql = "INSERT INTO crossref_daily (source_date, doi, count) VALUES (%s, %s, %s);"
     params = [(datestring, doi, len(tweets[doi])) for doi in tweets]
-    self.log.record("Saving tweet data for {} DOI entries.".format(len(tweets.keys())))
+    self.log.record(f"Saving tweet data for {len(tweets.keys())} DOI entries.")
     with self.connection.db.cursor() as cursor:
       cursor.executemany(sql, params)
     self.log.record("Done with crossref.", "info")
 
   def find_record_new_articles(self, collection):
     # we need to grab the first page to figure out how many pages there are
-    self.log.record("Fetching page 0 in {}".format(collection))
+    self.log.record(f"Fetching page 0 in {collection}")
     try:
-      r = self.session.get("{}/{}".format(config.biorxiv["endpoints"]["collection"], collection))
+      r = self.session.get(f'{config.biorxiv["endpoints"]["collection"]}/{collection}')
     except Exception as e:
-      log.record("Error requesting first page of results for collection. Retrying: {}".format(e), "error")
+      log.record(f"Error requesting first page of results for collection. Retrying: {e}", "error")
       try:
-        r = self.session.get("{}/{}".format(config.biorxiv["endpoints"]["collection"], collection))
+        r = self.session.get(f'{config.biorxiv["endpoints"]["collection"]}/{collection}')
       except Exception as e:
-        log.record("Error AGAIN requesting first page of results for collection. Bailing: {}".format(e), "error")
+        log.record(f"Error AGAIN requesting first page of results for collection. Bailing: {e}", "error")
         return
 
     results = pull_out_articles(r.html, collection, self.log)
@@ -159,15 +159,15 @@ class Spider(object):
     for p in range(1, determine_page_count(r.html)): # iterate through each page of results
       if config.polite:
         time.sleep(3)
-      self.log.record("Fetching page {} in {}".format(p, collection)) # pages are zero-indexed
+      self.log.record(f"Fetching page {p} in {collection}") # pages are zero-indexed
       try:
         r = self.session.get("{}/{}?page={}".format(config.biorxiv["endpoints"]["collection"], collection, p))
       except Exception as e:
-        log.record("Error requesting page of results for collection {}. Retrying: {}".format(collection, e), "error")
+        log.record(f"Error requesting page of results for collection {collection}. Retrying: {e}", "error")
         try:
           r = self.session.get("{}/{}?page={}".format(config.biorxiv["endpoints"]["collection"], collection, p))
         except Exception as e:
-          log.record("Error AGAIN requesting page of results for collection {}: {}".format(collection, e), "error")
+          log.record(f"Error AGAIN requesting page of results for collection {collection}: {e}", "error")
           log.record("Crawling of category {} failed in the middle; unrecorded new articles are likely being skipped. Exiting to avoid losing them.", "fatal")
           return
 
@@ -190,10 +190,10 @@ class Spider(object):
           abstract = self.get_article_abstract(url)
           self.update_article(article_id, abstract)
         except ValueError as e:
-          self.log.record("Error retrieving abstract: {}".format(e))
+          self.log.record(f"Error retrieving abstract: {e}")
 
   def refresh_article_stats(self, collection, cap=10000):
-    self.log.record("Refreshing article download stats for collection {}...".format(collection))
+    self.log.record(f"Refreshing article download stats for collection {collection}...")
     with self.connection.db.cursor() as cursor:
       cursor.execute("SELECT id, url, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
       updated = 0
@@ -201,7 +201,7 @@ class Spider(object):
         article_id = article[0]
         url = article[1]
         doi = article[2]
-        self.log.record("\nRefreshing article {}".format(article_id), "debug")
+        self.log.record(f"\nRefreshing article {article_id}", "debug")
         if config.polite:
           time.sleep(1)
         stat_table, authors = self.get_article_stats(url)
@@ -221,11 +221,11 @@ class Spider(object):
         if config.limit_refresh is not False and updated >= cap:
           self.log.record("Maximum articles reached for this session. Returning.")
           break
-    self.log.record("{} articles refreshed in {}.".format(updated, collection))
+    self.log.record(f"{updated} articles refreshed in {collection}.")
     return updated
 
   def check_publication_status(self, article_id, doi, retry=False):
-    self.log.record("Determining publication status for DOI {}.".format(doi))
+    self.log.record(f"Determining publication status for DOI {doi}.")
     with self.connection.db.cursor() as cursor:
       # we check for which ones are already recorded because
       # the postgres UPSERT feature is bananas
@@ -237,7 +237,7 @@ class Spider(object):
     try:
       resp = self.session.get("{}?doi={}".format(config.biorxiv["endpoints"]["pub_doi"], doi))
     except Exception as e:
-      self.log.record("Error fetching publication data: {}".format(e), "warn")
+      self.log.record(f"Error fetching publication data: {e}", "warn")
       if retry:
         self.log.record("Retrying:")
         time.sleep(3)
@@ -250,7 +250,7 @@ class Spider(object):
       # response is wrapped in parentheses and lots of trailing white space
       parsed = json.loads(re.sub(r'\)\s*$', '', resp.text[1:]))
     except json.decoder.JSONDecodeError as e:
-      self.log.record("Error encountered decoding JSON: {}. Bailing.".format(e), "error")
+      self.log.record(f"Error encountered decoding JSON: {e}. Bailing.", "error")
       return
 
     data = parsed.get("pub", [])
@@ -259,18 +259,18 @@ class Spider(object):
       return
 
     if data[0].get("pub_type") != "published":
-      self.log.record("Publication found, but not in 'published' state: {}. Skipping.".format(data[0]["pub_type"]), "info")
+      self.log.record(f'Publication found, but not in "published" state: {data[0]["pub_type"]}. Skipping.', 'info')
       return # Don't know what this could mean
     if "pub_doi" not in data[0] or "pub_journal" not in data[0]:
       self.log.record("Publication data found, but missing important field(s). Skipping.")
       return
 
-    self.log.record("**Publication found: {}".format(data[0]["pub_journal"]))
+    self.log.record(f'Publication found: {data[0]["pub_journal"]}')
 
     with self.connection.db.cursor() as cursor:
       self.log.record("Saving publication info.", "debug")
       cursor.execute("INSERT INTO article_publications (article, doi, publication) VALUES (%s, %s, %s);", (article_id, data[0]["pub_doi"], data[0]["pub_journal"]))
-      self.log.record("Recorded DOI {} for article {}".format(data[0]["pub_doi"], article_id))
+      self.log.record(f'Recorded DOI {data[0]["pub_doi"]} for article {article_id}')
 
   def get_article_abstract(self, url, retry=True):
     if config.polite:
@@ -278,7 +278,7 @@ class Spider(object):
     try:
       resp = self.session.get(url)
     except Exception as e:
-      self.log.record("Error fetching abstract: {}".format(e), "warn")
+      self.log.record(f"Error fetching abstract: {e}", "warn")
       if retry:
         self.log.record("Retrying:")
         time.sleep(3)
@@ -293,13 +293,13 @@ class Spider(object):
 
   def get_article_stats(self, url, retry_count=0):
     try:
-      resp = self.session.get("{}.article-metrics".format(url))
+      resp = self.session.get(f"{url}.article-metrics")
     except Exception as e:
       if retry_count < 3:
-        log.record("Error requesting article metrics. Retrying: {}".format(collection, e), "error")
+        log.record(f"Error requesting article metrics. Retrying: {e}", "error")
         self.get_article_stats(url, retry_count+1)
       else:
-        log.record("Error AGAIN requesting article metrics. Bailing: {}".format(collection, e), "error")
+        log.record(f"Error AGAIN requesting article metrics. Bailing: {e}", "error")
 
     authors = find_authors(resp)
 
@@ -317,13 +317,13 @@ class Spider(object):
   def get_article_posted_date(self, url, retry_count=0):
     self.log.record("Determining posting date.")
     try:
-      resp = self.session.get("{}.article-info".format(url))
+      resp = self.session.get(f"{url}.article-info")
     except Exception as e:
       if retry_count < 3:
-        log.record("Error requesting article posted-on date. Retrying: {}".format(e), "error")
+        log.record(f"Error requesting article posted-on date. Retrying: {e}", "error")
         self.get_article_posted_date(url, retry_count+1)
       else:
-        log.record("Error AGAIN requesting article posted-on date. Bailing: {}".format(e), "error")
+        log.record(f"Error AGAIN requesting article posted-on date. Bailing: {e}", "error")
         return None
     # This assumes that revisions continue to be listed with oldest version first:
     older = resp.html.find('.hw-version-previous-link', first=True)
@@ -338,14 +338,14 @@ class Spider(object):
       month = date_search.group(1)
       day = date_search.group(2)
       year = date_search.group(3)
-      datestring = "{}-{}-{}".format(year, month_to_num(month), day)
-      self.log.record("Determined date: {}".format(datestring), "info")
+      datestring = f"{year}-{month_to_num(month)}-{day}"
+      self.log.record(f"Determined date: {datestring}", "info")
       return datestring
     elif posted is not None: # if not, just grab the date from the current version
-      self.log.record("No older version detected; using date from current page: {}".format(posted.attrs['content']), "info")
+      self.log.record(f'No older version detected; using date from current page: {posted.attrs["content"]}', "info")
       return posted.attrs['content']
     else:
-      log.record("Could not determine posted date for article at {}".format(url), "warn")
+      log.record(f"Could not determine posted date for article at {url}", "warn")
 
     return None
 
@@ -386,10 +386,10 @@ class Spider(object):
       cursor.execute("UPDATE articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
 
       if posted is not None:
-        self.log.record("Determined 'posted on' date: {}".format(posted), "debug")
+        self.log.record(f"Determined 'posted on' date: {posted}", "debug")
         cursor.execute("UPDATE articles SET posted = %s WHERE id=%s", (posted, article_id))
 
-      self.log.record("Recorded {} stats for ID {}".format(len(to_record), article_id), "debug")
+      self.log.record(f"Recorded {len(to_record)} stats for ID {article_id}", "debug")
 
   def _record_authors(self, article_id, authors, overwrite=False):
     if overwrite:
@@ -420,14 +420,14 @@ class Spider(object):
       # If there's an error associating all the authors with their paper all at once,
       # send separate queries for each one
       # (This came up last time because an author was listed twice on the same paper.)
-      self.log.record("Error associating authors to paper: {}".format(e), "warn")
+      self.log.record(f"Error associating authors to paper: {e}", "warn")
       self.log.record("Recording article associations one at a time.", "info")
       for x in author_ids:
         try:
           with self.connection.db.cursor() as cursor:
             cursor.execute("INSERT INTO article_authors (article, author) VALUES (%s, %s);", (article_id, x))
         except Exception as e:
-          self.log.record("Another problem associating author {} to article {}. Moving on.".format(x, article_id), "error")
+          self.log.record(f"Another problem associating author {x} to article {article_id}. Moving on.", "error")
           pass
     if overwrite:
       # if we marked authors for deletion earlier, it's safe to delete them now.
@@ -447,7 +447,7 @@ class Spider(object):
   def process_rankings(self):
     # pulls together all the separate ranking calls
     start = datetime.now()
-    self.log.record("{} - Starting full ranking process.".format(start))
+    self.log.record(f"{start} - Starting full ranking process.")
     # "not False" is used here because we want these to process if the flag
     # is set to True OR not set at all ("None is not False" evaluates True)
 
@@ -488,25 +488,25 @@ class Spider(object):
 
     self._calculate_download_distributions()
     end = datetime.now()
-    self.log.record("{} - Full ranking process complete after {}.".format(end, end-start))
+    self.log.record(f"{end} - Full ranking process complete after {end-start}.")
 
   def activate_tables(self, table):
-    self.log.record("Activating tables for {}".format(table))
+    self.log.record(f"Activating tables for {table}")
     queries = [
-      "ALTER TABLE {0} RENAME TO {0}_temp".format(table),
-      "ALTER TABLE {0}_working RENAME TO {0}".format(table),
-      "ALTER TABLE {0}_temp RENAME TO {0}_working".format(table)
+      f"ALTER TABLE {table} RENAME TO {table}_temp",
+      f"ALTER TABLE {table}_working RENAME TO {table}",
+      f"ALTER TABLE {table}_temp RENAME TO {table}_working"
     ]
-    to_delete = "{}_working.csv".format(table)
+    to_delete = f"{table}_working.csv"
     with self.connection.db.cursor() as cursor:
       for query in queries:
         cursor.execute(query)
     if config.delete_csv == True:
-      self.log.record("Deleting {}".format(to_delete))
+      self.log.record(f"Deleting {to_delete}")
       try:
         os.remove(to_delete)
       except Exception as e:
-        self.log.record("Problem deleting {}: {}".format(to_delete, e), "warn")
+        self.log.record(f"Problem deleting {to_delete}: {e}", "warn")
 
   def _calculate_download_distributions(self):
     self.log.record("Calculating distribution of download counts with logarithmic scales.")
@@ -522,10 +522,10 @@ class Spider(object):
     ]
     for task in tasks:
       results = defaultdict(int)
-      self.log.record("Calculating download distributions for {}".format(task["name"]))
+      self.log.record(f'Calculating download distributions for {task["name"]}')
       with self.connection.db.cursor() as cursor:
         # first, figure out the biggest bucket:
-        cursor.execute("SELECT MAX(downloads) FROM {}_ranks;".format(task["name"]))
+        cursor.execute(f'SELECT MAX(downloads) FROM {task["name"]}_ranks;')
         biggest = cursor.fetchone()[0]
         # then set up all the empty buckets (so they aren't missing when we draw the graph)
         buckets = [0, round(task["scale_power"])]
@@ -539,11 +539,11 @@ class Spider(object):
           buckets.append(current)
           if current > biggest:
             break
-        self.log.record("Buckets determined! {} buckets between 0 and {}".format(len(buckets), buckets[-1]))
+        self.log.record(f"Buckets determined! {len(buckets)} buckets between 0 and {buckets[-1]}")
         for bucket in buckets:
           results[bucket] = 0
         # now fill in the buckets:
-        cursor.execute("SELECT downloads FROM {}_ranks ORDER BY downloads ASC;".format(task["name"]))
+        cursor.execute(f'SELECT downloads FROM {task["name"]}_ranks ORDER BY downloads ASC;')
         values = []
         for entity in cursor:
           if len(entity) > 0:
@@ -560,25 +560,25 @@ class Spider(object):
         self.log.record("Recording distributions...")
         cursor.executemany(sql, params)
 
-        self.log.record("Calculating median for {}".format(task["name"]))
+        self.log.record(f'Calculating median for {task["name"]}')
         if len(values) % 2 == 1:
           median = values[int((len(values) - 1) / 2)]
         else:
           median = (values[int((len(values)/ 2) - 1)] + values[int(len(values)/ 2)]) / 2
-        self.log.record("Median is {}".format(median), "debug")
+        self.log.record(f"Median is {median}", "debug")
         # HACK: This data doesn't fit in this table. Maybe move to site stats table?
-        cursor.execute("DELETE FROM download_distribution WHERE category='{}_median'".format(task["name"]))
-        sql = "INSERT INTO download_distribution (category, bucket, count) VALUES ('{}_median', 0, %s);".format(task["name"])
+        cursor.execute(f"DELETE FROM download_distribution WHERE category='{task['name']}_median'")
+        sql = f"INSERT INTO download_distribution (category, bucket, count) VALUES ('{task['name']}_median', 0, %s);"
         cursor.execute(sql, (median,))
 
-        self.log.record("Calculating mean for {}".format(task["name"]))
+        self.log.record(f'Calculating mean for {task["name"]}')
         total = 0
         for x in values:
           total += x
         mean = total / len(values)
-        self.log.record("Mean is {}".format(mean), "debug")
-        cursor.execute("DELETE FROM download_distribution WHERE category='{}_mean'".format(task["name"]))
-        sql = "INSERT INTO download_distribution (category, bucket, count) VALUES ('{}_mean', 0, %s);".format(task["name"])
+        self.log.record(f"Mean is {mean}", "debug")
+        cursor.execute(f"DELETE FROM download_distribution WHERE category='{task['name']}_mean'")
+        sql = f"INSERT INTO download_distribution (category, bucket, count) VALUES ('{task['name']}_mean', 0, %s);"
         cursor.execute(sql, (mean,))
 
   def _rank_articles_alltime(self):
@@ -591,7 +591,7 @@ class Spider(object):
     record_ranks_file(params, "alltime_ranks_working")
 
   def _rank_articles_categories(self, category):
-    self.log.record("Ranking papers by popularity in category {}...".format(category))
+    self.log.record(f"Ranking papers by popularity in category {category}...")
     with self.connection.db.cursor() as cursor:
       query = """
         SELECT t.article, SUM(t.pdf) as downloads
@@ -640,7 +640,7 @@ class Spider(object):
         month =  12
         year = year - 1
     with self.connection.db.cursor() as cursor:
-      self.log.record("Ranking articles based on traffic since {}/2018".format(month))
+      self.log.record(f"Ranking articles based on traffic since {month}/2018")
       cursor.execute("TRUNCATE month_ranks_working")
       cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = %s AND month >= %s GROUP BY article ORDER BY downloads DESC", (year, month))
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
@@ -688,7 +688,7 @@ class Spider(object):
     record_ranks_file(params, "author_ranks_working")
 
   def _rank_authors_category(self, category):
-    self.log.record("Ranking authors by popularity in category {}...".format(category))
+    self.log.record(f"Ranking authors by popularity in category {category}...")
     with self.connection.db.cursor() as cursor:
       cursor.execute("""
       SELECT article_authors.author, SUM(alltime_ranks.downloads) as downloads
@@ -741,7 +741,7 @@ class Spider(object):
     with self.connection.db.cursor() as cursor:
       cursor.execute("UPDATE articles SET abstract = %s WHERE id = %s;", (abstract, article_id))
       self.connection.db.commit()
-      self.log.record("Recorded abstract for ID {}".format(article_id, abstract), "debug")
+      self.log.record(f"Recorded abstract for ID {article_id}", "debug")
 
   def calculate_vectors(self):
     self.log.record("Calculating vectors...")
@@ -770,8 +770,8 @@ class Spider(object):
           filecount += 1
           append = ""
           if filecount < 10:
-            append = "0".format(filecount)
-          f = open("sitemaps/sitemap{}{}.txt".format(append, filecount), 'w')
+            append = "0"
+          f = open(f"sitemaps/sitemap{append}{filecount}.txt", 'w')
       self.log.record("Papers complete.")
       cursor.execute("SELECT id FROM authors ORDER BY id;")
       self.log.record("Recording authors.")
@@ -784,8 +784,8 @@ class Spider(object):
           filecount += 1
           append = ""
           if filecount < 10:
-            append = "0".format(filecount)
-          f = open("sitemaps/sitemap{}{}.txt".format(append, filecount), 'w')
+            append = "0"
+          f = open(f"sitemaps/sitemap{append}{filecount}.txt", 'w')
       self.log.record("Authors complete.")
     f.close()
     self.log.record("Sitemapping complete.")
@@ -793,9 +793,9 @@ class Spider(object):
 def load_rankings_from_file(batch, log):
   os.environ["PGPASSWORD"] = config.db["password"]
   to_delete = None
-  log.record("Loading {} from file.".format(batch))
+  log.record(f"Loading {batch} from file.")
   if batch in ["alltime_ranks", "ytd_ranks", "month_ranks"]:
-    query = "\copy {0}_working (article, rank, downloads) FROM '{0}_working.csv' with (format csv);".format(batch)
+    query = f"\copy {batch}_working (article, rank, downloads) FROM '{batch}_working.csv' with (format csv);"
   elif batch == "author_ranks":
     query = "\copy author_ranks_working (author, rank, downloads, tie) FROM 'author_ranks_working.csv' with (format csv);"
   elif batch == "author_ranks":
@@ -810,7 +810,7 @@ def load_rankings_from_file(batch, log):
     query = "\copy category_ranks_working (article, rank) FROM 'category_ranks_working.csv' with (format csv);"
     to_delete = "category_ranks_working.csv"
   else:
-    log.record("Unrecognized rankings source passed to load_rankings_from_file: {}".format(batch), "warn")
+    log.record(f"Unrecognized rankings source passed to load_rankings_from_file: {batch}", "warn")
     return
 
   subprocess.run(["psql", "-h", config.db["host"], "-U", config.db["user"], "-d", config.db["db"], "-c", query], check=True)
@@ -825,7 +825,7 @@ def full_run(spider, collection=None):
   else:
     spider.log.record("No collection specified, iterating through all known categories.")
     for collection in spider.fetch_categories():
-      spider.log.record("\n\nBeginning category {}".format(collection), "info")
+      spider.log.record(f"\n\nBeginning category {collection}", "info")
       if config.crawl["fetch_new"] is not False:
         spider.find_record_new_articles(collection)
       else:
@@ -863,17 +863,17 @@ def fill_in_author_vectors(spider):
         article_ids.append(record[0])
 
   to_do = len(article_ids)
-  spider.log.record("Obtained {} article IDs.".format(to_do))
+  spider.log.record(f"Obtained {to_do} article IDs.")
   with spider.connection.db.cursor() as cursor:
     for article in article_ids:
       author_string = ""
       cursor.execute("SELECT authors.name FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s;", (article,))
       for record in cursor:
-        author_string += "{}, ".format(record[0])
+        author_string += f"{record[0]}, "
       cursor.execute("UPDATE articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, article))
       to_do -= 1
       if to_do % 100 == 0:
-        spider.log.record("{} - {} left to go.".format(datetime.now(), to_do))
+        spider.log.record(f"{datetime.now()} - {to_do} left to go.")
 
 def find_authors(response):
   # Determine author details:
@@ -909,26 +909,25 @@ def cachewarmer(spider):
   api = "https://api.rxivist.org/v1"
   website = "https://rxivist.org"
 
-  finalpage = requests.get("{}/papers".format(api)).json()["query"]["final_page"]
-  print("About to fetch {} pages".format(finalpage+1))
+  finalpage = requests.get(f"{api}/papers").json()["query"]["final_page"]
+  print(f"About to fetch {finalpage+1} pages")
   for page in range(finalpage):
-    print("PAGE {}".format(page))
-    papersearch = requests.get("{}/papers?page={}".format(api, page)).json()
+    print(f"PAGE {page}")
+    papersearch = requests.get(f"{api}/papers?page={page}").json()
     for paper in papersearch["results"]:
-      print("  Grabbing paper {}".format(paper["id"]))
-      paperdata = requests.get("{}/papers/{}".format(api, paper["id"])).json()
-      webpage = requests.get("{}/papers/{}".format(website, paper["id"]))
+      print(f'  Grabbing paper {paper["id"]}')
+      paperdata = requests.get(f'{api}/papers/{paper["id"]}').json()
+      webpage = requests.get(f'{website}/papers/{paper["id"]}')
       for author in paperdata["authors"]:
-        print("    Grabbing author {}".format(author["id"]))
-        requests.get("{}/authors/{}".format(api, author["id"]))
-        requests.get("{}/authors/{}".format(website, author["id"]))
+        print(f='    Grabbing author {author["id"]}')
+        requests.get(f'{api}/authors/{author["id"]}')
+        requests.get(f'{website}/authors/{author["id"]}')
   print("Done the top papers!")
-  topauthors = requests.get("{}/authors".format(api)).json()["results"]
+  topauthors = requests.get(f"{api}/authors").json()["results"]
   for author in topauthors:
-    print("  Grabbing author {}".format(author["id"]))
-    requests.get("{}/authors/{}".format(api, author["id"]))
-    requests.get("{}/authors/{}".format(website, author["id"]))
-
+    print(f'  Grabbing author {author["id"]}')
+    requests.get(f'{api}/authors/{author["id"]}')
+    requests.get(f'{website}/authors/{author["id"]}')
 
 def month_to_num(month):
   # helper for converting month names (string) to numbers (int)

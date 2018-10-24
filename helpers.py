@@ -15,7 +15,7 @@ class NotFoundError(Exception):
       - id: The requested ID of the entity that couldn't be found.
 
     """
-    self.message = "Entity could not be found with id {}".format(id)
+    self.message = f"Entity could not be found with id {id}"
 
 def find_new_id(old, connection):
   """If a request comes in for an author of an ID that indicates

@@ -30,7 +30,7 @@ class Author:
         a_id = cursor.fetchone()
         if a_id is not None:
           self.id = a_id[0]
-          log.record("ORCiD: Author {} exists with ID {}".format(self.name, self.id), "debug")
+          log.record(f"ORCiD: Author {self.name} exists with ID {self.id}", "debug")
           if self.institution is not None: # institution should always be set to the one we've seen most recently
             log.record("Updating author institution")
             cursor.execute("UPDATE authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
@@ -43,12 +43,12 @@ class Author:
         a_id = cursor.fetchone()
         if a_id is not None:
           self.id = a_id[0]
-          log.record("Name: Author {} exists with ID {}".format(self.name, self.id), "debug")
+          log.record(f"Name: Author {self.name} exists with ID {self.id}", "debug")
           recorded = True
 
           # if they have an orcid but we didn't know about it before:
           if self.orcid is not None:
-            log.record("Recording ORCiD {} for known author".format(self.orcid), "info")
+            log.record(f"Recording ORCiD {self.orcid} for known author", "info")
             cursor.execute("UPDATE authors SET orcid=%s WHERE id=%s;", (self.orcid, self.id))
           if self.institution is not None:
             log.record("Updating author institution")
@@ -57,7 +57,7 @@ class Author:
       if self.id is None: # if they're definitely brand new
         cursor.execute("INSERT INTO authors (name, orcid, institution, noperiodname) VALUES (%s, %s, %s, %s) RETURNING id;", (self.name, self.orcid, self.institution, self.name.replace(".", "")))
         self.id = cursor.fetchone()[0]
-        log.record("Recorded author {} with ID {}".format(self.name, self.id), "info")
+        log.record(f"Recorded author {self.name} with ID {self.id}", "info")
         recorded = True
 
       if self.email is not None:
@@ -65,7 +65,7 @@ class Author:
         cursor.execute("SELECT COUNT(id) FROM author_emails WHERE author=%s AND email=%s", (self.id,self.email))
         emailcount = cursor.fetchone()[0]
         if emailcount == 0:
-          log.record("Recording email {} for author".format(self.email), "debug")
+          log.record(f"Recording email {self.email} for author", "debug")
           cursor.execute("INSERT INTO author_emails (author, email) VALUES (%s, %s);", (self.id, self.email))
 
 class Article:
@@ -113,13 +113,13 @@ class Article:
     with connection.db.cursor() as cursor:
       # check to see if we've seen this article before
       if self.doi == "":
-        spider.log.record("Won't record a paper without a DOI: {}".format(self.url), "fatal")
+        spider.log.record(f"Won't record a paper without a DOI: {self.url}", "fatal")
       cursor.execute("SELECT url, id FROM articles WHERE doi=%s", (self.doi,))
       response = cursor.fetchone()
 
       if response is not None and len(response) > 0:
         if response[0] == self.url:
-          spider.log.record("Found article already: {}".format(self.title), "debug")
+          spider.log.record(f"Found article already: {self.title}", "debug")
           connection.db.commit()
           return False
         else:
@@ -130,7 +130,7 @@ class Article:
           spider._record_authors(self.id, authors, True)
           if stat_table is not None:
             spider.save_article_stats(self.id, stat_table, None)
-          spider.log.record("Updated revision for article DOI {}: {}".format(self.doi, self.title), "info")
+          spider.log.record(f"Updated revision for article DOI {self.doi}: {self.title}", "info")
           connection.db.commit()
           return True
     # If it's brand new:
@@ -138,7 +138,7 @@ class Article:
       try:
         cursor.execute("INSERT INTO articles (url, title, doi, collection) VALUES (%s, %s, %s, %s) RETURNING id;", (self.url, self.title, self.doi, self.collection))
       except Exception as e:
-        spider.log.record("Couldn't record article '{}': {}".format(self.title, e), "error")
+        spider.log.record(f"Couldn't record article '{self.title}': {e}", "error")
       self.id = cursor.fetchone()[0]
 
       spider.log.record("Recording stats for new article", "debug")
@@ -146,7 +146,7 @@ class Article:
       try:
         stat_table, authors = spider.get_article_stats(self.url)
       except Exception as e:
-        spider.log.record("Error fetching stats: {}. Trying one more time...".format(e), "warn")
+        spider.log.record(f"Error fetching stats: {e}. Trying one more time...", "warn")
       try:
         stat_table, authors = spider.get_article_stats(self.url)
       except Exception as e:
@@ -160,7 +160,7 @@ class Article:
       # build the long string of author names:
       author_string = ""
       for a in authors:
-        author_string += "{}, ".format(a.name)
+        author_string += f"{a.name}, "
       cursor.execute("UPDATE articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, self.id))
-      spider.log.record("Recorded article {}".format(self.title))
+      spider.log.record(f"Recorded article {self.title}")
     return True

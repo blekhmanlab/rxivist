@@ -9,7 +9,6 @@ import db
 import helpers
 import models
 
-
 def get_categories(connection):
   """Fetches a list of all known bioRxiv categories.
 
@@ -116,7 +115,7 @@ def paper_query(q, categories, timeframe, metric, page, page_size, connection):
         "month": 30,
         "year": 365
       }
-      query += "'{} days' ".format(query_times[timeframe])
+      query += f"'{query_times[timeframe]} days' "
   # this is the last piece of the query we need for the one
   # that counts the total number of results
   countselect += query
@@ -131,9 +130,9 @@ def paper_query(q, categories, timeframe, metric, page, page_size, connection):
   elif metric == "twitter":
     query += "SUM(r.count) DESC"
 
-  query += " LIMIT {}".format(page_size)
+  query += f" LIMIT {page_size}"
   if page > 0:
-    query += " OFFSET {}".format(page * page_size)
+    query += f" OFFSET {page * page_size}"
   query += ";"
   select += query
   result = connection.read(select, params)
@@ -158,14 +157,14 @@ def author_rankings(connection, category=""):
     table = "author_ranks_category"
     where = "WHERE r.category=%s"
     params = (category,)
-  query = """
+  query = f"""
     SELECT a.id, a.name, r.rank, r.downloads, r.tie
     FROM authors AS a
-    INNER JOIN {} r ON a.id=r.author
-    {}
+    INNER JOIN {table} r ON a.id=r.author
+    {where}
     ORDER BY r.rank
-    LIMIT {}
-  """.format(table, where, config.author_ranks_limit)
+    LIMIT {config.author_ranks_limit}
+  """
 
   authors = connection.read(query, params)
   return [models.SearchResultAuthor(*a) for a in authors]
@@ -240,7 +239,7 @@ def get_distribution(category, metric, connection):
   results = [(entry[0], entry[1]) for entry in data]
   averages = {}
   for avg in ["mean", "median"]:
-    cat = "{}_{}".format(category, avg)
+    cat = f"{category}_{avg}"
     answer = connection.read("SELECT count FROM download_distribution WHERE category=%s", (cat,))
     averages[avg] = answer[0][0]
   return results, averages

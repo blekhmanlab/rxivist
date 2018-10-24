@@ -12,7 +12,7 @@ class Connection(object):
       dbname=dbname,
       user=user,
       password=password,
-      options='-c search_path={}'.format(config.db["schema"])
+      options=f'-c search_path={config.db["schema"]}'
     )
     self.db.set_session(autocommit=True)
     self.cursor = self.db.cursor()
@@ -24,14 +24,14 @@ class Connection(object):
     if it doesn't, this method creates it.
 
     """
-    params = 'host={} dbname={} user={} password={}'.format(host, dbname, user, password)
+    params = f'host={host} dbname={dbname} user={user} password={password}'
     db = psycopg2.connect(params)
     cursor = db.cursor()
     cursor.execute("SELECT datname FROM pg_database WHERE datistemplate = false;")
     for result in cursor:
       if result[0] == dbname: break
     else:
-      cursor.execute("CREATE DATABASE {};".format(dbname))
+      cursor.execute("CREATE DATABASE %s;", (dbname,))
     db.close()
 
   def _ensure_tables_exist(self):

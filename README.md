@@ -1,5 +1,7 @@
 # rxivist API
 
+This application requires Python 3.6 or above.
+
 ## Deployment to production
 The rxivist API is designed to be run in a Docker container. Once Docker is installed on whatever server you plan to use, there are only a few commands to run:
 

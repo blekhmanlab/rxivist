@@ -71,7 +71,7 @@ def index():
     # otherwise validate that the categories are valid
     for cat in category_filter:
       if cat not in category_list:
-        error = "There was a problem with the submitted query: {} is not a recognized category.".format(cat)
+        error = f"There was a problem with the submitted query: {cat} is not a recognized category."
         bottle.response.status = 500
         return {"error": error}
 
@@ -81,7 +81,7 @@ def index():
     try:
       page = int(page)
     except Exception as e:
-      error = "Problem recognizing specified page number: {}".format(e)
+      error = f"Problem recognizing specified page number: {e}"
   if page < 0:
     page = 0
 
@@ -91,7 +91,7 @@ def index():
     try:
       page_size = int(page_size)
     except Exception as e:
-      error = "Problem recognizing specified page size: {}".format(e)
+      error = f"Problem recognizing specified page size: {e}"
       page_size = 0
 
   if page_size > config.max_page_size:
@@ -104,7 +104,7 @@ def index():
     try:
       results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, connection)
     except Exception as e:
-      error = "There was a problem with the submitted query: {}".format(e)
+      error = f"There was a problem with the submitted query: {e}"
       bottle.response.status = 500
       return {"error": error}
   resp = models.PaperQueryResponse(results, query, timeframe, category_filter, metric, page, page_size, totalcount)
@@ -120,7 +120,7 @@ def paper_details(id):
     return {"error": e.message}
   except ValueError as e:
     bottle.response.status = 500
-    return {"error": "Server error – {}".format(e)}
+    return {"error": f"Server error – {e}"}
   return paper.json()
 
 # paper download stats
@@ -133,7 +133,7 @@ def paper_downloads(id):
     return {"error": e.message}
   except ValueError as e:
     bottle.response.status = 500
-    return {"error": "Server error – {}".format(e)}
+    return {"error": f"Server error – {e}"}
   return details
 
 # author rankings
@@ -151,10 +151,10 @@ def display_author_details(author_id):
   if author_id < 200000: # old author pages indexed by google already
     new_id = helpers.find_new_id(author_id, connection)
     if new_id:
-      return bottle.redirect("{}/v1/authors/{}".format(config.host, new_id), 301)
+      return bottle.redirect(f"{config.host}/v1/authors/{new_id}", 301)
     else:
       bottle.response.status = 404
-      return {"error": "Could not find author with ID {}".format(author_id)}
+      return {"error": f"Could not find author with ID {author_id}"}
   try:
     author = endpoints.author_details(author_id, connection)
   except helpers.NotFoundError as e:
@@ -162,7 +162,7 @@ def display_author_details(author_id):
     return {"error": e.message}
   except ValueError as e:
     bottle.response.status = 500
-    return {"error": "Server error – {}".format(e)}
+    return {"error": f"Server error – {e}"}
   return author.json()
 
 # categories list endpoint
@@ -172,7 +172,7 @@ def get_category_list():
     category_list = endpoints.get_categories(connection)
   except Exception as e:
     bottle.response.status = 500
-    return {"error": "Server error – {}".format(e)}
+    return {"error": f"Server error – {e}"}
   return {
     "results": category_list
   }
@@ -182,16 +182,16 @@ def get_category_list():
 def get_distros(entity, metric):
   if entity not in ["paper", "author"]:
     bottle.response.status = 404
-    return {"error": "Unknown entity: expected 'paper' or 'author'; got '{}'".format(entity)}
+    return {"error": f"Unknown entity: expected 'paper' or 'author'; got '{entity}'"}
   if metric not in ["downloads"]:
     bottle.response.status = 404
-    return {"error": "Unknown entity: expected 'downloads'; got '{}'".format(metric)}
+    return {"error": f"Unknown entity: expected 'downloads'; got '{metric}'"}
 
   try:
     results, averages = endpoints.get_distribution(entity, metric, connection)
   except Exception as e:
     bottle.response.status = 500
-    return {"error": "Server error – {}".format(e)}
+    return {"error": f"Server error – {e}"}
   return {
     "histogram": [{"bucket_min": x[0], "count": x[1]} for x in results],
     "averages": {

@@ -174,7 +174,7 @@ class Author:
     if len(authorq) == 0:
       raise helpers.NotFoundError(self.id)
     if len(authorq) > 1:
-      raise ValueError("Multiple authors found with id {}".format(self.id))
+      raise ValueError(f"Multiple authors found with id {self.id}")
     name, institution, orcid = authorq[0]
     if institution == "":
       institution = None
@@ -403,7 +403,7 @@ class SearchResultArticle(Article):
       "id": self.id,
       "metric": self.downloads,
       "title": self.title,
-      "url": "{}/v1/papers/{}".format(config.host, self.id),
+      "url": f"{config.host}/v1/papers/{self.id}",
       "biorxiv_url": self.url,
       "doi": self.doi,
       "category": self.collection,
@@ -470,7 +470,7 @@ class ArticleDetails(Article):
       "doi": self.doi,
       "first_posted": self.posted.strftime('%Y-%m-%d') if self.posted is not None else "",
       "biorxiv_url": self.url,
-      "url":  "{}/v1/papers/{}".format(config.host, self.id),
+      "url":  f"{config.host}/v1/papers/{self.id}",
       "title": self.title,
       "category": self.collection,
       "abstract": self.abstract,
@@ -519,7 +519,7 @@ class AuthorArticle(Article):
       "id": self.id,
       "doi": self.doi,
       "biorxiv_url": self.url,
-      "url": "{}/v1/papers/{}".format(config.host, self.id),
+      "url": f"{config.host}/v1/papers/{self.id}",
       "title": self.title,
       "category": self.collection,
       "ranks": self.ranks.json()

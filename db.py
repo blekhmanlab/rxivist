@@ -27,7 +27,7 @@ class Connection(object):
     try:
       self._attempt_connect()
     except RuntimeError as e:
-      print("FATAL: {}".format(e))
+      print(f"FATAL: {e}")
       exit(1)
     print("Connected!")
     self.cursor = self.db.cursor()
@@ -43,7 +43,7 @@ class Connection(object):
     """
 
     attempts += 1
-    print("Connecting. Attempt {} of {}.".format(attempts, config.db["connection"]["max_attempts"]))
+    print(f'Connecting. Attempt {attempts} of {config.db["connection"]["max_attempts"]}.')
     try:
       self.db = psycopg2.connect(
         host=self.host,
@@ -51,14 +51,14 @@ class Connection(object):
         user=self.user,
         password=self.password,
         connect_timeout=config.db["connection"]["timeout"],
-        options='-c search_path={}'.format(config.db["schema"])
+        options=f'-c search_path={config.db["schema"]}'
       )
       self.db.set_session(autocommit=True)
     except:
       if attempts >= config.db["connection"]["max_attempts"]:
         print("Giving up.")
         raise RuntimeError("Failed to connect to database.")
-      print("Connection to DB failed. Retrying in {} seconds.".format(config.db["connection"]["attempt_pause"]))
+      print(f'Connection to DB failed. Retrying in {config.db["connection"]["attempt_pause"]} seconds.')
       time.sleep(config.db["connection"]["attempt_pause"])
       self._attempt_connect(attempts)
 
@@ -91,7 +91,7 @@ class Connection(object):
           results.append(result)
       return results
     except psycopg2.OperationalError as e:
-      print("ERROR with db query execution: {}".format(e))
+      print(f"ERROR with db query execution: {e}")
       print("Reconnecting.")
       self._attempt_connect()
       print("Sending query again.")
