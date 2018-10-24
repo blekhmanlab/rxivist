@@ -537,7 +537,7 @@ class Spider(object):
           else:
             current = next_bucket
           buckets.append(current)
-          if current > biggest:
+          if None in [current, biggest] or current > biggest:
             break
         self.log.record(f"Buckets determined! {len(buckets)} buckets between 0 and {buckets[-1]}")
         for bucket in buckets:
@@ -795,22 +795,22 @@ def load_rankings_from_file(batch, log):
   to_delete = None
   log.record(f"Loading {batch} from file.")
   if batch in ["alltime_ranks", "ytd_ranks", "month_ranks"]:
-    query = f"\copy {batch}_working (article, rank, downloads) FROM '{batch}_working.csv' with (format csv);"
+    query = f'\copy {config.db["schema"]}.{batch}_working (article, rank, downloads) FROM \'{batch}_working.csv\' with (format csv);'
   elif batch == "author_ranks":
-    query = "\copy author_ranks_working (author, rank, downloads, tie) FROM 'author_ranks_working.csv' with (format csv);"
+    query = f'\copy {config.db["schema"]}.author_ranks_working (author, rank, downloads, tie) FROM \'author_ranks_working.csv\' with (format csv);'
   elif batch == "author_ranks":
-    query = "\copy author_ranks_working (author, rank, downloads, tie) FROM 'author_ranks_working.csv' with (format csv);"
+    query = f'\copy author_ranks_working (author, rank, downloads, tie) FROM \'author_ranks_working.csv\' with (format csv);'
   elif batch == "author_ranks_category":
-    query = "\copy author_ranks_category_working (author, category, rank, downloads, tie) FROM 'author_ranks_category_working.csv' with (format csv);"
+    query = f'\copy {config.db["schema"]}.author_ranks_category_working (author, category, rank, downloads, tie) FROM \'author_ranks_category_working.csv\' with (format csv);'
     to_delete = "author_ranks_category_working.csv"
   elif batch == "author_ranks_category":
-    query = "\copy author_ranks_category_working (author, category, rank, downloads, tie) FROM 'author_ranks_category_working.csv' with (format csv);"
+    query = f'\copy {config.db["schema"]}.author_ranks_category_working (author, category, rank, downloads, tie) FROM \'author_ranks_category_working.csv\' with (format csv);'
     to_delete = "author_ranks_category_working.csv"
   elif batch == "category_ranks":
-    query = "\copy category_ranks_working (article, rank) FROM 'category_ranks_working.csv' with (format csv);"
+    query = f'\copy {config.db["schema"]}.category_ranks_working (article, rank) FROM \'category_ranks_working.csv\' with (format csv);'
     to_delete = "category_ranks_working.csv"
   else:
-    log.record(f"Unrecognized rankings source passed to load_rankings_from_file: {batch}", "warn")
+    log.record(f'Unrecognized rankings source passed to load_rankings_from_file: {batch}', "warn")
     return
 
   subprocess.run(["psql", "-h", config.db["host"], "-U", config.db["user"], "-d", config.db["db"], "-c", query], check=True)
