@@ -192,10 +192,17 @@ class Spider(object):
         except ValueError as e:
           self.log.record(f"Error retrieving abstract: {e}")
 
-  def refresh_article_stats(self, collection, cap=10000):
+  def refresh_article_stats(self, collection=None, cap=10000, id=None):
+    """Normally, "collection" is specified, and the function will
+    iterate through outdated articles in the given collection. However,
+    specifying "id" instead will update the entry for a single article.
+    """
     self.log.record(f"Refreshing article download stats for collection {collection}...")
     with self.connection.db.cursor() as cursor:
-      cursor.execute("SELECT id, url, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
+      if id is None:
+        cursor.execute("SELECT id, url, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
+      else:
+        cursor.execute("SELECT id, url, doi FROM articles WHERE id=%s;", (id,))
       updated = 0
       for article in cursor:
         article_id = article[0]
@@ -214,7 +221,8 @@ class Spider(object):
         self.save_article_stats(article_id, stat_table)
 
         overwrite = False
-        if config.record_authors_on_refresh is True:
+        if config.record_authors_on_refresh is True or id is not None:
+          # Always refresh authors if a specific article ID is given
           overwrite = True
         self._record_authors(article_id, authors, overwrite)
         updated += 1
@@ -950,5 +958,10 @@ if __name__ == "__main__":
     cachewarmer(spider)
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
+  elif sys.argv[1] == "refresh":
+    if len(sys.argv) < 3:
+      print("Must submit ID number of article to be refreshed.")
+      exit(1)
+    spider.refresh_article_stats(id=sys.argv[2])
   else:
     full_run(spider, sys.argv[1])

@@ -287,11 +287,29 @@ def site_stats(connection):
         continue # something fishy with this entry
       outdated[entry[0]] = entry[1]
 
+  resp = connection.read("""
+  SELECT COUNT(id)
+  FROM (
+    SELECT
+      a.id, COUNT(w.author) AS authors
+    FROM articles a
+    LEFT JOIN article_authors w ON w.article=a.id
+    GROUP BY a.id
+    ORDER BY authors
+  ) AS authorcount
+  WHERE authors=0;
+  """)
+  if len(resp) != 1 or len(resp[0]) != 1:
+    no_authors = 0
+  else:
+    no_authors = resp[0][0]
+
 
   return {
     "papers_indexed": paper_count,
     "authors_indexed": author_count,
     "missing_abstract": no_abstract,
     "missing_date": no_posted,
-    "outdated_count": outdated
+    "outdated_count": outdated,
+    "missing_authors": no_authors
   }
