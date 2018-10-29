@@ -26,7 +26,7 @@ def get_categories(connection):
 
   """
   results = []
-  categories = connection.read("SELECT DISTINCT collection FROM articles ORDER BY collection;")
+  categories = connection.read("SELECT DISTINCT collection FROM articles WHERE collection IS NOT NULL ORDER BY collection;")
   for cat in categories:
     if len(cat) > 0:
       results.append(cat[0])
@@ -287,6 +287,12 @@ def site_stats(connection):
         continue # something fishy with this entry
       outdated[entry[0]] = entry[1]
 
+  resp = connection.read("SELECT COUNT(id) FROM articles WHERE collection IS NULL;")
+  if len(resp) != 1 or len(resp[0]) != 1:
+    no_category = 0
+  else:
+    no_category = resp[0][0]
+
   resp = connection.read("""
   SELECT COUNT(id)
   FROM (
@@ -311,5 +317,6 @@ def site_stats(connection):
     "missing_abstract": no_abstract,
     "missing_date": no_posted,
     "outdated_count": outdated,
-    "missing_authors": no_authors
+    "missing_authors": no_authors,
+    "missing_category": no_category
   }

@@ -55,12 +55,12 @@ def determine_page_count(html):
     return int(pages[-1].text)
   return 0
 
-def pull_out_articles(html, collection, log):
+def pull_out_articles(html, log):
   entries = html.find(".highwire-article-citation")
   articles = []
   for entry in entries:
     a = models.Article()
-    a.process_results_entry(entry, collection, log)
+    a.process_results_entry(entry, log)
     articles.append(a)
   return articles
 
@@ -83,6 +83,7 @@ class Spider(object):
     self.log = Logger()
 
   def _pull_crossref_data_date(self, datestring):
+    # Datestring should be format YYYY-MM-DD
     self.log.record(f"Beginning retrieval of Crossref data for {datestring}", "info")
     # (If we have multiple results for the same 24-hour period, the
     # query that displays the most popular displays the same articles
@@ -134,23 +135,73 @@ class Spider(object):
       cursor.executemany(sql, params)
     self.log.record("Done with crossref.", "info")
 
-  def find_record_new_articles(self, collection):
+  def find_record_new_articles(self):
+    # we need to grab the first page to figure out how many pages there are
+    self.log.record(f"Fetching page 0")
+    try:
+      r = self.session.get(config.biorxiv["endpoints"]["recent"])
+    except Exception as e:
+      self.log.record(f"Error requesting first page of recent results. Retrying: {e}", "error")
+      try:
+        r = self.session.get(config.biorxiv["endpoints"]["recent"])
+      except Exception as e:
+        self.log.record(f"Error AGAIN requesting first page of results. Bailing: {e}", "error")
+        return
+
+    results = pull_out_articles(r.html, self.log)
+    consecutive_recognized = 0
+    for article in results:
+      if not article.record(self.connection, self):
+        consecutive_recognized += 1
+        if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
+      else:
+        consecutive_recognized = 0
+
+    for p in range(1, determine_page_count(r.html)): # iterate through each page of results
+      if config.polite:
+        time.sleep(3)
+      self.log.record(f"\n\nFetching page {p}") # pages are zero-indexed
+      try:
+        r = self.session.get("{}?page={}".format(config.biorxiv["endpoints"]["recent"], p))
+      except Exception as e:
+        self.log.record(f"Error requesting page {p} of results. Retrying: {e}", "error")
+        try:
+          r = self.session.get("{}?page={}".format(config.biorxiv["endpoints"]["recent"], p))
+        except Exception as e:
+          self.log.record(f"Error AGAIN requesting page of results: {e}", "error")
+          self.log.record("Crawling recent papers failed in the middle; unrecorded new articles are likely being skipped. Exiting to avoid losing them.", "fatal")
+          return
+
+      results = pull_out_articles(r.html, self.log)
+      for x in results:
+        if not x.record(self.connection, self):
+          consecutive_recognized += 1
+          if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
+        else:
+          consecutive_recognized = 0
+
+  def determine_collection(self, collection):
     # we need to grab the first page to figure out how many pages there are
     self.log.record(f"Fetching page 0 in {collection}")
     try:
       r = self.session.get(f'{config.biorxiv["endpoints"]["collection"]}/{collection}')
     except Exception as e:
-      log.record(f"Error requesting first page of results for collection. Retrying: {e}", "error")
+      self.log.record(f"Error requesting first page of results for collection. Retrying: {e}", "error")
       try:
         r = self.session.get(f'{config.biorxiv["endpoints"]["collection"]}/{collection}')
       except Exception as e:
-        log.record(f"Error AGAIN requesting first page of results for collection. Bailing: {e}", "error")
+        self.log.record(f"Error AGAIN requesting first page of results for collection. Bailing: {e}", "error")
         return
 
-    results = pull_out_articles(r.html, collection, self.log)
+    results = pull_out_articles(r.html, self.log)
     consecutive_recognized = 0
     for article in results:
-      if not article.record(self.connection, self):
+      # make sure we know about the article already:
+      known = article.get_id(self.connection)
+      if not known:
+        self.log.record(f'Encountered unknown paper in category listings: {article.doi}', 'fatal')
+
+      if not article.record_category(self.connection, self.log):
         consecutive_recognized += 1
         if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
       else:
@@ -171,9 +222,9 @@ class Spider(object):
           log.record("Crawling of category {} failed in the middle; unrecorded new articles are likely being skipped. Exiting to avoid losing them.", "fatal")
           return
 
-      results = pull_out_articles(r.html, collection, self.log)
+      results = pull_out_articles(r.html, self.log)
       for x in results:
-        if not x.record(self.connection, self):
+        if not x.record_category(self.connection, self.log):
           consecutive_recognized += 1
           if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
         else:
@@ -827,26 +878,23 @@ def load_rankings_from_file(batch, log):
   if to_delete is not None:
     os.remove(to_delete)
 
-def full_run(spider, collection=None):
-  if collection is not None:
-    spider.find_record_new_articles(collection)
+def full_run(spider):
+  if config.crawl["fetch_new"] is not False:
+    spider.find_record_new_articles()
   else:
-    spider.log.record("No collection specified, iterating through all known categories.")
-    for collection in spider.fetch_categories():
-      spider.log.record(f"\n\nBeginning category {collection}", "info")
-      if config.crawl["fetch_new"] is not False:
-        spider.find_record_new_articles(collection)
-      else:
-        spider.log.record("Skipping search for new articles: disabled in configuration file.")
-
-      if config.crawl["refresh_stats"] is not False:
-        spider.refresh_article_stats(collection, config.refresh_category_cap)
-      else:
-        spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.")
+    spider.log.record("Skipping search for new articles: disabled in configuration file.")
   if config.crawl["fetch_abstracts"] is not False:
     spider.fetch_abstracts()
   else:
     spider.log.record("Skipping step to fetch unknown abstracts: disabled in configuration file.")
+
+  for collection in spider.fetch_categories():
+    spider.log.record(f"\n\nBeginning category {collection}", "info")
+    spider.determine_collection(collection)
+    if config.crawl["refresh_stats"] is not False:
+      spider.refresh_article_stats(collection, config.refresh_category_cap)
+    else:
+      spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.")
 
   if config.crawl["fetch_crossref"] is not False:
     spider.pull_todays_crossref_data()
@@ -963,5 +1011,3 @@ if __name__ == "__main__":
       print("Must submit ID number of article to be refreshed.")
       exit(1)
     spider.refresh_article_stats(id=sys.argv[2])
-  else:
-    full_run(spider, sys.argv[1])

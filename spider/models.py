@@ -75,11 +75,11 @@ class Article:
   def __init__(self):
     pass
 
-  def process_results_entry(self, html, collection, log):
+  def process_results_entry(self, html, log):
     self._find_title(html)
     self._find_url(html)
     self._find_doi(html, log)
-    self.collection = collection
+    self.collection = None
     # NOTE: We don't get abstracts from search result pages
     # because they're loaded asynchronously and it would be
     # annoying to load every one separately.
@@ -124,7 +124,7 @@ class Article:
           return False
         else:
           # If it's a revision
-          cursor.execute("UPDATE articles SET url=%s, title=%s, collection=%s WHERE doi=%s RETURNING id;", (self.url, self.title, self.collection, self.doi))
+          cursor.execute("UPDATE articles SET url=%s, title=%s WHERE doi=%s RETURNING id;", (self.url, self.title, self.doi))
           self.id = cursor.fetchone()[0]
           stat_table, authors = spider.get_article_stats(self.url)
           spider._record_authors(self.id, authors, True)
@@ -136,7 +136,7 @@ class Article:
     # If it's brand new:
     with connection.db.cursor() as cursor:
       try:
-        cursor.execute("INSERT INTO articles (url, title, doi, collection) VALUES (%s, %s, %s, %s) RETURNING id;", (self.url, self.title, self.doi, self.collection))
+        cursor.execute("INSERT INTO articles (url, title, doi) VALUES (%s, %s, %s) RETURNING id;", (self.url, self.title, self.doi))
       except Exception as e:
         spider.log.record(f"Couldn't record article '{self.title}': {e}", "error")
       self.id = cursor.fetchone()[0]
@@ -164,3 +164,24 @@ class Article:
       cursor.execute("UPDATE articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, self.id))
       spider.log.record(f"Recorded article {self.title}")
     return True
+
+  def get_id(self, connection):
+    with connection.db.cursor() as cursor:
+      cursor.execute("SELECT id FROM articles WHERE doi=%s", (self.doi,))
+      response = cursor.fetchone()
+      if response is None or len(response) > 0:
+        return False
+      self.id = response[0]
+
+  def record_category(self, connection, log):
+    with connection.db.cursor() as cursor:
+      # check to see if we've seen this article before
+      if self.collection is None or self.id is None:
+        log.record(f"Paper {self.id} doesn't have a category, though it should. Exiting; something's wrong.", "fatal")
+      cursor.execute("SELECT category FROM articles WHERE id=%s", (self.id,))
+      response = cursor.fetchone()
+
+      if response is not None and len(response) > 0:
+        self.category = response[0]
+        cursor.execute("UPDATE articles SET collection=%s WHERE id=%s;", (self.category, self.id))
+        log.record(f"Updated collection for article {self.id}: {self.category}", "info")

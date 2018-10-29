@@ -398,6 +398,9 @@ class SearchResultArticle(Article):
     self.doi = sql_entry[7]
     self.get_authors(connection)
 
+    if self.collection is None:
+      self.collection = "unknown"
+
   def json(self):
     return {
       "id": self.id,
@@ -461,6 +464,9 @@ class ArticleDetails(Article):
     self.publication = sql_entry[6]
     self.pub_doi = sql_entry[7]
 
+    if self.collection is None:
+      self.collection = "unknown"
+
     for author in self.authors:
       author.GetBasicInfo(connection)
 
@@ -513,6 +519,9 @@ class AuthorArticle(Article):
     self.posted = sql_entry[3]
     self.doi = sql_entry[4]
     self.ranks = ArticleRanks(self.id, connection)
+
+    if self.collection is None:
+      self.collection = "unknown"
 
   def json(self):
     return {
