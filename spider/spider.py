@@ -196,14 +196,14 @@ class Spider(object):
     results = pull_out_articles(r.html, self.log)
     consecutive_recognized = 0
     for article in results:
+      article.collection = collection
       # make sure we know about the article already:
-      known = article.get_id(self.connection)
-      if not known:
+      if not article.get_id(self.connection):
         self.log.record(f'Encountered unknown paper in category listings: {article.doi}', 'fatal')
 
       if not article.record_category(self.connection, self.log):
         consecutive_recognized += 1
-        if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
+        if consecutive_recognized >= config.cat_recognized_limit and config.stop_on_recognized: return
       else:
         consecutive_recognized = 0
 
@@ -223,10 +223,15 @@ class Spider(object):
           return
 
       results = pull_out_articles(r.html, self.log)
-      for x in results:
-        if not x.record_category(self.connection, self.log):
+      for article in results:
+        article.collection = collection
+        if not article.get_id(self.connection):
+          self.log.record(f'Encountered unknown paper in category listings: {article.doi}', 'fatal')
+
+        if not article.record_category(self.connection, self.log):
           consecutive_recognized += 1
-          if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
+          if consecutive_recognized >= config.cat_recognized_limit and config.stop_on_recognized:
+            return
         else:
           consecutive_recognized = 0
 
@@ -890,7 +895,10 @@ def full_run(spider):
 
   for collection in spider.fetch_categories():
     spider.log.record(f"\n\nBeginning category {collection}", "info")
-    spider.determine_collection(collection)
+    if config.crawl["fetch_collections"] is not False:
+      spider.determine_collection(collection)
+    else:
+      spider.log.record("Skipping determination of new article collection: disabled in configuration file.")
     if config.crawl["refresh_stats"] is not False:
       spider.refresh_article_stats(collection, config.refresh_category_cap)
     else:
