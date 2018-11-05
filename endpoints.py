@@ -66,7 +66,7 @@ def paper_query(q, categories, timeframe, metric, page, page_size, connection):
   query = ""
   if q != "": # if there's a text search specified
     params = (q,)
-  query += " FROM articles AS a INNER JOIN "
+  query += f' FROM {config.db["schema"]}.articles AS a INNER JOIN {config.db["schema"]}.'
   if metric == "twitter":
     query += "crossref_daily"
   elif metric == "downloads":
@@ -135,6 +135,7 @@ def paper_query(q, categories, timeframe, metric, page, page_size, connection):
     query += f" OFFSET {page * page_size}"
   query += ";"
   select += query
+  print(f'\n{select}')
   result = connection.read(select, params)
   results = [models.SearchResultArticle(a, connection) for a in result]
   return results, total
@@ -160,7 +161,7 @@ def author_rankings(connection, category=""):
   query = f"""
     SELECT a.id, a.name, r.rank, r.downloads, r.tie
     FROM authors AS a
-    INNER JOIN {table} r ON a.id=r.author
+    INNER JOIN {config.db["schema"]}.{table} r ON a.id=r.author
     {where}
     ORDER BY r.rank
     LIMIT {config.author_ranks_limit}
@@ -293,13 +294,13 @@ def site_stats(connection):
   else:
     no_category = resp[0][0]
 
-  resp = connection.read("""
+  resp = connection.read(f"""
   SELECT COUNT(id)
   FROM (
     SELECT
       a.id, COUNT(w.author) AS authors
-    FROM articles a
-    LEFT JOIN article_authors w ON w.article=a.id
+    FROM {config.db["schema"]}.articles a
+    LEFT JOIN {config.db["schema"]}.article_authors w ON w.article=a.id
     GROUP BY a.id
     ORDER BY authors
   ) AS authorcount
