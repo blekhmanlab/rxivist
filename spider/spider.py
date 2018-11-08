@@ -360,11 +360,11 @@ class Spider(object):
       resp = self.session.get(f"{url}.article-metrics")
     except Exception as e:
       if retry_count < 3:
-        log.record(f"Error requesting article metrics. Retrying: {e}", "error")
-        self.get_article_stats(url, retry_count+1)
+        self.log.record(f"Error requesting article metrics. Retrying: {e}", "error")
+        return self.get_article_stats(url, retry_count+1)
       else:
-        log.record(f"Error AGAIN requesting article metrics. Bailing: {e}", "error")
-
+        self.log.record(f"Error AGAIN requesting article metrics. Bailing: {e}", "error")
+        return (None, None)
     authors = find_authors(resp)
 
     entries = iter(resp.html.find("td"))
@@ -384,10 +384,10 @@ class Spider(object):
       resp = self.session.get(f"{url}.article-info")
     except Exception as e:
       if retry_count < 3:
-        log.record(f"Error requesting article posted-on date. Retrying: {e}", "error")
+        self.log.record(f"Error requesting article posted-on date. Retrying: {e}", "error")
         self.get_article_posted_date(url, retry_count+1)
       else:
-        log.record(f"Error AGAIN requesting article posted-on date. Bailing: {e}", "error")
+        self.log.record(f"Error AGAIN requesting article posted-on date. Bailing: {e}", "error")
         return None
     # This assumes that revisions continue to be listed with oldest version first:
     older = resp.html.find('.hw-version-previous-link', first=True)
@@ -409,7 +409,7 @@ class Spider(object):
       self.log.record(f'No older version detected; using date from current page: {posted.attrs["content"]}', "info")
       return posted.attrs['content']
     else:
-      log.record(f"Could not determine posted date for article at {url}", "warn")
+      self.log.record(f"Could not determine posted date for article at {url}", "warn")
 
     return None
 
