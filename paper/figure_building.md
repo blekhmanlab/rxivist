@@ -88,10 +88,79 @@ monthframe=read.csv('submissions_per_month_cumulative.csv')
 
 ggplot(monthframe, aes(x=month, y=cumulative, group=collection, color=collection)) +
 geom_line() +
+labs(y = "total papers") +
 theme(legend.position="bottom", axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
+## Cumulative downloads per month
 
+```sql
+SELECT article_traffic.year||'-'||lpad(article_traffic.month::text, 2, '0') AS date,
+	SUM(article_traffic.pdf),
+	articles.collection
+FROM paper.article_traffic
+LEFT JOIN paper.articles ON article_traffic.article=articles.id
+GROUP BY 1,3
+ORDER BY 1,3;
+```
+(Data organized in `downloads_per_month_cumulative.xlsx`, then `downloads_per_month_cumulative.csv`)
+
+```r
+monthframe=read.csv('downloads_per_month_cumulative.csv')
+
+ggplot(monthframe, aes(x=month, y=cumulative, group=collection, color=collection)) +
+geom_line() +
+labs(y = "total downloads") +
+theme(legend.position="bottom", axis.text.x = element_text(angle = 90, hjust = 1))
+
+ggplot(monthframe, aes(x=month, y=monthly, group=collection, color=collection)) +
+geom_line() +
+labs(y = "monthly downloads") +
+theme(legend.position="bottom", axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+## Journals publishing preprints
+
+```sql
+SELECT max(journal), COUNT(article) AS tally
+FROM (SELECT REGEXP_REPLACE(publication, '^The ', '') AS journal, article FROM prod.article_publications) AS stripped
+GROUP BY lower(journal)
+ORDER BY tally DESC, max(journal);
+```
+
+Consolidate duplicates:
+
+| Original | Variant |
+| --- | ----------- |
+| Acta Crystallographica Section D | Acta Crystallographica Section D Structural Biology |
+| Alzheimer's & Dementia | Alzheimers & Dementia |
+| American Journal of Physiology - Renal Physiology | American Journal of Physiology-Renal Physiology |
+| Bioinformatics | Bioinformatics (with trailing space) |
+| Cell Death & Differentiation | Cell Death and Differentiation |
+| Cell Death & Disease | Cell Death and Disease |
+| Cell Host & Microbe | Cell Host and Microbe |
+| Development | Development (Cambridge, England) |
+| Epidemiology & Infection | Epidemiology and Infection |
+| G3: Genes|Genomes|Genetics | G3 |
+|  | G3&#58; Genes|Genomes|Genetics |
+|  | G3 Genes|Genomes|Genetics |
+|  | G3 (Bethesda, Md.) |
+|  | Genes|Genomes|Genetics |
+| Integrative Biology | Integrative Biology : Quantitative Biosciences From Nano To Macro |
+|  | Integrrative Biology |
+| Journal Of Physical Chemistry B | Journal Of Physical Chemistry. B |
+| Methods | Methods (San Diego, Calif.) |
+| Molecular & Cellular Proteomics | Molecular & Cellular Proteomics : MCP |
+| Philosophical Transactions of the Royal Society A: Mathematical,				Physical and Engineering Sciences" | Philosophical Transactions A |
+| Philosophical Transactions of the Royal Society B: Biological Sciences | Philosophical Transactions B |
+| Plant & Cell Physiology | Plant and Cell Physiology |
+| Plant, Cell & Environment | Plant, Cell and Environment |
+| Proceedings of the Royal Society B: Biological Sciences | Proceedings B |
+|   | Proceedings. Biological Sciences |
+| PNAS | Proceedings of the National Academy of Sciences |
+| Science | Science (New York, N.Y.) |
+| SLAS Discovery | SLAS DISCOVERY: Advancing Life Sciences R&D |
+| SLAS Technology | SLAS TECHNOLOGY: Translating Life Sciences Innovation |
 
 ## Statements in paper
 
