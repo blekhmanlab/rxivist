@@ -1,5 +1,9 @@
 # Building figures from paper
 
+```r
+library(ggplot2)
+```
+
 ## Median downloads per category
 
 ```sql
@@ -119,7 +123,7 @@ labs(y = "monthly downloads") +
 theme(legend.position="bottom", axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-## Journals publishing preprints
+## Preprint publications per journal
 
 ```sql
 SELECT max(journal), COUNT(article) AS tally
@@ -161,6 +165,15 @@ Consolidate duplicates:
 | Science | Science (New York, N.Y.) |
 | SLAS Discovery | SLAS DISCOVERY: Advancing Life Sciences R&D |
 | SLAS Technology | SLAS TECHNOLOGY: Translating Life Sciences Innovation |
+
+```r
+pubframe = read.csv('publications_per_journal.csv')
+
+ggplot(data=pubframe[0:20,], aes(x=reorder(publication, count), y=count, label=count)) +
+  geom_bar(stat="identity", fill="#d0c1ff") +
+  coord_flip() +
+  geom_text(nudge_y=-20)
+```
 
 ## Statements in paper
 
