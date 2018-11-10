@@ -128,7 +128,7 @@ class Spider(object):
       doi = doi_search.group(1)
       tweets[doi].append(event["subj"]["original-tweet-url"])
 
-    sql = "INSERT INTO crossref_daily (source_date, doi, count) VALUES (%s, %s, %s);"
+    sql = f"INSERT INTO {config.db['schema']}.crossref_daily (source_date, doi, count) VALUES (%s, %s, %s);"
     params = [(datestring, doi, len(tweets[doi])) for doi in tweets]
     self.log.record(f"Saving tweet data for {len(tweets.keys())} DOI entries.")
     with self.connection.db.cursor() as cursor:
@@ -248,7 +248,7 @@ class Spider(object):
         except ValueError as e:
           self.log.record(f"Error retrieving abstract: {e}")
 
-  def refresh_article_stats(self, collection=None, cap=10000, id=None):
+  def refresh_article_stats(self, collection=None, cap=10000, id=None, get_authors=False):
     """Normally, "collection" is specified, and the function will
     iterate through outdated articles in the given collection. However,
     specifying "id" instead will update the entry for a single article.
@@ -256,7 +256,22 @@ class Spider(object):
     self.log.record(f"Refreshing article download stats for collection {collection}...")
     with self.connection.db.cursor() as cursor:
       if id is None:
-        cursor.execute("SELECT id, url, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
+        if get_authors: # if we're just trying to update papers without authors
+          sql = f"""
+            SELECT id, url, doi
+              FROM (
+                SELECT
+                  a.id, a.url, a.doi, COUNT(w.author) AS authors
+                FROM {config.db["schema"]}.articles a
+                LEFT JOIN {config.db["schema"]}.article_authors w ON w.article=a.id
+                GROUP BY a.id
+                ORDER BY authors
+              ) AS authorcount
+              WHERE authors=0;
+          """
+          cursor.execute(sql)
+        else:
+          cursor.execute("SELECT id, url, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
       else:
         cursor.execute("SELECT id, url, doi FROM articles WHERE id=%s;", (id,))
       updated = 0
@@ -333,7 +348,7 @@ class Spider(object):
 
     with self.connection.db.cursor() as cursor:
       self.log.record("Saving publication info.", "debug")
-      cursor.execute("INSERT INTO article_publications (article, doi, publication) VALUES (%s, %s, %s);", (article_id, data[0]["pub_doi"], data[0]["pub_journal"]))
+      cursor.execute(f"INSERT INTO {config.db['schema']}.article_publications (article, doi, publication) VALUES (%s, %s, %s);", (article_id, data[0]["pub_doi"], data[0]["pub_journal"]))
       self.log.record(f'Recorded DOI {data[0]["pub_doi"]} for article {article_id}')
 
   def get_article_abstract(self, url, retry=True):
@@ -443,15 +458,15 @@ class Spider(object):
         if year not in done.keys() or month not in done[year]:
           to_record.append(record)
       # save the remaining ones in the DB
-      sql = "INSERT INTO article_traffic (article, month, year, abstract, pdf) VALUES (%s, %s, %s, %s, %s);"
+      sql = f"INSERT INTO {config.db['schema']}.article_traffic (article, month, year, abstract, pdf) VALUES (%s, %s, %s, %s, %s);"
       params = [(article_id, x[0], x[1], x[2], x[3]) for x in to_record]
       cursor.executemany(sql, params)
 
-      cursor.execute("UPDATE articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
+      cursor.execute(f"UPDATE {config.db['schema']}.articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
 
       if posted is not None:
         self.log.record(f"Determined 'posted on' date: {posted}", "debug")
-        cursor.execute("UPDATE articles SET posted = %s WHERE id=%s", (posted, article_id))
+        cursor.execute(f"UPDATE {config.db['schema']}.articles SET posted = %s WHERE id=%s", (posted, article_id))
 
       self.log.record(f"Recorded {len(to_record)} stats for ID {article_id}", "debug")
 
@@ -462,10 +477,10 @@ class Spider(object):
         # we set the article ID to 0 before deleting them so if the spider dies in
         # between removing the old authors and updating the new ones, we can go in
         # and fix it manually.
-        cursor.execute("UPDATE article_authors SET article=0 WHERE article=%s;", (article_id,))
+        cursor.execute(f'UPDATE {config.db["schema"]}.article_authors SET article=0 WHERE article=%s;', (article_id,))
     else:
       with self.connection.db.cursor() as cursor:
-        cursor.execute("SELECT COUNT(article) FROM article_authors WHERE article=%s;", (article_id,))
+        cursor.execute(f'SELECT COUNT(article) FROM {config.db["schema"]}.article_authors WHERE article=%s;', (article_id,))
         count = cursor.fetchone()[0]
         if count > 0:
           self.log.record("Article authors already recorded; skipping.", "info")
@@ -478,7 +493,7 @@ class Spider(object):
 
     try:
       with self.connection.db.cursor() as cursor:
-        sql = "INSERT INTO article_authors (article, author) VALUES (%s, %s);"
+        sql = f'INSERT INTO {config.db["schema"]}.article_authors (article, author) VALUES (%s, %s);'
         cursor.executemany(sql, [(article_id, x) for x in author_ids])
     except Exception as e:
       # If there's an error associating all the authors with their paper all at once,
@@ -489,7 +504,7 @@ class Spider(object):
       for x in author_ids:
         try:
           with self.connection.db.cursor() as cursor:
-            cursor.execute("INSERT INTO article_authors (article, author) VALUES (%s, %s);", (article_id, x))
+            cursor.execute(f'INSERT INTO {config.db["schema"]}.article_authors (article, author) VALUES (%s, %s);', (article_id, x))
         except Exception as e:
           self.log.record(f"Another problem associating author {x} to article {article_id}. Moving on.", "error")
           pass
@@ -497,7 +512,7 @@ class Spider(object):
       # if we marked authors for deletion earlier, it's safe to delete them now.
       self.log.record("Removing outdated authors.", "info")
       with self.connection.db.cursor() as cursor:
-        cursor.execute("DELETE FROM article_authors WHERE article=0;")
+        cursor.execute(f'DELETE FROM {config.db["schema"]}.article_authors WHERE article=0;')
 
   def fetch_categories(self):
     categories = []
@@ -619,7 +634,7 @@ class Spider(object):
                 results[buckets[bucket_num-1]] += 1
                 break
         cursor.execute("DELETE FROM download_distribution WHERE category=%s", (task["name"],))
-        sql = "INSERT INTO download_distribution (bucket, count, category) VALUES (%s, %s, %s);"
+        sql = f"INSERT INTO {config.db['schema']}.download_distribution (bucket, count, category) VALUES (%s, %s, %s);"
         params = [(bucket, count, task["name"]) for bucket, count in results.items()]
         self.log.record("Recording distributions...")
         cursor.executemany(sql, params)
@@ -632,7 +647,7 @@ class Spider(object):
         self.log.record(f"Median is {median}", "debug")
         # HACK: This data doesn't fit in this table. Maybe move to site stats table?
         cursor.execute(f"DELETE FROM download_distribution WHERE category='{task['name']}_median'")
-        sql = f"INSERT INTO download_distribution (category, bucket, count) VALUES ('{task['name']}_median', 0, %s);"
+        sql = f"INSERT INTO {config.db['schema']}.download_distribution (category, bucket, count) VALUES ('{task['name']}_median', 0, %s);"
         cursor.execute(sql, (median,))
 
         self.log.record(f'Calculating mean for {task["name"]}')
@@ -642,7 +657,7 @@ class Spider(object):
         mean = total / len(values)
         self.log.record(f"Mean is {mean}", "debug")
         cursor.execute(f"DELETE FROM download_distribution WHERE category='{task['name']}_mean'")
-        sql = f"INSERT INTO download_distribution (category, bucket, count) VALUES ('{task['name']}_mean', 0, %s);"
+        sql = f"INSERT INTO {config.db['schema']}.download_distribution (category, bucket, count) VALUES ('{task['name']}_mean', 0, %s);"
         cursor.execute(sql, (mean,))
 
   def _rank_articles_alltime(self):
@@ -803,15 +818,15 @@ class Spider(object):
 
   def update_article(self, article_id, abstract):
     with self.connection.db.cursor() as cursor:
-      cursor.execute("UPDATE articles SET abstract = %s WHERE id = %s;", (abstract, article_id))
+      cursor.execute(f"UPDATE {config.db['schema']}.articles SET abstract = %s WHERE id = %s;", (abstract, article_id))
       self.connection.db.commit()
       self.log.record(f"Recorded abstract for ID {article_id}", "debug")
 
   def calculate_vectors(self):
     self.log.record("Calculating vectors...")
     with self.connection.db.cursor() as cursor:
-      cursor.execute("UPDATE articles SET title_vector = to_tsvector(coalesce(title,'')) WHERE title_vector IS NULL;")
-      cursor.execute("UPDATE articles SET abstract_vector = to_tsvector(coalesce(abstract,'')) WHERE abstract_vector IS NULL;")
+      cursor.execute(f"UPDATE {config.db['schema']}.articles SET title_vector = to_tsvector(coalesce(title,'')) WHERE title_vector IS NULL;")
+      cursor.execute(f"UPDATE {config.db['schema']}.articles SET abstract_vector = to_tsvector(coalesce(abstract,'')) WHERE abstract_vector IS NULL;")
       self.connection.db.commit()
 
   def build_sitemap(self):
@@ -901,6 +916,7 @@ def full_run(spider):
       spider.log.record("Skipping determination of new article collection: disabled in configuration file.")
     if config.crawl["refresh_stats"] is not False:
       spider.refresh_article_stats(collection, config.refresh_category_cap)
+      spider.refresh_article_stats(get_authors=True)
     else:
       spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.")
 
@@ -934,7 +950,7 @@ def fill_in_author_vectors(spider):
       cursor.execute("SELECT authors.name FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s;", (article,))
       for record in cursor:
         author_string += f"{record[0]}, "
-      cursor.execute("UPDATE articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, article))
+      cursor.execute(f"UPDATE {config.db['schema']}.articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, article))
       to_do -= 1
       if to_do % 100 == 0:
         spider.log.record(f"{datetime.now()} - {to_do} left to go.")
@@ -1018,4 +1034,4 @@ if __name__ == "__main__":
     if len(sys.argv) < 3:
       print("Must submit ID number of article to be refreshed.")
       exit(1)
-    spider.refresh_article_stats(id=sys.argv[2])
+    spider.refresh_article_stats(sys.argv[2])
