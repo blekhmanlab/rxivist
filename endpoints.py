@@ -135,7 +135,6 @@ def paper_query(q, categories, timeframe, metric, page, page_size, connection):
     query += f" OFFSET {page * page_size}"
   query += ";"
   select += query
-  print(f'\n{select}')
   result = connection.read(select, params)
   results = [models.SearchResultArticle(a, connection) for a in result]
   return results, total

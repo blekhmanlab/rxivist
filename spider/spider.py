@@ -201,7 +201,7 @@ class Spider(object):
       if not article.get_id(self.connection):
         self.log.record(f'Encountered unknown paper in category listings: {article.doi}', 'fatal')
 
-      if not article.record_category(self.connection, self.log):
+      if not article.record_category(collection, self.connection, self.log):
         consecutive_recognized += 1
         if consecutive_recognized >= config.cat_recognized_limit and config.stop_on_recognized: return
       else:
@@ -228,7 +228,7 @@ class Spider(object):
         if not article.get_id(self.connection):
           self.log.record(f'Encountered unknown paper in category listings: {article.doi}', 'fatal')
 
-        if not article.record_category(self.connection, self.log):
+        if not article.record_category(collection, self.connection, self.log):
           consecutive_recognized += 1
           if consecutive_recognized >= config.cat_recognized_limit and config.stop_on_recognized:
             return

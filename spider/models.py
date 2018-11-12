@@ -174,7 +174,7 @@ class Article:
       self.id = response[0]
     return True
 
-  def record_category(self, connection, log):
+  def record_category(self, collection, connection, log):
     with connection.db.cursor() as cursor:
       # check to see if we've seen this article before
       if self.collection is None or self.id is None:
@@ -182,10 +182,10 @@ class Article:
       cursor.execute("SELECT collection FROM articles WHERE id=%s", (self.id,))
       response = cursor.fetchone()
 
-      if response is not None and len(response) > 0:
-        log.record(f'Article {self.id} already has a category.')
+      if response is not None and len(response) > 0 and response[0] is not None:
+        log.record(f'Article {self.id} already has a category')
         return False
-      self.category = response[0]
+      self.category = collection
       cursor.execute("UPDATE articles SET collection=%s WHERE id=%s;", (self.category, self.id))
       log.record(f"Updated collection for article {self.id}: {self.category}", "info")
       return True
