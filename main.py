@@ -111,10 +111,10 @@ def index():
   # CACHE CONTROL
   # website front page
   if bottle.request.query_string == "":
-    bottle.response.set_header("Cache-Control", "max-age=3600, stale-while-revalidate=172800")
+    bottle.response.set_header("Cache-Control", f'max-age={config.cache["front_page"]}, stale-while-revalidate=172800')
   # if it's a simple query:
   if query == "" and page < 3 and page_size == config.default_page_size:
-    bottle.response.set_header("Cache-Control", "max-age=14400, stale-while-revalidate=172800")
+    bottle.response.set_header("Cache-Control", f'max-age={config.cache["simple"]}, stale-while-revalidate=172800')
 
   resp = models.PaperQueryResponse(results, query, timeframe, category_filter, metric, page, page_size, totalcount)
   return resp.json()

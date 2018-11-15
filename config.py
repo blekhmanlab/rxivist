@@ -5,6 +5,11 @@ dictate the behavior of the API.
 
 import os
 
+cache = {
+  "front_page": 600,
+  "simple": 7200
+}
+
 # Information about how to connect to a postgres database will
 # all the Rxivist data
 db = {
