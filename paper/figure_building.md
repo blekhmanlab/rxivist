@@ -38,52 +38,65 @@ ORDER BY 1,3;
 monthframe=read.csv('downloads_per_month_cumulative.csv')
 
 # Cumulative downloads:
-yearlabel = -290000
+yearline = "black"
+yearline_size = 0.5
+big_fontsize = 12
+yearlabel = -210000
+
 x <- ggplot(monthframe, aes(x=date, y=cumulative, group=collection, color=collection)) +
-geom_line() +
+geom_line(size=1.5) +
 x_scale_truncated_dates +
 better_line_legend +
-labs(x = "month", y = "total downloads") +
+labs(x = "", y = "total downloads") +
 theme_bw() +
 integrated_legend +
 scale_y_continuous(breaks=seq(0, 3000000, 500000), labels=comma) +
-theme(plot.margin = unit(c(1,8,1,1), "lines")) +
+theme(
+  plot.margin = unit(c(1,8,1,1), "lines"), # for right-margin labels
+  axis.text.x=element_blank(), # remove x axis labels
+  axis.text.y = element_text(size=big_fontsize)
+) +
 annotation_custom(
-  grob = textGrob(label = "neuroscience", hjust = 0, gp = gpar(fontsize = 8)),
+  grob = textGrob(label = "neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize)),
   ymin = 2979894, ymax = 3000000, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "bioinformatics", hjust = 0, gp = gpar(fontsize = 8)),
+  grob = textGrob(label = "bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize)),
   ymin = 2900000, ymax = 2926524, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "genomics", hjust = 0, gp = gpar(fontsize = 8)),
+  grob = textGrob(label = "genomics", hjust = 0, gp = gpar(fontsize = big_fontsize)),
   ymin = 2714730, ymax = 2714730, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "genetics", hjust = 0, gp = gpar(fontsize = 8)),
+  grob = textGrob(label = "genetics", hjust = 0, gp = gpar(fontsize = big_fontsize)),
   ymin = 1507955, ymax = 1507955, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "evolutionary biology", hjust = 0, gp = gpar(fontsize = 8)),
+  grob = textGrob(label = "evolutionary biology", hjust = 0, gp = gpar(fontsize = big_fontsize)),
   ymin = 1348577, ymax = 1348577, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "microbiology", hjust = 0, gp = gpar(fontsize = 8)),
+  grob = textGrob(label = "microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize)),
   ymin = 851647, ymax = 851647, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "cancer biology", hjust = 0, gp = gpar(fontsize = 8)),
+  grob = textGrob(label = "cancer biology", hjust = 0, gp = gpar(fontsize = big_fontsize)),
   ymin = 659128, ymax = 659128, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "2014", hjust = 0, gp = gpar(fontsize = 8)),
+  grob = textGrob(label = "2014", hjust = 0, gp = gpar(fontsize = big_fontsize)),
   ymin = yearlabel, ymax = yearlabel, xmin = 3, xmax = 3) +
+geom_vline(xintercept=3, col=yearline, size=yearline_size) +
 annotation_custom(
-  grob = textGrob(label = "2015", hjust = 0, gp = gpar(fontsize = 8)),
+  grob = textGrob(label = "2015", hjust = 0, gp = gpar(fontsize = big_fontsize)),
   ymin = yearlabel, ymax = yearlabel, xmin = 15, xmax = 15) +
+geom_vline(xintercept=15, col=yearline, size=yearline_size) +
 annotation_custom(
-  grob = textGrob(label = "2016", hjust = 0, gp = gpar(fontsize = 8)),
+  grob = textGrob(label = "2016", hjust = 0, gp = gpar(fontsize = big_fontsize)),
   ymin = yearlabel, ymax = yearlabel, xmin = 27, xmax = 27) +
+geom_vline(xintercept=27, col=yearline, size=yearline_size) +
 annotation_custom(
-  grob = textGrob(label = "2017", hjust = 0, gp = gpar(fontsize = 8)),
+  grob = textGrob(label = "2017", hjust = 0, gp = gpar(fontsize = big_fontsize)),
   ymin = yearlabel, ymax = yearlabel, xmin = 39, xmax = 39) +
+geom_vline(xintercept=39, col=yearline, size=yearline_size) +
 annotation_custom(
-  grob = textGrob(label = "2018", hjust = 0, gp = gpar(fontsize = 8)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 51, xmax = 51)
+  grob = textGrob(label = "2018", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  ymin = yearlabel, ymax = yearlabel, xmin = 51, xmax = 51) +
+geom_vline(xintercept=51, col=yearline, size=yearline_size)
 
 gt <- ggplot_gtable(ggplot_build(x))
 gt$layout$clip[gt$layout$name == "panel"] <- "off"
@@ -461,9 +474,6 @@ geom_text(data = medians, aes(
   x = collection, y = med+40, label = med), size = 4)
 
 
-medians <- ddply(paperframe, .(collection), summarise, med = median(downloads))
-
-
 # library(car)
 # leveneTest(Authors ~ Collection, data=authorframe)
 # kruskal.test(Authors ~ Collection, data=authorframe)
@@ -698,6 +708,122 @@ ggplot(paperframe, aes(x=year, y=count, fill=category)) +
 geom_bar(stat="identity", color="white") +
 ```
 
+## Downloads for published papers
+
+```sql
+SELECT d.article, d.downloads,
+	CASE WHEN COUNT(p.article) > 0 THEN TRUE
+    	ELSE FALSE
+    END AS published
+FROM paper.alltime_ranks d
+LEFT JOIN paper.article_publications p ON d.article=p.article
+GROUP BY d.article
+ORDER BY published DESC, d.downloads DESC
+```
+
+```r
+paperframe = read.csv('downloads_publication_status.csv')
+medians <- ddply(paperframe, .(published), summarise, med = median(downloads))
+
+ggplot(data=paperframe, aes(
+  x=reorder(published, downloads, FUN=median),
+  y=downloads,
+  fill=published
+)) +
+geom_boxplot(outlier.shape = NA, fill=themepurple) +
+theme_bw() +
+coord_flip(ylim=c(0, 1500)) +
+labs(x="published in journal?") +
+geom_text(data=medians, size=4, aes(x=published, y=med+35, label=med))
+
+# ggplot(data=paperframe, aes(
+#   x=reorder(published, downloads, FUN=median),
+#   y=downloads,
+#   fill=published
+# )) +
+# geom_violin() +
+# theme_bw() +
+# coord_flip(ylim=c(0, 2000)) +
+# geom_hline(data=medians, aes(yintercept=med, color=published), linetype='dashed') +
+# labs(x="published in journal?")
+
+
+# ggplot(data=paperframe, aes(x=downloads, group=published, color=published)) +
+# geom_freqpoly(bins=100, aes(y = ..density..)) +
+# scale_x_log10(labels = comma) +
+# scale_y_continuous() +
+# theme_bw() +
+# geom_text(data = medians, size = 4, aes(
+#   x = med, y = 0, label = med
+# ))
+
+library(car)
+leveneTest(downloads~published, data=paperframe)
+library(MASS)
+wilcox.test(downloads~published, data=paperframe)
+# kruskal.test(downloads~published, data=paperframe)
+```
+
+## Downloads for journal publications
+
+```sql
+SELECT d.article, d.downloads, p.publication AS journal
+FROM paper.alltime_ranks d
+LEFT JOIN paper.article_publications p ON d.article=p.article
+WHERE p.publication IS NULL OR lower(p.publication) IN (
+	SELECT lower(journal) FROM (
+		SELECT max(journal) AS journal, COUNT(article) AS tally
+		FROM (SELECT REGEXP_REPLACE(publication, '^The Journal', 'Journal') AS journal, article FROM paper.article_publications) AS stripped
+		GROUP BY lower(journal)
+		ORDER BY tally DESC, max(journal)
+		LIMIT 30
+	) AS ranks
+)
+ORDER BY journal DESC, d.downloads DESC
+```
+
+```r
+journalframe = read.csv('downloads_journal.csv')
+# aggregate(downloads~journal, data=journalframe, median)
+
+ggplot(data=journalframe, aes(
+  x=reorder(journal, downloads, FUN=median),
+  y=downloads
+)) +
+geom_boxplot(
+  outlier.shape = NA, coef=0,
+  fill=themepurple) +
+theme_bw() +
+coord_flip(ylim=c(0, 3800)) +
+labs(x="journal")
+
+library(car)
+leveneTest(downloads~journal, data=journalframe)
+kruskal.test(downloads~journal, data=journalframe)
+library(FSA)
+dunnTest(downloads~journal, data=journalframe, method="bh")
+
+
+# Plotting median against journal impact factor:
+medians <- paperframe %>%
+  group_by(journal) %>%
+  summarize(median = median(downloads))
+
+impactframe = read.csv('impact_scores.csv')
+final <- medians %>% left_join(impactframe)
+
+library(ggrepel)
+ggplot(data=final, aes(x=median, y=impact, label=journal)) +
+geom_point() +
+geom_text_repel(aes(label=journal),hjust=0, vjust=0) +
+theme_bw() +
+labs(x="median downloads per paper", y="2017 journal impact score") +
+geom_smooth(method='lm')
+
+linearMod <- lm(median~impact, data=final)
+summary(linearMod)
+```
+
 ## Statements in paper
 
 Number of authors with an ORCID identifier: `SELECT COUNT(id) FROM authors WHERE orcid IS NOT NULL;`
@@ -750,4 +876,25 @@ SELECT COUNT(p.doi)
 FROM paper.articles a
 INNER JOIN paper.article_publications p ON a.id=p.article
 WHERE a.posted < '1-1-2014'
+```
+
+Authors who posted in 2018:
+
+```sql
+SELECT COUNT(DISTINCT a.author)
+FROM paper.article_authors a
+INNER JOIN paper.articles p ON p.id=a.article
+WHERE p.posted > '12-31-2017';
+```
+
+Papers per author:
+
+```sql
+SELECT author, COUNT(article)
+FROM paper.article_authors
+GROUP BY author;
+```
+
+```r
+asdf
 ```
