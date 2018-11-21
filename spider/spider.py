@@ -483,7 +483,6 @@ class Spider(object):
         cursor.execute(f'SELECT COUNT(article) FROM {config.db["schema"]}.article_authors WHERE article=%s;', (article_id,))
         count = cursor.fetchone()[0]
         if count > 0:
-          self.log.record("Article authors already recorded; skipping.", "info")
           return
 
     author_ids = []

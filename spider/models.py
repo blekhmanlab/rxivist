@@ -124,7 +124,7 @@ class Article:
           return False
         else:
           # If it's a revision
-          cursor.execute("UPDATE articles SET url=%s, title=%s WHERE doi=%s RETURNING id;", (self.url, self.title, self.doi))
+          cursor.execute("UPDATE articles SET url=%s, title=%s, abstract=NULL WHERE doi=%s RETURNING id;", (self.url, self.title, self.doi))
           self.id = cursor.fetchone()[0]
           stat_table, authors = spider.get_article_stats(self.url)
           spider._record_authors(self.id, authors, True)
