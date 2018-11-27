@@ -517,7 +517,7 @@ plot_grid(
 )
 ```
 
-### Figure 4: Publications by category
+## Figure 4: Publications by category
 
 ```sql
 SELECT p.collection, p.published, t.total, (p.published::decimal / t.total)
@@ -806,7 +806,7 @@ dunnTest(downloads~year, data=paperframe, method="bh")
 
 ## Figure S4
 
-# Downloads in first month on bioRxiv
+### Figure S4a: Downloads in first month on bioRxiv
 ```sql
 SELECT a.id, t.month, t.year, t.pdf AS downloads
 FROM paper.articles a
@@ -829,8 +829,32 @@ LEFT JOIN paper.article_traffic t
   )
 ORDER BY id
 ```
+```r
+firstframe = read.csv('downloads_by_first_month.csv')
 
-# Best month of downloads
+firstplot <- ggplot(data=firstframe, aes(
+  x=year,
+  y=downloads,
+  group=year
+)) +
+geom_boxplot(outlier.shape = NA, coef=0) +
+scale_y_continuous(breaks=seq(0, 250, 50)) +
+scale_x_continuous(breaks=seq(2013, 2018, 1)) +
+coord_cartesian(ylim=c(0,160)) +
+theme_bw() +
+labs(x="year", y="downloads in first month") +
+theme(
+  legend.position="none",
+  axis.text.y = element_text(size=big_fontsize),
+  axis.title.y = element_text(size=big_fontsize),
+  axis.title.x = element_blank(),
+  axis.text.x = element_blank()
+
+  axis.text.x = element_text(size=big_fontsize, color=themedarktext, hjust = 1),
+)
+```
+
+### Figure S4b: Best month of downloads
 ```sql
 SELECT a.id, EXTRACT(year FROM a.posted) AS year, t.pdf AS downloads
 FROM paper.articles a
@@ -844,26 +868,8 @@ LEFT JOIN paper.article_traffic t
 ORDER BY id
 ```
 
-
 ```r
-firstframe = read.csv('downloads_by_first_month.csv')
 maxframe = read.csv('downloads_max_by_year_posted.csv')
-
-firstplot <- ggplot(data=firstframe, aes(
-  x=year,
-  y=downloads,
-  group=year
-)) +
-geom_boxplot(outlier.shape = NA, coef=0) +
-scale_y_continuous(labels=comma) +
-coord_cartesian(ylim=c(0,250)) +
-theme_bw() +
-labs(x="year", y="downloads in first month") +
-theme(
-  legend.position="none",
-  axis.text.y = element_text(size=big_fontsize, hjust=0.9),
-  axis.text.x = element_blank()
-)
 
 maxplot <- ggplot(data=maxframe, aes(
   x=year,
@@ -871,19 +877,65 @@ maxplot <- ggplot(data=maxframe, aes(
   group=year
 )) +
 geom_boxplot(outlier.shape = NA, coef=0) +
-scale_y_continuous(labels=comma) +
-coord_cartesian(ylim=c(0,250)) +
+scale_x_continuous(breaks=seq(2013, 2018, 1)) +
+coord_cartesian(ylim=c(0,210)) +
+scale_y_continuous(breaks=seq(0, 250, 50)) +
 theme_bw() +
 labs(x="year", y="downloads in best month") +
 theme(
   legend.position="none",
-  axis.text = element_text(size=big_fontsize, hjust=0.9)
+  axis.text.y = element_text(size=big_fontsize, color=themedarktext),
+  axis.title.y = element_text(size=big_fontsize),
+  axis.title.x = element_blank(),
+  axis.text.x = element_blank()
 )
+```
 
-plot_grid(firstplot, maxplot, labels=c("(a)", "(b)"),
+### Figure S4c: 2018 downloads, by year posted
+```sql
+SELECT a.id, EXTRACT(year FROM a.posted) AS year, SUM(t.pdf) AS downloads
+FROM paper.articles a
+LEFT JOIN paper.article_traffic t ON a.id=t.article
+WHERE t.year=2018
+GROUP BY a.id
+ORDER BY downloads DESC
+```
+
+```r
+latestframe = read.csv('2018_downloads_by_year_posted.csv')
+
+latestplot <- ggplot(data=latestframe, aes(
+  x=year,
+  y=downloads,
+  group=year
+)) +
+geom_boxplot(outlier.shape = NA, coef=0) +
+scale_x_continuous(breaks=seq(2013, 2018, 1)) +
+scale_y_continuous(breaks=seq(0, 250, 50)) +
+coord_cartesian(ylim=c(0,280)) +
+theme_bw() +
+labs(x="year posted", y="downloads in 2018") +
+theme(
+  legend.position="none",
+  axis.text.y = element_text(size=big_fontsize),
+  axis.title = element_text(size=big_fontsize),
+  axis.text.x = element_text(
+    size=big_fontsize,
+    hjust=1,
+    color=themedarktext,
+    angle = 45
+  )
+)
+```
+
+### Figure S4 combined
+
+```r
+plot_grid(firstplot, maxplot, latestplot,
+  labels=c("(a)", "(b)", "(c)"),
   label_x = 0, label_y = 0,
   hjust = -0.5, vjust = -0.5,
-  ncol = 1, nrow = 2,
+  ncol = 1, nrow = 3,
   align = "v"
 )
 ```
