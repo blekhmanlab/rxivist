@@ -18,6 +18,8 @@ themedarkgrey = "#565656"
 themedarktext = "#707070"
 yearline = "black"
 yearline_size = 0.5
+yearline_alpha = 0.5
+yearline_2014 = 8 # position of first year label
 big_fontsize = 12
 
 integrated_legend = theme(
@@ -35,7 +37,7 @@ setwd('/Users/rabdill/code/rxivist/paper/data') # *tk remove this
 
 
 
-## Figure 1
+## Figure 1: Downloads
 
 ### Figure 1a: Median downloads per category
 ```sql
@@ -166,25 +168,25 @@ annotation_custom(
   grob = textGrob(label = "cancer biology", hjust = 0, gp = gpar(fontsize = big_fontsize)),
   ymin = 659128, ymax = 659128, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "2014", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 3, xmax = 3) +
-geom_vline(xintercept=3, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2014", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014, xmax = yearline_2014) +
+geom_vline(xintercept=3, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2015", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 15, xmax = 15) +
-geom_vline(xintercept=15, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2015", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014+12, xmax = yearline_2014+12) +
+geom_vline(xintercept=15, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2016", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 27, xmax = 27) +
-geom_vline(xintercept=27, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2016", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 24, xmax = yearline_2014 + 24) +
+geom_vline(xintercept=27, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2017", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 39, xmax = 39) +
-geom_vline(xintercept=39, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2017", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 36, xmax = yearline_2014 + 36) +
+geom_vline(xintercept=39, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2018", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 51, xmax = 51) +
-geom_vline(xintercept=51, col=yearline, size=yearline_size)
+  grob = textGrob(label = "2018", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 48, xmax = yearline_2014 + 48) +
+geom_vline(xintercept=51, col=yearline, size=yearline_size, alpha=yearline_alpha)
 
 main <- ggplot_gtable(ggplot_build(x))
 main$layout$clip[main$layout$name == "panel"] <- "off"
@@ -295,25 +297,25 @@ theme(
   legend.position="none"
 ) +
 annotation_custom(
-  grob = textGrob(label = "2014", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel2, ymax = yearlabel2, xmin = 3, xmax = 3) +
-geom_vline(xintercept=3, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2014", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014, xmax = yearline_2014) +
+geom_vline(xintercept=3, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2015", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel2, ymax = yearlabel2, xmin = 15, xmax = 15) +
-geom_vline(xintercept=15, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2015", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014+12, xmax = yearline_2014+12) +
+geom_vline(xintercept=15, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2016", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel2, ymax = yearlabel2, xmin = 27, xmax = 27) +
-geom_vline(xintercept=27, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2016", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 24, xmax = yearline_2014 + 24) +
+geom_vline(xintercept=27, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2017", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel2, ymax = yearlabel2, xmin = 39, xmax = 39) +
-geom_vline(xintercept=39, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2017", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 36, xmax = yearline_2014 + 36) +
+geom_vline(xintercept=39, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2018", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel2, ymax = yearlabel2, xmin = 51, xmax = 51) +
-geom_vline(xintercept=51, col=yearline, size=yearline_size)
+  grob = textGrob(label = "2018", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 48, xmax = yearline_2014 + 48) +
+geom_vline(xintercept=51, col=yearline, size=yearline_size, alpha=yearline_alpha)
 
 monthly <- ggplot_gtable(ggplot_build(x))
 monthly$layout$clip[monthly$layout$name == "panel"] <- "off"
@@ -383,25 +385,25 @@ theme(
   axis.title.y = element_text(size=big_fontsize, vjust=0)
 ) +
 annotation_custom(
-  grob = textGrob(label = "2014", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 3, xmax = 3) +
-geom_vline(xintercept=3, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2014", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014, xmax = yearline_2014) +
+geom_vline(xintercept=3, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2015", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 15, xmax = 15) +
-geom_vline(xintercept=15, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2015", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014+12, xmax = yearline_2014+12) +
+geom_vline(xintercept=15, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2016", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 27, xmax = 27) +
-geom_vline(xintercept=27, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2016", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 24, xmax = yearline_2014 + 24) +
+geom_vline(xintercept=27, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2017", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 39, xmax = 39) +
-geom_vline(xintercept=39, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2017", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 36, xmax = yearline_2014 + 36) +
+geom_vline(xintercept=39, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2018", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 51, xmax = 51) +
-geom_vline(xintercept=51, col=yearline, size=yearline_size)
+  grob = textGrob(label = "2018", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 48, xmax = yearline_2014 + 48) +
+geom_vline(xintercept=51, col=yearline, size=yearline_size, alpha=yearline_alpha)
 
 proportions <- ggplot_gtable(ggplot_build(x))
 proportions$layout$clip[proportions$layout$name == "panel"] <- "off"
@@ -605,9 +607,7 @@ plot_grid(cattotals, catproportion,
 
 
 
-## Figure 5: Downloads for publications
-
-### Figure 5a: Median bioRxiv downloads per journal
+## Figure 5: Median bioRxiv downloads per journal
 
 ```sql
 SELECT d.article, d.downloads, p.publication AS journal
@@ -645,7 +645,88 @@ theme(
     axis.text= element_text(size=big_fontsize, color = themedarktext, hjust = 1),
     legend.position="none"
   )
+
+library(car)
+leveneTest(downloads~journal, data=journalframe)
+kruskal.test(downloads~journal, data=journalframe)
+library(FSA)
+dunnTest(downloads~journal, data=journalframe, method="bh")
 ```
+
+### Comparing published and unpublished papers
+```sql
+/* Overall data */
+SELECT d.article, d.downloads, EXTRACT(year FROM a.posted) AS year,
+	CASE WHEN COUNT(p.article) > 0 THEN TRUE
+    	ELSE FALSE
+    END AS published
+FROM paper.alltime_ranks d
+LEFT JOIN paper.article_publications p ON d.article=p.article
+LEFT JOIN paper.articles a ON d.article=a.id
+GROUP BY d.article, a.posted
+ORDER BY published DESC, d.downloads DESC
+
+/* Data excluding all papers posted in 2018 */
+SELECT *
+FROM (
+  SELECT d.article, d.downloads, EXTRACT(year FROM a.posted) AS year,
+	CASE WHEN COUNT(p.article) > 0 THEN TRUE
+    	ELSE FALSE
+    END AS published
+  FROM paper.alltime_ranks d
+  LEFT JOIN paper.article_publications p ON d.article=p.article
+  LEFT JOIN paper.articles a ON d.article=a.id
+  GROUP BY d.article, a.posted
+  ORDER BY published DESC, d.downloads DESC
+) AS downloads
+WHERE year < 2018;
+```
+
+```r
+paperframe = read.csv('downloads_publication_status.csv')
+library(car)
+leveneTest(downloads~published, data=paperframe)
+library(MASS)
+wilcox.test(downloads~published, data=paperframe, alternative="less")
+```
+
+
+
+## Figure 6: Downloads per paper compared to impact factor
+
+```r
+journalonlyframe = read.csv('downloads_journal_publishedONLY.csv')
+impactframe = read.csv('impact_scores.csv')
+
+medians <- journalonlyframe %>%
+  group_by(journal) %>%
+  summarize(median = median(downloads))
+
+all <- medians %>% left_join(impactframe)
+# closed <- medians %>% right_join(filter(impactframe, open_access==FALSE))
+# open <- medians %>% right_join(filter(impactframe, open_access==TRUE))
+
+library(car)
+leveneTest(downloads~published, data=paperframe)
+library(stats)
+cor.test(all$impact, all$median, method="kendall")
+
+# Find the regression results, input them into the plot:
+summary(lm(impact~median, data=all))
+
+# library(ggrepel)
+ggplot(data=all, aes(x=median, y=impact, label=journal, color=open_access)) +
+geom_point() +
+theme_bw() +
+labs(x="median downloads per paper", y="2017 journal impact score") +
+geom_abline(intercept=-1.67745, slope=0.01818, color=themedarkgrey, size=1)
+
+
+# MULTIPLE LINEAR REGRESSION shows open_access isn't really a factor:
+summary(lm(median~impact+open_access, data=all))
+
+```
+
 
 
 
@@ -722,26 +803,25 @@ theme(
   legend.position = "bottom"
 ) +
 annotation_custom(
-  grob = textGrob(label = "2014", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 3, xmax = 3) +
-geom_vline(xintercept=3, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2014", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014, xmax = yearline_2014) +
+geom_vline(xintercept=3, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2015", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 15, xmax = 15) +
-geom_vline(xintercept=15, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2015", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014+12, xmax = yearline_2014+12) +
+geom_vline(xintercept=15, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2016", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 27, xmax = 27) +
-geom_vline(xintercept=27, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2016", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 24, xmax = yearline_2014 + 24) +
+geom_vline(xintercept=27, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2017", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 39, xmax = 39) +
-geom_vline(xintercept=39, col=yearline, size=yearline_size) +
+  grob = textGrob(label = "2017", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 36, xmax = yearline_2014 + 36) +
+geom_vline(xintercept=39, col=yearline, size=yearline_size, alpha=yearline_alpha) +
 annotation_custom(
-  grob = textGrob(label = "2018", hjust = 1, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = 51, xmax = 51) +
-geom_vline(xintercept=51, col=yearline, size=yearline_size) +
-guides(fill=guide_legend(ncol=3))
+  grob = textGrob(label = "2018", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 48, xmax = yearline_2014 + 48) +
+geom_vline(xintercept=51, col=yearline, size=yearline_size, alpha=yearline_alpha)
 
 main <- ggplot_gtable(ggplot_build(x))
 main$layout$clip[main$layout$name == "panel"] <- "off"
@@ -773,7 +853,7 @@ paperframe = read.csv('downloads_per_year.csv')
 mediandownloads <- aggregate(downloads~year,data=paperframe,median)
 
 # Stacked density plot:
-ggplot(data=paperframe, aes(
+papers <- ggplot(data=paperframe, aes(
     x=downloads, group=year, fill=year
   )) +
   geom_density() +
@@ -848,8 +928,6 @@ theme(
   axis.text.y = element_text(size=big_fontsize),
   axis.title.y = element_text(size=big_fontsize),
   axis.title.x = element_blank(),
-  axis.text.x = element_blank()
-
   axis.text.x = element_text(size=big_fontsize, color=themedarktext, hjust = 1),
 )
 ```
@@ -917,7 +995,7 @@ theme_bw() +
 labs(x="year posted", y="downloads in 2018") +
 theme(
   legend.position="none",
-  axis.text.y = element_text(size=big_fontsize),
+  axis.text.y = element_text(size=big_fontsize, color=themedarktext),
   axis.title = element_text(size=big_fontsize),
   axis.text.x = element_text(
     size=big_fontsize,
@@ -938,4 +1016,287 @@ plot_grid(firstplot, maxplot, latestplot,
   ncol = 1, nrow = 3,
   align = "v"
 )
+```
+
+
+## Figure S5
+```sql
+SELECT month, year, sum(pdf) AS downloads
+FROM paper.article_traffic
+GROUP BY year, month
+ORDER BY year, month
+```
+
+```r
+monthframe=read.csv('downloads_per_month_per_year.csv')
+
+ggplot(monthframe, aes(x=month, y=downloads, group=year, color=year)) +
+geom_line(size=1) +
+labs(x = "month", y = "monthly downloads") +
+theme_bw() +
+scale_y_continuous(breaks=seq(0, 1300000, 100000), labels=comma) +
+scale_x_continuous(breaks=seq(0, 12, 1)) +
+theme(
+  axis.text = element_text(size=big_fontsize, color = themedarktext),
+  panel.grid.minor = element_blank()
+) +
+guides(
+  color = guide_legend(
+    reverse=TRUE,
+    override.aes = list(size = 4)
+  )
+)
+```
+
+
+### Figure S6: Tweet-friendly graphs
+```sql
+SELECT EXTRACT(YEAR FROM posted)||'-'||lpad(EXTRACT(MONTH FROM posted)::text, 2, '0') AS date,
+	COUNT(id) AS submissions
+FROM paper.articles
+GROUP BY 1
+ORDER BY 1;
+```
+
+```r
+# Cumulative submissions over time
+monthframe=read.csv('submissions_per_month_overall.csv')
+
+yearlabel = -1000
+x <- ggplot(monthframe, aes(date, cumulative, group=1)) +
+geom_line(size=1) +
+geom_area(fill=themepurple) +
+labs(x = "", y = "", title="Total preprints on bioRxiv over time") +
+theme_bw() +
+scale_y_continuous(breaks=seq(0, 35000, 5000), expand=c(0,0), labels=comma) +
+scale_x_discrete(expand=c(0,0)) +
+theme(
+  axis.text.x=element_blank(),
+  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
+  axis.title.y = element_text(size=big_fontsize),
+  legend.position="none"
+) +
+annotation_custom(
+  grob = textGrob(label = "2014", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014, xmax = yearline_2014) +
+geom_vline(xintercept=3, col=yearline, size=yearline_size, alpha=yearline_alpha) +
+annotation_custom(
+  grob = textGrob(label = "2015", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014+12, xmax = yearline_2014+12) +
+geom_vline(xintercept=15, col=yearline, size=yearline_size, alpha=yearline_alpha) +
+annotation_custom(
+  grob = textGrob(label = "2016", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 24, xmax = yearline_2014 + 24) +
+geom_vline(xintercept=27, col=yearline, size=yearline_size, alpha=yearline_alpha) +
+annotation_custom(
+  grob = textGrob(label = "2017", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 36, xmax = yearline_2014 + 36) +
+geom_vline(xintercept=39, col=yearline, size=yearline_size, alpha=yearline_alpha) +
+annotation_custom(
+  grob = textGrob(label = "2018", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 48, xmax = yearline_2014 + 48) +
+geom_vline(xintercept=51, col=yearline, size=yearline_size, alpha=yearline_alpha)
+
+cumulative <- ggplot_gtable(ggplot_build(x))
+cumulative$layout$clip[cumulative$layout$name == "panel"] <- "off"
+grid.draw(cumulative)
+```
+
+### Figure S7: Downloads over time relative to posting
+```sql
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 1 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+  )
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 2 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 1
+  )
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 3 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 2
+  )
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 4 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 3
+  )
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 5 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 4
+  )
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 6 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 5
+  )
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 7 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 6
+  )
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 8 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 7
+  )
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 9 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 8
+  )
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 10 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 9
+  )
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 11 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 10
+  )
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 12 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 11
+  )
+ORDER BY id, monthnum
+
+/* Overall median: */
+SELECT median(pdf)
+FROM paper.article_traffic
+```
+```r
+firstframe = read.csv('downloads_by_months.csv')
+
+ggplot(data=firstframe, aes(
+  x=monthnum,
+  y=downloads,
+  group=monthnum
+)) +
+geom_line(outlier.shape = NA, coef=0) +
+scale_y_continuous(breaks=seq(0, 150, 25)) +
+scale_x_continuous(breaks=seq(0, 12, 1)) +
+coord_cartesian(ylim=c(0,130)) +
+theme_bw() +
+labs(x="months on bioRxiv", y="downloads in month") +
+theme(
+  legend.position="none",
+  axis.title = element_text(size=big_fontsize),
+  axis.text = element_text(size=big_fontsize, color=themedarktext),
+) +
+geom_hline(yintercept=15, col=themedarkgrey, linetype="dashed", size=1)
+
+```
+
+
+## Analysis
+
+Finding papers with traffic data from before the year they were posted:
+```sql
+SELECT * FROM (
+	SELECT a.id, EXTRACT(year FROM a.posted) AS posted, MIN(t.year) AS traffic
+	FROM paper.articles a
+	INNER JOIN paper.article_traffic t ON a.id=t.article
+	GROUP BY a.id
+) AS years
+WHERE posted != traffic
 ```
