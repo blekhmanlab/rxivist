@@ -183,8 +183,6 @@ plot_grid(
 ## Figure 2: Downloads
 
 
-
-
 ### Figure 2a: Median downloads per category
 ```sql
 SELECT d.article, d.downloads, REPLACE(a.collection, '-', ' ') AS collection
@@ -244,15 +242,16 @@ monthframe=read.csv('downloads_per_month_cumulative.csv')
 # Cumulative downloads:
 x <- ggplot(monthframe, aes(x=date, y=cumulative, group=collection, color=collection)) +
 geom_line(size=1) +
-labs(x = "", y = "Total downloads (cumulative)") +
+labs(x = "Month", y = "Total downloads (cumulative)") +
 theme_bw() +
 scale_y_continuous(breaks=seq(0, 3000000, 500000), labels=comma) +
 theme(
   plot.margin = unit(c(0,6.5,0,0), "lines"), # for right-margin labels
   axis.text.x=element_blank(),
   axis.text.y = element_text(size=big_fontsize, color = themedarktext),
-  axis.title.y = element_text(size=big_fontsize),
-  legend.position="none"
+  axis.title = element_text(size=big_fontsize),
+  legend.position="none",
+  panel.border = element_rect(linetype = "solid", color="black", size=0.5, fill = NA)
 ) +
 annotation_custom(
   grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize)),
@@ -316,7 +315,7 @@ two_binset <- ggplot(distroframe, aes(x=downloads)) +
   annotate("text", x=median(distroframe$downloads)+6500, y=3250, label=paste("median:", round(median(distroframe$downloads), 2))) +
   theme_bw() +
   theme(
-    panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
+    panel.border = element_rect(linetype = "solid", color="black", size=0.5, fill = NA),
     axis.text = element_text(size=big_fontsize, color=themedarkgrey),
     axis.title.x = element_text(size=big_fontsize),
     axis.title.y = element_text(size=big_fontsize),
@@ -388,7 +387,7 @@ monthframe=read.csv('downloads_per_month_cumulative.csv')
 
 x <- ggplot(monthframe, aes(x=date, y=month, group=collection, fill=collection)) +
 geom_bar(stat="identity", color="white") +
-labs(x = "month", y = "overall downloads (month)") +
+labs(x = "Month", y = "Overall downloads (month)") +
 theme_bw() +
 scale_y_continuous(breaks=seq(0, 1250000, 250000), labels=comma) +
 theme(
@@ -397,13 +396,14 @@ theme(
   axis.title.y = element_text(size=big_fontsize),
   axis.title.x = element_text(size=big_fontsize, vjust=1),
   legend.position = "none",
-  plot.margin = unit(c(0,0,0,0), "cm")
+  plot.margin = unit(c(0,0,0,0), "cm"),
+  panel.border = element_rect(linetype = "solid", color="black", size=0.5, fill = NA)
 )
 
 x <- add_year_x(x, TRUE, -70000)
 
 two_d <- ggplot_gtable(ggplot_build(x))
-two_d$layout$clip[two_e$layout$name == "panel"] <- "off"
+two_d$layout$clip[two_d$layout$name == "panel"] <- "off"
 ```
 
 
@@ -453,10 +453,11 @@ theme(
   axis.text.x=element_blank(),
   axis.text.y = element_text(size=big_fontsize, color = themedarktext),
   axis.title.x = element_text(size=big_fontsize, hjust=0.45, vjust=-1.2),
-  axis.title.y = element_text(size=big_fontsize)
+  axis.title.y = element_text(size=big_fontsize),
+  plot.margin = unit(c(0.5, 0.5, 0.5, 1), "cm")
 ) +
 geom_hline(yintercept=0.40979, col=themedarkgrey, linetype="dashed", size=1) +
-annotate("text", y=0.48, x=8.5, label="overall proportion: 0.4098")
+annotate("text", y=0.48, x=11.2, label="overall proportion: 0.4098")
 
 x <- add_year_x(x, TRUE, -0.075)
 
@@ -496,6 +497,7 @@ catproportion <- ggplot(
     )
   ) +
   geom_bar(stat="identity") +
+  scale_y_continuous(expand=c(0,0)) +
   geom_hline(yintercept=0.40979, col=themedarkgrey, linetype="dashed", size=1) +
   labs(y="Proportion (category)") +
   theme_bw() +
@@ -504,7 +506,8 @@ catproportion <- ggplot(
     axis.text.x = element_text(size=big_fontsize, color = themedarktext),
     axis.text.y = element_text(size=big_fontsize, color = themedarktext),
     axis.title.y = element_blank(),
-    legend.position="none"
+    legend.position="none",
+    panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA)
   )
 ```
 
@@ -520,14 +523,16 @@ cattotals <- ggplot(
     )
   ) +
   geom_bar(stat="identity") +
-  scale_y_continuous(labels=comma, expand=c(0,0)) +
+  scale_y_continuous(labels=comma, expand=c(0,0), breaks=seq(0, 2500, 750)) +
   labs(x="", y="Count") +
   theme_bw() +
-  coord_flip(ylim=c(-55,2600)) +
+  coord_flip(ylim=c(-55,2500)) +
   theme(
     axis.text.y = element_blank(),
     legend.position="none",
-    axis.text.x = element_text(size=big_fontsize, color = themedarktext)
+    axis.text.x = element_text(size=big_fontsize, color = themedarktext),
+    panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
+    plot.margin = unit(c(0, 0.5, 0, 0), "cm")
   )
 ```
 
@@ -538,7 +543,7 @@ plot_grid(
   monthrate,
   plot_grid(catproportion, cattotals,
     labels=c("(b)", "(c)"),
-    rel_widths=c(3,4),
+    rel_widths=c(3,2),
     hjust = 0,
     ncol = 2, nrow = 1,
     align = "h"
@@ -718,29 +723,42 @@ ORDER BY articles DESC
 ```r
 pubframe = read.csv('publications_per_journal_categorical.csv')
 
-ggplot(pubframe, aes(x=journal, y=tally, fill=collection)) +
+asdf
+
+figure <- ggplot(pubframe, aes(x=journal, y=tally, fill=collection)) +
   geom_bar(stat="identity", color="white") +
   aes(x = reorder(journal, tally, sum), y = tally, label = tally, fill = collection) +
   coord_flip() +
-  labs(y = "Preprints published") +
+  labs(x = "Journal", y = "Preprints published") +
   theme_bw() +
   theme(
     panel.grid.major.y = element_blank(),
+    panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
     axis.text = element_text(size=big_fontsize, color = themedarktext),
     axis.title = element_text(size=big_fontsize),
-    axis.title.y = element_blank(),
-    legend.position = "bottom",
+    legend.position = "none",
+    plot.margin = unit(c(0.2,1,0.5,0.2), "cm"),
+  )
+
+# The wide x-axis labels (up the side of the plot) mess up the
+# alignment of the legend, so it gets added by hand
+legendplot <- ggplot(pubframe, aes(x=journal, y=tally, fill=collection)) +
+  geom_bar(stat="identity", color="white") +
+  aes(x = reorder(journal, tally, sum), y = tally, label = tally, fill = collection) +
+  coord_flip() +
+  theme_bw() +
+  theme(
     legend.text = element_text(size=big_fontsize),
-    legend.title = element_text(size=big_fontsize, vjust=1, hjust=1),
-  )+
-  guides(fill=guide_legend(
-    ncol = 3,
-    title = "Collection"
-  ))
+    legend.title = element_text(size=big_fontsize),
+    legend.margin = margin(b = 20, unit = "pt")
+  ) +
+  guides(fill=guide_legend(ncol=3))
+
+plot_grid(figure, get_legend(legendplot),
+  ncol = 1, nrow = 2,
+  rel_heights = c(2,1)
+)
 ```
-
-
-
 
 ## Figure 5: Median bioRxiv downloads per journal
 
@@ -762,25 +780,28 @@ ORDER BY p.publication DESC, d.downloads DESC
 
 ```r
 journalframe = read.csv('downloads_journal.csv')
+impactframe = read.csv('impact_scores.csv')
+details <- journalframe %>% left_join(impactframe)
 
-ggplot(data=journalframe, aes(
-  x=reorder(publication, downloads, FUN=median),
-  y=downloads
+ggplot(data=details, aes(
+  x=reorder(journal, downloads, FUN=median),
+  y=downloads,
+  fill=open_access
 )) +
 geom_boxplot(
-  outlier.shape = NA, coef=0,
-  fill=themepurple
+  outlier.shape = NA, coef=0
 ) +
 theme_bw() +
 coord_flip(ylim=c(0, 3650)) +
-scale_y_continuous(breaks=seq(0, 3500, 500), expand=c(0,0)) +
+scale_y_continuous(breaks=seq(0, 3500, 500), expand=c(0,0), labels=comma) +
 labs(x="Journal", y="Downloads per paper") +
 theme(
-  # panel.grid.major.y = element_blank(),
   axis.title = element_text(size=big_fontsize),
-  axis.text= element_text(size=big_fontsize, color = themedarktext),
-  legend.position="none"
-)
+  axis.text= element_text(size=big_fontsize, color = themedarktext)
+) +
+guides(fill=guide_legend(
+  title = "Open access"
+))
 
 library(car)
 leveneTest(downloads~journal, data=journalframe)
@@ -831,6 +852,9 @@ library(car)
 leveneTest(downloads~published, data=paperframe)
 library(MASS)
 wilcox.test(downloads~published, data=paperframe, alternative="less")
+
+library(canprot)
+CLES(filter(paperframe, published=='False')$downloads, filter(paperframe, published=='True')$downloads)
 ```
 
 
@@ -881,7 +905,7 @@ theme(
 ```
 
 
-## Figure S3: Median downloads per year
+## Figure S2: Median downloads per year
 
 ```sql
 SELECT d.article, d.downloads, EXTRACT(YEAR FROM a.posted) AS year
@@ -926,9 +950,9 @@ library(FSA)
 dunnTest(downloads~year, data=paperframe, method="bh")
 ```
 
-## Figure S4
+## Figure S3
 
-### Figure S4a: Downloads in first month on bioRxiv
+### Figure S3a: Downloads in first month on bioRxiv
 ```sql
 SELECT a.id, t.month, t.year, t.pdf AS downloads
 FROM paper.articles a
@@ -964,17 +988,17 @@ scale_y_continuous(breaks=seq(0, 250, 50)) +
 scale_x_continuous(breaks=seq(2013, 2018, 1)) +
 coord_cartesian(ylim=c(0,160)) +
 theme_bw() +
-labs(x="year", y="downloads in first month") +
+labs(x="Year", y="Downloads in first month") +
 theme(
   legend.position="none",
   axis.text.y = element_text(size=big_fontsize),
   axis.title.y = element_text(size=big_fontsize),
   axis.title.x = element_blank(),
-  axis.text.x = element_text(size=big_fontsize, color=themedarktext, hjust = 1),
+  axis.text.x = element_blank()
 )
 ```
 
-### Figure S4b: Best month of downloads
+### Figure S3b: Best month of downloads
 ```sql
 SELECT a.id, EXTRACT(year FROM a.posted) AS year, t.pdf AS downloads
 FROM paper.articles a
@@ -1001,7 +1025,7 @@ scale_x_continuous(breaks=seq(2013, 2018, 1)) +
 coord_cartesian(ylim=c(0,210)) +
 scale_y_continuous(breaks=seq(0, 250, 50)) +
 theme_bw() +
-labs(x="year", y="downloads in best month") +
+labs(x="Year", y="Downloads in best month") +
 theme(
   legend.position="none",
   axis.text.y = element_text(size=big_fontsize, color=themedarktext),
@@ -1011,7 +1035,7 @@ theme(
 )
 ```
 
-### Figure S4c: 2018 downloads, by year posted
+### Figure S3c: 2018 downloads, by year posted
 ```sql
 SELECT a.id, EXTRACT(year FROM a.posted) AS year, SUM(t.pdf) AS downloads
 FROM paper.articles a
@@ -1034,7 +1058,7 @@ scale_x_continuous(breaks=seq(2013, 2018, 1)) +
 scale_y_continuous(breaks=seq(0, 250, 50)) +
 coord_cartesian(ylim=c(0,280)) +
 theme_bw() +
-labs(x="year posted", y="downloads in 2018") +
+labs(x="Year posted", y="Downloads in 2018") +
 theme(
   legend.position="none",
   axis.text.y = element_text(size=big_fontsize, color=themedarktext),
@@ -1048,73 +1072,17 @@ theme(
 )
 ```
 
-### Figure S4 combined
+### Figure S3 combined
 
 ```r
 plot_grid(firstplot, maxplot, latestplot,
   labels=c("(a)", "(b)", "(c)"),
-  label_x = 0, label_y = 0,
-  hjust = -0.5, vjust = -0.5,
   ncol = 1, nrow = 3,
   align = "v"
 )
 ```
 
-
-### Figure S6: Tweet-friendly graphs
-```sql
-SELECT EXTRACT(YEAR FROM posted)||'-'||lpad(EXTRACT(MONTH FROM posted)::text, 2, '0') AS date,
-	COUNT(id) AS submissions
-FROM paper.articles
-GROUP BY 1
-ORDER BY 1;
-```
-
-```r
-# Cumulative submissions over time
-monthframe=read.csv('submissions_per_month_overall.csv')
-
-yearlabel = -1000
-x <- ggplot(monthframe, aes(date, cumulative, group=1)) +
-geom_line(size=1) +
-geom_area(fill=themepurple) +
-labs(x = "", y = "", title="Total preprints on bioRxiv over time") +
-theme_bw() +
-scale_y_continuous(breaks=seq(0, 35000, 5000), expand=c(0,0), labels=comma) +
-scale_x_discrete(expand=c(0,0)) +
-theme(
-  axis.text.x=element_blank(),
-  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
-  axis.title.y = element_text(size=big_fontsize),
-  legend.position="none"
-) +
-annotation_custom(
-  grob = textGrob(label = "2014", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014, xmax = yearline_2014) +
-geom_vline(xintercept=3, col=yearline, size=yearline_size, alpha=yearline_alpha) +
-annotation_custom(
-  grob = textGrob(label = "2015", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014+12, xmax = yearline_2014+12) +
-geom_vline(xintercept=15, col=yearline, size=yearline_size, alpha=yearline_alpha) +
-annotation_custom(
-  grob = textGrob(label = "2016", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 24, xmax = yearline_2014 + 24) +
-geom_vline(xintercept=27, col=yearline, size=yearline_size, alpha=yearline_alpha) +
-annotation_custom(
-  grob = textGrob(label = "2017", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 36, xmax = yearline_2014 + 36) +
-geom_vline(xintercept=39, col=yearline, size=yearline_size, alpha=yearline_alpha) +
-annotation_custom(
-  grob = textGrob(label = "2018", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 48, xmax = yearline_2014 + 48) +
-geom_vline(xintercept=51, col=yearline, size=yearline_size, alpha=yearline_alpha)
-
-cumulative <- ggplot_gtable(ggplot_build(x))
-cumulative$layout$clip[cumulative$layout$name == "panel"] <- "off"
-grid.draw(cumulative)
-```
-
-### Figure S7: Downloads over time relative to posting
+### Figure S5: Downloads over time relative to posting
 ```sql
 SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 1 AS monthnum, t.pdf AS downloads
 FROM paper.articles a
@@ -1297,6 +1265,68 @@ theme(
 ) +
 geom_hline(yintercept=15, col=themedarkgrey, linetype="dashed", size=1)
 
+# median_thing <- function(data, i){
+#   print(sort(table(i),decreasing=TRUE)[1:3])
+#   return(median(data[i]))
+# }
+# results <- boot(filter(firstframe, monthnum==1)$downloads, statistic=median_thing, R=100)
+# boot.ci(results, conf=0.95, type="basic")
+```
+
+
+### Figure S6: Tweet-friendly graphs
+
+#### Figure S6a: Total papers over time
+```sql
+SELECT EXTRACT(YEAR FROM posted)||'-'||lpad(EXTRACT(MONTH FROM posted)::text, 2, '0') AS date,
+	COUNT(id) AS submissions
+FROM paper.articles
+GROUP BY 1
+ORDER BY 1;
+```
+
+```r
+# Cumulative submissions over time
+monthframe=read.csv('submissions_per_month_overall.csv')
+
+yearlabel = -1000
+x <- ggplot(monthframe, aes(date, cumulative, group=1)) +
+geom_line(size=1) +
+geom_area(fill=themepurple) +
+labs(x = "", y = "", title="Total preprints on bioRxiv over time") +
+theme_bw() +
+scale_y_continuous(breaks=seq(0, 35000, 5000), expand=c(0,0), labels=comma) +
+scale_x_discrete(expand=c(0,0)) +
+theme(
+  axis.text.x=element_blank(),
+  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
+  axis.title.y = element_text(size=big_fontsize),
+  legend.position="none"
+) +
+annotation_custom(
+  grob = textGrob(label = "2014", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014, xmax = yearline_2014) +
+geom_vline(xintercept=3, col=yearline, size=yearline_size, alpha=yearline_alpha) +
+annotation_custom(
+  grob = textGrob(label = "2015", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014+12, xmax = yearline_2014+12) +
+geom_vline(xintercept=15, col=yearline, size=yearline_size, alpha=yearline_alpha) +
+annotation_custom(
+  grob = textGrob(label = "2016", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 24, xmax = yearline_2014 + 24) +
+geom_vline(xintercept=27, col=yearline, size=yearline_size, alpha=yearline_alpha) +
+annotation_custom(
+  grob = textGrob(label = "2017", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 36, xmax = yearline_2014 + 36) +
+geom_vline(xintercept=39, col=yearline, size=yearline_size, alpha=yearline_alpha) +
+annotation_custom(
+  grob = textGrob(label = "2018", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
+  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 48, xmax = yearline_2014 + 48) +
+geom_vline(xintercept=51, col=yearline, size=yearline_size, alpha=yearline_alpha)
+
+cumulative <- ggplot_gtable(ggplot_build(x))
+cumulative$layout$clip[cumulative$layout$name == "panel"] <- "off"
+grid.draw(cumulative)
 ```
 
 
@@ -1325,4 +1355,30 @@ INNER JOIN paper.author_emails e
 GROUP BY 1
 ORDER BY 3 DESC
 
+```
+
+
+## Table 1: Authors per year
+
+```sql
+SELECT firstcount.year, firstcount.count, overall.count
+FROM (
+  SELECT year, COUNT(DISTINCT author)
+  FROM (
+    SELECT a.author, MIN(EXTRACT(year FROM p.posted)) AS year
+    FROM paper.article_authors a
+    LEFT JOIN paper.articles p ON a.article=p.id
+    GROUP BY 1
+    ORDER BY 2
+  ) AS allfirsts
+  GROUP BY 1
+) AS firstcount
+LEFT JOIN (
+  SELECT COUNT(DISTINCT a.author), EXTRACT(year FROM p.posted) AS year
+  FROM paper.article_authors a
+  LEFT JOIN paper.articles p ON a.article=p.id
+  GROUP BY 2
+  ORDER BY 2
+) overall
+ON firstcount.year = overall.year
 ```
