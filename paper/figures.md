@@ -125,7 +125,7 @@ annotation_custom(
   ymin = 1605, ymax = 1605, xmin = 61, xmax = 61
 )
 
-x <- add_year_x(x, FALSE)
+x <- add_year_x(x, TRUE, -480)
 
 cumulative <- ggplot_gtable(ggplot_build(x))
 cumulative$layout$clip[cumulative$layout$name == "panel"] <- "off"
@@ -138,16 +138,17 @@ x <- ggplot(monthframe, aes(x=date, y=submissions, fill=collection)) +
 geom_bar(stat="identity", color="white") +
 theme_bw() +
 labs(x="Month", y="Preprints posted (month)") +
+scale_y_continuous(labels=comma) +
 theme(
   axis.text.x=element_blank(),
   axis.text.y = element_text(size=big_fontsize, color = themedarktext),
   axis.title.y = element_text(size=big_fontsize),
   axis.title.x = element_text(size=big_fontsize, vjust=-3),
   legend.position="none",
-  plot.margin = unit(c(-0.75, 0, 0, 0), "cm") # for spacing in the plot_grid
+  plot.margin = unit(c(-0.45, 0, 0, 0), "cm") # for spacing in the plot_grid
 )
 
-x <- add_year_x(x, TRUE, -170)
+x <- add_year_x(x, TRUE, -150)
 
 monthly <- ggplot_gtable(ggplot_build(x))
 monthly$layout$clip[monthly$layout$name == "panel"] <- "off"
@@ -254,25 +255,25 @@ theme(
   panel.border = element_rect(linetype = "solid", color="black", size=0.5, fill = NA)
 ) +
 annotation_custom(
-  grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col="#52a8f8")),
   ymin = 3000000, ymax = 3050000, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col="#d79126")),
   ymin = 2900000, ymax = 2926524, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = "#64bdb8")),
   ymin = 2714730, ymax = 2714730, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = "#66bea1")),
   ymin = 1507955, ymax = 1507955, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col = "#66bd88")),
   ymin = 1348577, ymax = 1348577, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = "#5fbdde")),
   ymin = 851647, ymax = 851647, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Cancer Biology", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Cancer Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = "#aba133")),
   ymin = 659128, ymax = 659128, xmin = 61, xmax = 61)
 
 x <- add_year_x(x, TRUE, -190000)
