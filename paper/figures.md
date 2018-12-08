@@ -16,14 +16,14 @@ themeoffwhite = "#f2f6ff"
 themedarkgrey = "#565656"
 
 themedarktext = "#707070"
-big_fontsize = 12
+# big_fontsize = 12
+big_fontsize = unit(12, "pt")
 
 integrated_legend = theme(
   legend.position = c(0.35, 0.7),
   legend.background = element_rect(fill=themeoffwhite, size=0.5, linetype="solid"),
   legend.text = element_text(size=big_fontsize)
 )
-better_line_legend = guides(color = guide_legend(override.aes = list(size = 4)))
 
 yearline = "black"
 yearline_size = 0.5
@@ -64,6 +64,16 @@ add_year_x <- function(plot, labels, yearlabel)
   return(x)
 }
 
+color.neuroscience = '#47a7f8'
+color.bioinformatics = '#c99332'
+color.evolutionarybio = '#56bd88'
+color.genomics = '#55bdb8'
+color.microbiology = '#50b7de'
+color.genetics = '#56bea0'
+color.cellbio = '#98a733'
+color.cancerbio = '#aba233'
+
+
 setwd('/Users/rabdill/code/rxivist/paper/data') # *tk remove this
 ```
 
@@ -98,30 +108,30 @@ theme(
   legend.position="none"
 ) +
 annotation_custom(
-  grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.neuroscience)),
   ymin = 6081, ymax = 6081, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.bioinformatics)),
   ymin = 4150, ymax = 4150, xmin = 61, xmax = 61
 ) +
 annotation_custom(
-  grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.evolutionarybio)),
   ymin = 3300, ymax = 3300, xmin = 61, xmax = 61
 ) +
 annotation_custom(
-  grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genomics)),
   ymin = 3000, ymax = 3000, xmin = 61, xmax = 61
 ) +
 annotation_custom(
-  grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.microbiology)),
   ymin = 2600, ymax = 2600, xmin = 61, xmax = 61
 ) +
 annotation_custom(
-  grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genetics)),
   ymin = 2245, ymax = 2245, xmin = 61, xmax = 61
 ) +
 annotation_custom(
-  grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+  grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.cellbio)),
   ymin = 1605, ymax = 1605, xmin = 61, xmax = 61
 )
 
@@ -146,12 +156,75 @@ theme(
   axis.title.x = element_text(size=big_fontsize, vjust=-3),
   legend.position="none",
   plot.margin = unit(c(-0.45, 0, 0, 0), "cm") # for spacing in the plot_grid
+) +
+annotation_custom(
+  grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.neuroscience)),
+  ymin = 450, ymax = 450, xmin = 61, xmax = 61) +
+annotation_custom(
+  grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.microbiology)),
+  ymin = 750, ymax = 750, xmin = 61, xmax = 61
+) +
+annotation_custom(
+  grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.bioinformatics)),
+  ymin = 1850, ymax = 1850, xmin = 61, xmax = 61
+) +
+annotation_custom(
+  grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genomics)),
+  ymin = 1000, ymax = 1000, xmin = 61, xmax = 61
+) +
+annotation_custom(
+  grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.evolutionarybio)),
+  ymin = 1250, ymax = 1250, xmin = 61, xmax = 61
+) +
+annotation_custom(
+  grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genetics)),
+  ymin = 1100, ymax = 1100, xmin = 61, xmax = 61
+) +
+annotation_custom(
+  grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.cellbio)),
+  ymin = 1710, ymax = 1710, xmin = 61, xmax = 61
 )
 
 x <- add_year_x(x, TRUE, -150)
 
 monthly <- ggplot_gtable(ggplot_build(x))
 monthly$layout$clip[monthly$layout$name == "panel"] <- "off"
+```
+
+#### Figure 1(inset): Total papers over time
+```sql
+SELECT EXTRACT(YEAR FROM posted)||'-'||lpad(EXTRACT(MONTH FROM posted)::text, 2, '0') AS date,
+	COUNT(id) AS submissions
+FROM paper.articles
+GROUP BY 1
+ORDER BY 1;
+```
+
+```r
+totalframe=read.csv('submissions_per_month_overall.csv')
+
+axisfunc <- function() {
+  function(x) paste(x/1000, "k")
+}
+
+x <- ggplot(totalframe, aes(date, cumulative, group=1)) +
+geom_line(size=1) +
+geom_area(fill=themepurple) +
+labs(x = "Month", y = "Total preprints") +
+theme_bw() +
+scale_y_continuous(breaks=seq(0, 35000, 10000), expand=c(0,0), labels=axisfunc()) +
+scale_x_discrete(expand=c(0,0)) +
+theme(
+  axis.text.x=element_blank(),
+  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
+  axis.title.y = element_text(size=big_fontsize),
+  legend.position="none"
+)
+
+x <- add_year_x(x, FALSE)
+
+totals <- ggplot_gtable(ggplot_build(x))
+totals$layout$clip[totals$layout$name == "panel"] <- "off"
 ```
 
 ### Figure 1 combined
@@ -161,7 +234,10 @@ legendplot <- ggplot(
     monthframe, aes(x=date, y=submissions, fill=collection)
   ) +
   geom_bar(stat="identity", color="white") +
-  guides(fill=guide_legend(ncol=3)) +
+  guides(fill=guide_legend(
+    ncol=3,
+    title = "Collection"
+  )) +
   theme(
     legend.text = element_text(size=big_fontsize),
     legend.margin = margin(t=30, b = 50, l = 100, unit = "pt")
@@ -178,7 +254,8 @@ plot_grid(
   get_legend(legendplot),
   rel_heights = c(7,3),
   ncol=1, nrow=2
-)
+) +
+draw_plot(totals, 0.1, 0.76, 0.42, 0.2)
 ```
 
 ## Figure 2: Downloads
@@ -211,7 +288,7 @@ two_a <- ggplot(data=paperframe, aes(
     panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
     plot.margin = unit(c(0.5,0.5,0,0), "cm")
   ) +
-  geom_hline(yintercept=median(paperframe$downloads), col=themedarkgrey, linetype="dashed", size=1)
+  geom_hline(yintercept=median(paperframe$downloads), col='yellow', linetype="dashed", size=1.5)
 
 # comparing neuroscience papers to non-neuroscience:
 paperframe$isneuro <- ifelse(paperframe$collection =='neuroscience',TRUE, FALSE)
@@ -255,25 +332,25 @@ theme(
   panel.border = element_rect(linetype = "solid", color="black", size=0.5, fill = NA)
 ) +
 annotation_custom(
-  grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col="#52a8f8")),
+  grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.neuroscience)),
   ymin = 3000000, ymax = 3050000, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col="#d79126")),
+  grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.bioinformatics)),
   ymin = 2900000, ymax = 2926524, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = "#64bdb8")),
+  grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genomics)),
   ymin = 2714730, ymax = 2714730, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = "#66bea1")),
+  grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genetics)),
   ymin = 1507955, ymax = 1507955, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col = "#66bd88")),
+  grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.evolutionarybio)),
   ymin = 1348577, ymax = 1348577, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = "#5fbdde")),
+  grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.microbiology)),
   ymin = 851647, ymax = 851647, xmin = 61, xmax = 61) +
 annotation_custom(
-  grob = textGrob(label = "Cancer Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = "#aba133")),
+  grob = textGrob(label = "Cancer Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.cancerbio)),
   ymin = 659128, ymax = 659128, xmin = 61, xmax = 61)
 
 x <- add_year_x(x, TRUE, -190000)
@@ -338,6 +415,7 @@ ORDER BY year, month
 dlframe=read.csv('downloads_per_month_per_year.csv')
 
 yearlabel = 1.35
+endyearlabel = 10
 two_c <- ggplot(dlframe, aes(x=month, y=downloads, group=year, color=year)) +
   geom_line(size=1) +
   labs(x = "Month", y = "Overall downloads (month)") +
@@ -367,16 +445,32 @@ two_c <- ggplot(dlframe, aes(x=month, y=downloads, group=year, color=year)) +
     ymin = 100000, ymax = 100000, xmin = yearlabel, xmax = yearlabel
   ) +
   annotation_custom(
+    grob = textGrob(label = "2015", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+    ymin = 168000, ymax = 168000, xmin = endyearlabel, xmax = endyearlabel
+  ) +
+  annotation_custom(
     grob = textGrob(label = "2016", hjust = 0, gp = gpar(fontsize = big_fontsize)),
     ymin = 185000, ymax = 185000, xmin = yearlabel, xmax = yearlabel
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "2016", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+    ymin = 360000, ymax = 360000, xmin = endyearlabel, xmax = endyearlabel
   ) +
   annotation_custom(
     grob = textGrob(label = "2017", hjust = 0, gp = gpar(fontsize = big_fontsize)),
     ymin = 375000, ymax = 375000, xmin = yearlabel, xmax = yearlabel
   ) +
   annotation_custom(
+    grob = textGrob(label = "2017", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+    ymin = 660000, ymax = 660000, xmin = endyearlabel, xmax = endyearlabel
+  ) +
+  annotation_custom(
     grob = textGrob(label = "2018", hjust = 0, gp = gpar(fontsize = big_fontsize)),
     ymin = 750000, ymax = 750000, xmin = yearlabel, xmax = yearlabel
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "2018", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+    ymin = 1130000, ymax = 1130000, xmin = endyearlabel+0.1, xmax = endyearlabel+0.1
   )
 ```
 
@@ -399,7 +493,28 @@ theme(
   legend.position = "none",
   plot.margin = unit(c(0,0,0,0), "cm"),
   panel.border = element_rect(linetype = "solid", color="black", size=0.5, fill = NA)
-)
+) +
+annotation_custom(
+  grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.neuroscience)),
+  ymin = 160000, ymax = 160000, xmin = 61, xmax = 61) +
+annotation_custom(
+  grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.bioinformatics)),
+  ymin = 1000000, ymax = 1000000, xmin = 61, xmax = 61) +
+annotation_custom(
+  grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genomics)),
+  ymin = 500000, ymax = 500000, xmin = 61, xmax = 61) +
+annotation_custom(
+  grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genetics)),
+  ymin = 610000, ymax = 610000, xmin = 61, xmax = 61) +
+annotation_custom(
+  grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.microbiology)),
+  ymin = 375000, ymax = 375000, xmin = 61, xmax = 61) +
+annotation_custom(
+  grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.evolutionarybio)),
+  ymin = 665000, ymax = 665000, xmin = 61, xmax = 61) +
+annotation_custom(
+  grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.cellbio)),
+  ymin = 800000, ymax = 800000, xmin = 61, xmax = 61)
 
 x <- add_year_x(x, TRUE, -70000)
 
@@ -426,6 +541,7 @@ draw_plot(two_binset, 0.58, 0.72, 0.22, 0.22)
 
 ```
 
+
 ## Figure 3: Publications
 
 ### Figure 3a: Publication rate by month
@@ -448,7 +564,7 @@ paperframe = read.csv('publication_rate_month.csv')
 
 x <- ggplot(paperframe, aes(x=month, y=rate)) +
 geom_point() +
-labs(x = "Month", y = "Proportion") +
+labs(x = "Month", y = "Proportion\npublished") +
 theme_bw() +
 theme(
   axis.text.x=element_blank(),
@@ -458,7 +574,7 @@ theme(
   plot.margin = unit(c(0.5, 0.5, 0.5, 1), "cm")
 ) +
 geom_hline(yintercept=0.40979, col=themedarkgrey, linetype="dashed", size=1) +
-annotate("text", y=0.48, x=11.2, label="overall proportion: 0.4098")
+annotate("text", y=0.48, x=9.2, label="overall: 0.4098")
 
 x <- add_year_x(x, TRUE, -0.075)
 
@@ -500,9 +616,9 @@ catproportion <- ggplot(
   geom_bar(stat="identity") +
   scale_y_continuous(expand=c(0,0)) +
   geom_hline(yintercept=0.40979, col=themedarkgrey, linetype="dashed", size=1) +
-  labs(y="Proportion (category)") +
+  labs(y="Proportion published\nfrom category") +
   theme_bw() +
-  coord_flip() +
+  coord_flip(ylim=c(0,0.55)) +
   theme(
     axis.text.x = element_text(size=big_fontsize, color = themedarktext),
     axis.text.y = element_text(size=big_fontsize, color = themedarktext),
@@ -525,9 +641,9 @@ cattotals <- ggplot(
   ) +
   geom_bar(stat="identity") +
   scale_y_continuous(labels=comma, expand=c(0,0), breaks=seq(0, 2500, 750)) +
-  labs(x="", y="Count") +
+  labs(x="", y="Count published\nfrom category") +
   theme_bw() +
-  coord_flip(ylim=c(-55,2500)) +
+  coord_flip(ylim=c(0,2500)) +
   theme(
     axis.text.y = element_blank(),
     legend.position="none",
@@ -544,8 +660,9 @@ plot_grid(
   monthrate,
   plot_grid(catproportion, cattotals,
     labels=c("(b)", "(c)"),
-    rel_widths=c(3,2),
-    hjust = 0,
+    rel_widths=c(2,2),
+    hjust = c(0,0.25),
+    vjust = 1,
     ncol = 2, nrow = 1,
     align = "h"
   ),
@@ -724,16 +841,14 @@ ORDER BY articles DESC
 ```r
 pubframe = read.csv('publications_per_journal_categorical.csv')
 
-asdf
-
 figure <- ggplot(pubframe, aes(x=journal, y=tally, fill=collection)) +
   geom_bar(stat="identity", color="white") +
   aes(x = reorder(journal, tally, sum), y = tally, label = tally, fill = collection) +
-  coord_flip() +
+  scale_y_continuous(expand=c(0,0)) +
+  coord_flip(ylim=c(0,800)) +
   labs(x = "Journal", y = "Preprints published") +
   theme_bw() +
   theme(
-    panel.grid.major.y = element_blank(),
     panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
     axis.text = element_text(size=big_fontsize, color = themedarktext),
     axis.title = element_text(size=big_fontsize),
@@ -753,7 +868,10 @@ legendplot <- ggplot(pubframe, aes(x=journal, y=tally, fill=collection)) +
     legend.title = element_text(size=big_fontsize),
     legend.margin = margin(b = 20, unit = "pt")
   ) +
-  guides(fill=guide_legend(ncol=3))
+  guides(fill=guide_legend(
+    ncol = 3,
+    title = "Collection"
+  ))
 
 plot_grid(figure, get_legend(legendplot),
   ncol = 1, nrow = 2,
@@ -784,10 +902,10 @@ journalframe = read.csv('downloads_journal.csv')
 impactframe = read.csv('impact_scores.csv')
 details <- journalframe %>% left_join(impactframe)
 
-ggplot(data=details, aes(
+main <- ggplot(data=details, aes(
   x=reorder(journal, downloads, FUN=median),
   y=downloads,
-  fill=open_access
+  fill=Access
 )) +
 geom_boxplot(
   outlier.shape = NA, coef=0
@@ -795,14 +913,14 @@ geom_boxplot(
 theme_bw() +
 coord_flip(ylim=c(0, 3650)) +
 scale_y_continuous(breaks=seq(0, 3500, 500), expand=c(0,0), labels=comma) +
-labs(x="Journal", y="Downloads per paper") +
+labs(x="Journal", y="Downloads per preprint") +
 theme(
   axis.title = element_text(size=big_fontsize),
-  axis.text= element_text(size=big_fontsize, color = themedarktext)
-) +
-guides(fill=guide_legend(
-  title = "Open access"
-))
+  axis.text= element_text(size=big_fontsize, color = themedarktext),
+  legend.text = element_text(size=big_fontsize),
+  legend.title = element_text(size=big_fontsize),
+  legend.position = "top"
+)
 
 library(car)
 leveneTest(downloads~journal, data=journalframe)
@@ -815,8 +933,84 @@ medians <- journalframe %>%
   summarize(median = median(downloads))
 ```
 
+### Figure 5 inset: Impact factor vs. median downloads
+```r
+journalonlyframe = read.csv('downloads_journal_publishedONLY.csv')
+impactframe = read.csv('impact_scores.csv')
+totals = read.csv('publications_per_journal.csv')
+
+medians <- journalonlyframe %>%
+  group_by(journal) %>%
+  summarize(median = median(downloads))
+
+all <- medians %>% left_join(impactframe)
+all <- all %>% left_join(totals)
+# closed <- medians %>% right_join(filter(impactframe, open_access==FALSE))
+# open <- medians %>% right_join(filter(impactframe, open_access==TRUE))
+
+library(car)
+leveneTest(downloads~published, data=paperframe)
+library(stats)
+cor.test(all$impact, all$median, method="kendall")
+
+# Find the regression results, input them into the plot:
+summary(lm(impact~median, data=all))
+
+library(ggrepel)
+inset <- ggplot(data=all, aes(
+  x=median,
+  y=impact,
+  label=journal,
+  color=Access,
+  size=Papers
+)) +
+geom_point() +
+theme_bw() +
+scale_x_continuous(label=comma) +
+coord_cartesian(xlim=c(0,3000)) +
+theme(
+  panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
+  axis.text = element_text(size=big_fontsize, color = themedarktext),
+  axis.title = element_text(size=big_fontsize),
+  legend.position = "none"
+) +
+labs(x="Median downloads per preprint", y="Journal impact score, 2017") +
+geom_text_repel(
+  data=subset(all, Papers > 350|impact > 13),
+  # Separate aesthetic for the labels so they don't
+  # scale with dot size:
+  aes(median, impact,label=journal),
+  size=5,
+  max.iter = 5000,
+  box.padding = unit(0.75, "lines")
+) +
+geom_abline(intercept=-1.67745, slope=0.01818, color=themedarkgrey, size=1, alpha=0.35) +
+guides(
+  color = guide_legend(
+    override.aes = list(size = 4),
+  )
+)
 
 
+# MULTIPLE LINEAR REGRESSION shows open_access isn't really a factor:
+summary(lm(median~impact+open_access, data=all))
+```
+
+### Figure 5 combined
+
+```r
+# INSET:
+plot_grid(main) +
+draw_plot(inset, 0.43, 0.1, 0.54, 0.65)
+
+# Sharing an X axis:
+plot_grid(
+  main, inset,
+  ncol = 1,
+  nrow = 2,
+  align = 'v'
+)
+```
 
 ### Comparing published and unpublished papers
 ```sql
@@ -857,7 +1051,6 @@ wilcox.test(downloads~published, data=paperframe, alternative="less")
 library(canprot)
 CLES(filter(paperframe, published=='False')$downloads, filter(paperframe, published=='True')$downloads)
 ```
-
 
 
 ## Figure S1
@@ -1083,6 +1276,41 @@ plot_grid(firstplot, maxplot, latestplot,
 )
 ```
 
+### Figure S4: Total papers over time
+**NOTE: This might end up as Figure 1(inset)**
+
+```sql
+SELECT EXTRACT(YEAR FROM posted)||'-'||lpad(EXTRACT(MONTH FROM posted)::text, 2, '0') AS date,
+	COUNT(id) AS submissions
+FROM paper.articles
+GROUP BY 1
+ORDER BY 1;
+```
+
+```r
+totalframe=read.csv('submissions_per_month_overall.csv')
+
+x <- ggplot(totalframe, aes(date, cumulative, group=1)) +
+geom_line(size=1) +
+geom_area(fill=themepurple) +
+labs(x = "Month", y = "Total preprints") +
+theme_bw() +
+scale_y_continuous(breaks=seq(0, 35000, 5000), expand=c(0,0), labels=comma) +
+scale_x_discrete(expand=c(0,0)) +
+theme(
+  axis.text.x=element_blank(),
+  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
+  axis.title.y = element_text(size=big_fontsize),
+  legend.position="none"
+)
+
+x <- add_year_x(x, TRUE, -1000)
+
+totals <- ggplot_gtable(ggplot_build(x))
+totals$layout$clip[totals$layout$name == "panel"] <- "off"
+grid.draw(totals)
+```
+
 ### Figure S5: Downloads over time relative to posting
 ```sql
 SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 1 AS monthnum, t.pdf AS downloads
@@ -1266,68 +1494,12 @@ theme(
 ) +
 geom_hline(yintercept=15, col=themedarkgrey, linetype="dashed", size=1)
 
-# median_thing <- function(data, i){
-#   print(sort(table(i),decreasing=TRUE)[1:3])
-#   return(median(data[i]))
-# }
-# results <- boot(filter(firstframe, monthnum==1)$downloads, statistic=median_thing, R=100)
-# boot.ci(results, conf=0.95, type="basic")
-```
-
-
-### Figure S6: Tweet-friendly graphs
-
-#### Figure S6a: Total papers over time
-```sql
-SELECT EXTRACT(YEAR FROM posted)||'-'||lpad(EXTRACT(MONTH FROM posted)::text, 2, '0') AS date,
-	COUNT(id) AS submissions
-FROM paper.articles
-GROUP BY 1
-ORDER BY 1;
-```
-
-```r
-# Cumulative submissions over time
-monthframe=read.csv('submissions_per_month_overall.csv')
-
-yearlabel = -1000
-x <- ggplot(monthframe, aes(date, cumulative, group=1)) +
-geom_line(size=1) +
-geom_area(fill=themepurple) +
-labs(x = "", y = "", title="Total preprints on bioRxiv over time") +
-theme_bw() +
-scale_y_continuous(breaks=seq(0, 35000, 5000), expand=c(0,0), labels=comma) +
-scale_x_discrete(expand=c(0,0)) +
-theme(
-  axis.text.x=element_blank(),
-  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
-  axis.title.y = element_text(size=big_fontsize),
-  legend.position="none"
-) +
-annotation_custom(
-  grob = textGrob(label = "2014", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014, xmax = yearline_2014) +
-geom_vline(xintercept=3, col=yearline, size=yearline_size, alpha=yearline_alpha) +
-annotation_custom(
-  grob = textGrob(label = "2015", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014+12, xmax = yearline_2014+12) +
-geom_vline(xintercept=15, col=yearline, size=yearline_size, alpha=yearline_alpha) +
-annotation_custom(
-  grob = textGrob(label = "2016", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 24, xmax = yearline_2014 + 24) +
-geom_vline(xintercept=27, col=yearline, size=yearline_size, alpha=yearline_alpha) +
-annotation_custom(
-  grob = textGrob(label = "2017", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 36, xmax = yearline_2014 + 36) +
-geom_vline(xintercept=39, col=yearline, size=yearline_size, alpha=yearline_alpha) +
-annotation_custom(
-  grob = textGrob(label = "2018", hjust = 0.5, vjust=1, gp = gpar(fontsize = big_fontsize, col=themedarktext)),
-  ymin = yearlabel, ymax = yearlabel, xmin = yearline_2014 + 48, xmax = yearline_2014 + 48) +
-geom_vline(xintercept=51, col=yearline, size=yearline_size, alpha=yearline_alpha)
-
-cumulative <- ggplot_gtable(ggplot_build(x))
-cumulative$layout$clip[cumulative$layout$name == "panel"] <- "off"
-grid.draw(cumulative)
+median_thing <- function(data, i){
+  print(sort(table(i),decreasing=TRUE)[1:3])
+  return(median(data[i]))
+}
+results <- boot(filter(firstframe, monthnum==1)$downloads, statistic=median_thing, R=100)
+boot.ci(results, conf=0.95, type="basic")
 ```
 
 
