@@ -88,7 +88,7 @@ FROM paper.articles
 GROUP BY 1,2
 ORDER BY 1,2;
 ```
-(Data organized in `submissions_per_month.xlsx`, then final numbers transferred to `submissions_per_month.csv`)
+(Data organized in `submissions_per_month_cumulative.xlsx`, then final numbers transferred to `submissions_per_month.csv`)
 
 ### Figure 1a: Cumulative monthly submissions per category
 
@@ -109,30 +109,30 @@ theme(
 ) +
 annotation_custom(
   grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.neuroscience)),
-  ymin = 6081, ymax = 6081, xmin = 61, xmax = 61) +
+  ymin = 6081, ymax = 6081, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.bioinformatics)),
-  ymin = 4150, ymax = 4150, xmin = 61, xmax = 61
+  ymin = 4150, ymax = 4150, xmin = 62, xmax = 62
 ) +
 annotation_custom(
   grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.evolutionarybio)),
-  ymin = 3300, ymax = 3300, xmin = 61, xmax = 61
+  ymin = 3300, ymax = 3300, xmin = 62, xmax = 62
 ) +
 annotation_custom(
   grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genomics)),
-  ymin = 3000, ymax = 3000, xmin = 61, xmax = 61
+  ymin = 3000, ymax = 3000, xmin = 62, xmax = 62
 ) +
 annotation_custom(
   grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.microbiology)),
-  ymin = 2600, ymax = 2600, xmin = 61, xmax = 61
+  ymin = 2600, ymax = 2600, xmin = 62, xmax = 62
 ) +
 annotation_custom(
   grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genetics)),
-  ymin = 2245, ymax = 2245, xmin = 61, xmax = 61
+  ymin = 2245, ymax = 2245, xmin = 62, xmax = 62
 ) +
 annotation_custom(
   grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.cellbio)),
-  ymin = 1605, ymax = 1605, xmin = 61, xmax = 61
+  ymin = 1605, ymax = 1605, xmin = 62, xmax = 62
 )
 
 x <- add_year_x(x, TRUE, -480)
@@ -159,30 +159,30 @@ theme(
 ) +
 annotation_custom(
   grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.neuroscience)),
-  ymin = 450, ymax = 450, xmin = 61, xmax = 61) +
+  ymin = 450, ymax = 450, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.microbiology)),
-  ymin = 750, ymax = 750, xmin = 61, xmax = 61
+  ymin = 700, ymax = 700, xmin = 62, xmax = 62
 ) +
 annotation_custom(
   grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.bioinformatics)),
-  ymin = 1850, ymax = 1850, xmin = 61, xmax = 61
+  ymin = 1710, ymax = 1710, xmin = 62, xmax = 62
 ) +
 annotation_custom(
   grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genomics)),
-  ymin = 1000, ymax = 1000, xmin = 61, xmax = 61
+  ymin = 900, ymax = 900, xmin = 62, xmax = 62
 ) +
 annotation_custom(
   grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.evolutionarybio)),
-  ymin = 1250, ymax = 1250, xmin = 61, xmax = 61
+  ymin = 1150, ymax = 1150, xmin = 62, xmax = 62
 ) +
 annotation_custom(
   grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genetics)),
-  ymin = 1100, ymax = 1100, xmin = 61, xmax = 61
+  ymin = 1000, ymax = 1000, xmin = 62, xmax = 62
 ) +
 annotation_custom(
   grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.cellbio)),
-  ymin = 1710, ymax = 1710, xmin = 61, xmax = 61
+  ymin = 1450, ymax = 1450, xmin = 62, xmax = 62
 )
 
 x <- add_year_x(x, TRUE, -150)
@@ -212,7 +212,7 @@ geom_line(size=1) +
 geom_area(fill=themepurple) +
 labs(x = "Month", y = "Total preprints") +
 theme_bw() +
-scale_y_continuous(breaks=seq(0, 35000, 10000), expand=c(0,0), labels=axisfunc()) +
+scale_y_continuous(breaks=seq(0, 40000, 10000), expand=c(0,0), labels=axisfunc()) +
 scale_x_discrete(expand=c(0,0)) +
 theme(
   axis.text.x=element_blank(),
@@ -240,7 +240,7 @@ legendplot <- ggplot(
   )) +
   theme(
     legend.text = element_text(size=big_fontsize),
-    legend.margin = margin(t=30, b = 50, l = 100, unit = "pt")
+    legend.margin = margin(t=30, b = 50, l = 0, unit = "pt")
   )
 
 plot_grid(
@@ -255,7 +255,7 @@ plot_grid(
   rel_heights = c(7,3),
   ncol=1, nrow=2
 ) +
-draw_plot(totals, 0.1, 0.76, 0.42, 0.2)
+draw_plot(totals, 0.12, 0.77, 0.42, 0.2)
 ```
 
 ## Figure 2: Downloads
@@ -299,6 +299,49 @@ wilcox.test(downloads~isneuro, data=paperframe)
 leveneTest(downloads~collection, data=paperframe)
 kruskal.test(downloads~collection, data=paperframe)
 oneway.test(downloads~collection, data=paperframe) # Welch's ANOVA
+
+# bootstrapping medians:
+median_thing <- function(data, i){
+  return(median(data[i]))
+}
+
+intervals <- function(x){
+  answer <- boot.ci(boot(filter(paperframe, collection==x)$downloads, statistic=median_thing, R=1000), conf=0.95, type="basic")
+  print(paste(x, answer$basic))
+  return(answer$basic[4:5])
+}
+interval_low <- function(x){
+  intervals(x)[1]
+}
+interval_high <- function(x){
+  intervals(x)[2]
+}
+
+asdf <- boot(filter(paperframe, collection=='Synthetic Biology')$downloads, statistic=median_thing, R=10000)
+boot.ci(asdf, conf=0.95, type="basic")
+
+
+bars <- paperframe %>%
+  group_by(collection) %>%
+  summarize(median = median(downloads))
+
+bars$low <- sapply(bars$collection, interval_low)
+bars$high <- sapply(bars$collection, interval_high)
+
+ggplot(bars, aes(
+    x=reorder(collection, median),
+    y=median, fill=collection
+  )) +
+  geom_bar(stat="identity", color="black") +
+  geom_errorbar(aes(ymin=low, ymax=high), width=.2) +
+  coord_flip() +
+  labs(x = "Collection", y = "Median downloads per paper") +
+  theme_bw() +
+  theme(
+    legend.position = "none",
+    axis.text = element_text(size=big_fontsize, color = themedarktext),
+    axis.title = element_text(size=big_fontsize)
+  )
 ```
 
 ### Figure 2b: Cumulative downloads over time, per category
@@ -333,25 +376,25 @@ theme(
 ) +
 annotation_custom(
   grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.neuroscience)),
-  ymin = 3000000, ymax = 3050000, xmin = 61, xmax = 61) +
+  ymin = 3000000, ymax = 3050000, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.bioinformatics)),
-  ymin = 2900000, ymax = 2926524, xmin = 61, xmax = 61) +
+  ymin = 2900000, ymax = 2926524, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genomics)),
-  ymin = 2714730, ymax = 2714730, xmin = 61, xmax = 61) +
+  ymin = 2714730, ymax = 2714730, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genetics)),
-  ymin = 1507955, ymax = 1507955, xmin = 61, xmax = 61) +
+  ymin = 1507955, ymax = 1507955, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.evolutionarybio)),
-  ymin = 1348577, ymax = 1348577, xmin = 61, xmax = 61) +
+  ymin = 1348577, ymax = 1348577, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.microbiology)),
-  ymin = 851647, ymax = 851647, xmin = 61, xmax = 61) +
+  ymin = 851647, ymax = 851647, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Cancer Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.cancerbio)),
-  ymin = 659128, ymax = 659128, xmin = 61, xmax = 61)
+  ymin = 659128, ymax = 659128, xmin = 62, xmax = 62)
 
 x <- add_year_x(x, TRUE, -190000)
 
@@ -375,7 +418,8 @@ WHERE downloads > 0
 ```
 
 ```r
-distroframe = read.csv('downloads_per_paper.csv')
+# distroframe = read.csv('downloads_per_paper.csv')
+distroframe = read.csv('downloads_per_category.csv')
 
 two_binset <- ggplot(distroframe, aes(x=downloads)) +
   geom_histogram(
@@ -496,25 +540,25 @@ theme(
 ) +
 annotation_custom(
   grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.neuroscience)),
-  ymin = 160000, ymax = 160000, xmin = 61, xmax = 61) +
+  ymin = 160000, ymax = 160000, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.bioinformatics)),
-  ymin = 1000000, ymax = 1000000, xmin = 61, xmax = 61) +
+  ymin = 1000000, ymax = 1000000, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genomics)),
-  ymin = 500000, ymax = 500000, xmin = 61, xmax = 61) +
+  ymin = 500000, ymax = 500000, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genetics)),
-  ymin = 610000, ymax = 610000, xmin = 61, xmax = 61) +
+  ymin = 610000, ymax = 610000, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.microbiology)),
-  ymin = 375000, ymax = 375000, xmin = 61, xmax = 61) +
+  ymin = 375000, ymax = 375000, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.evolutionarybio)),
-  ymin = 665000, ymax = 665000, xmin = 61, xmax = 61) +
+  ymin = 665000, ymax = 665000, xmin = 62, xmax = 62) +
 annotation_custom(
   grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.cellbio)),
-  ymin = 800000, ymax = 800000, xmin = 61, xmax = 61)
+  ymin = 800000, ymax = 800000, xmin = 62, xmax = 62)
 
 x <- add_year_x(x, TRUE, -70000)
 
@@ -541,6 +585,40 @@ draw_plot(two_binset, 0.58, 0.72, 0.22, 0.22)
 
 ```
 
+## Table 2: Authors and papers by institution
+
+```sql
+SELECT authors.institution, authors.authors, p.papers
+FROM (
+  SELECT REPLACE(a.institution, ',', '') AS institution, COUNT(a.id) AS authors
+  FROM paper.authors a
+  WHERE institution NOT IN ('', '-')
+  GROUP BY 1
+) AS authors
+LEFT JOIN (
+  SELECT REPLACE(a.institution, ',', '') AS institution, COUNT(DISTINCT p.article) AS papers
+  FROM paper.authors a
+  INNER JOIN paper.article_authors p
+    ON a.id=p.author
+  GROUP BY 1
+) AS p ON authors.institution=p.institution
+ORDER BY 3 DESC, 2 DESC, 1
+```
+
+Analysis:
+```r
+authorframe = read.csv('authors_per_institution.csv')
+
+# Testing if variables are normally distributed
+library(nortest)
+ad.test(authorframe$authors)
+ad.test(authorframe$papers)
+library(stats)
+cor.test(authorframe$authors, authorframe$papers, method="pearson")
+
+ggplot(authorframe, aes(x=authors, y=papers)) +
+geom_point()
+```
 
 ## Figure 3: Publications
 
@@ -573,8 +651,8 @@ theme(
   axis.title.y = element_text(size=big_fontsize),
   plot.margin = unit(c(0.5, 0.5, 0.5, 1), "cm")
 ) +
-geom_hline(yintercept=0.40979, col=themedarkgrey, linetype="dashed", size=1) +
-annotate("text", y=0.48, x=9.2, label="overall: 0.4098")
+geom_hline(yintercept=0.40889, col=themedarkgrey, linetype="dashed", size=1) +
+annotate("text", y=0.48, x=9.2, label="overall: 0.4089")
 
 x <- add_year_x(x, TRUE, -0.075)
 
@@ -615,7 +693,7 @@ catproportion <- ggplot(
   ) +
   geom_bar(stat="identity") +
   scale_y_continuous(expand=c(0,0)) +
-  geom_hline(yintercept=0.40979, col=themedarkgrey, linetype="dashed", size=1) +
+  geom_hline(yintercept=0.40889, col=themedarkgrey, linetype="dashed", size=1) +
   labs(y="Proportion published\nfrom category") +
   theme_bw() +
   coord_flip(ylim=c(0,0.55)) +
@@ -692,16 +770,12 @@ UPDATE paper.article_publications SET publication=REGEXP_REPLACE(publication, '^
 UPDATE paper.article_publications SET publication=REGEXP_REPLACE(publication, '^the international journal', 'international journal')
 UPDATE paper.article_publications SET publication=REGEXP_REPLACE(publication, '&', 'and')
 
--- SELECT DISTINCT publication
--- FROM paper.article_publications
--- ORDER BY 1
-
 UPDATE paper.article_publications
 SET publication='acta crystallographica section d'
 WHERE publication='acta crystallographica section d structural biology'
 
 UPDATE paper.article_publications
-SET publication='american journal of physiology - renal physiology'
+SET publication='american journal of physiology-renal physiology'
 WHERE publication='american journal of physiology - renal physiology'
 
 UPDATE paper.article_publications
@@ -810,23 +884,20 @@ WHERE publication='slas technology: translating life sciences innovation'
 
 *tk this query needs to change
 ```sql
-SELECT topname AS journal, tally, REPLACE(collection, '-', ' ') AS collection
+SELECT publication, tally, REPLACE(collection, '-', ' ') AS collection
 FROM (
-	SELECT max(journal) AS topname, COUNT(article) AS tally, collection
-	FROM (
-		SELECT REGEXP_REPLACE(p.publication, '^The Journal', 'Journal') AS journal, p.article, a.collection
-		FROM paper.article_publications p
-		INNER JOIN paper.articles a ON p.article=a.id
-	) AS stripped
-	GROUP BY lower(journal), collection
-	ORDER BY max(journal), tally DESC
+	SELECT p.publication, COUNT(p.article) AS tally, a.collection
+	FROM paper.article_publications p
+	INNER JOIN paper.articles a ON p.article=a.id
+	GROUP BY 1,3
+	ORDER BY 1,2 DESC
 ) AS biglist
-WHERE topname IN (
-	SELECT journal FROM (
-		SELECT max(journal) AS journal, COUNT(article) AS tally
-		FROM (SELECT REGEXP_REPLACE(publication, '^The Journal', 'Journal') AS journal, article FROM paper.article_publications) AS stripped
-		GROUP BY lower(journal)
-		ORDER BY tally DESC, max(journal)
+WHERE publication IN (
+	SELECT publication FROM (
+		SELECT publication, COUNT(article) AS tally
+		FROM paper.article_publications
+		GROUP BY publication
+		ORDER BY tally DESC, publication
 		LIMIT 30
 	) AS ranks
 )
@@ -845,7 +916,7 @@ figure <- ggplot(pubframe, aes(x=journal, y=tally, fill=collection)) +
   geom_bar(stat="identity", color="white") +
   aes(x = reorder(journal, tally, sum), y = tally, label = tally, fill = collection) +
   scale_y_continuous(expand=c(0,0)) +
-  coord_flip(ylim=c(0,800)) +
+  coord_flip(ylim=c(0,825)) +
   labs(x = "Journal", y = "Preprints published") +
   theme_bw() +
   theme(
@@ -929,14 +1000,20 @@ library(FSA)
 dunnTest(downloads~journal, data=journalframe, method="bh")
 
 medians <- journalframe %>%
-  group_by(publication) %>%
+  group_by(journal) %>%
   summarize(median = median(downloads))
 ```
 
 ### Figure 5 inset: Impact factor vs. median downloads
+```sql
+SELECT REPLACE(publication, ',', ''), COUNT(article)
+FROM paper.article_publications
+GROUP BY 1
+ORDER BY 2 DESC, 1
+```
+
 ```r
-journalonlyframe = read.csv('downloads_journal_publishedONLY.csv')
-impactframe = read.csv('impact_scores.csv')
+journalonlyframe = filter(journalframe, journal!='(unpublished)')
 totals = read.csv('publications_per_journal.csv')
 
 medians <- journalonlyframe %>%
@@ -949,7 +1026,7 @@ all <- all %>% left_join(totals)
 # open <- medians %>% right_join(filter(impactframe, open_access==TRUE))
 
 library(car)
-leveneTest(downloads~published, data=paperframe)
+leveneTest(median~impact, data=all)
 library(stats)
 cor.test(all$impact, all$median, method="kendall")
 
@@ -972,28 +1049,38 @@ theme(
   panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
   axis.text = element_text(size=big_fontsize, color = themedarktext),
   axis.title = element_text(size=big_fontsize),
-  legend.position = "none"
+  legend.position = c(0.85, 0.2)
 ) +
 labs(x="Median downloads per preprint", y="Journal impact score, 2017") +
 geom_text_repel(
-  data=subset(all, Papers > 350|impact > 13),
+  # data=subset(all, Papers > 450|impact > 13),
+  data=subset(all, journal %in% c(
+    'Nature Genetics',
+    'Nature Methods',
+    'Genome Biology',
+    'Nature Communcations',
+    # 'Nucleic Acids Research',
+    'Scientific Reports',
+    'eLife',
+    'Bioinformatics',
+    'PNAS'
+  )),
   # Separate aesthetic for the labels so they don't
   # scale with dot size:
   aes(median, impact,label=journal),
-  size=5,
-  max.iter = 5000,
-  box.padding = unit(0.75, "lines")
+  size=4,
+  max.iter = 8000,
+  box.padding = unit(0.8, "lines"),
+  point.padding = unit(1.0, "lines")
 ) +
-geom_abline(intercept=-1.67745, slope=0.01818, color=themedarkgrey, size=1, alpha=0.35) +
+geom_abline(intercept=0.068243, slope=0.013755, color=themedarkgrey, size=1, alpha=0.35) +
 guides(
-  color = guide_legend(
-    override.aes = list(size = 4),
-  )
+  color = "none"
 )
 
 
 # MULTIPLE LINEAR REGRESSION shows open_access isn't really a factor:
-summary(lm(median~impact+open_access, data=all))
+summary(lm(median~impact+Access, data=all))
 ```
 
 ### Figure 5 combined
@@ -1001,59 +1088,11 @@ summary(lm(median~impact+open_access, data=all))
 ```r
 # INSET:
 plot_grid(main) +
-draw_plot(inset, 0.43, 0.1, 0.54, 0.65)
-
-# Sharing an X axis:
-plot_grid(
-  main, inset,
-  ncol = 1,
-  nrow = 2,
-  align = 'v'
-)
-```
-
-### Comparing published and unpublished papers
-```sql
-/* Overall data */
-SELECT d.article, d.downloads, EXTRACT(year FROM a.posted) AS year,
-	CASE WHEN COUNT(p.article) > 0 THEN TRUE
-    	ELSE FALSE
-    END AS published
-FROM paper.alltime_ranks d
-LEFT JOIN paper.article_publications p ON d.article=p.article
-LEFT JOIN paper.articles a ON d.article=a.id
-GROUP BY d.article, a.posted
-ORDER BY published DESC, d.downloads DESC
-
-/* Data excluding all papers posted in 2018 */
-SELECT *
-FROM (
-  SELECT d.article, d.downloads, EXTRACT(year FROM a.posted) AS year,
-	CASE WHEN COUNT(p.article) > 0 THEN TRUE
-    	ELSE FALSE
-    END AS published
-  FROM paper.alltime_ranks d
-  LEFT JOIN paper.article_publications p ON d.article=p.article
-  LEFT JOIN paper.articles a ON d.article=a.id
-  GROUP BY d.article, a.posted
-  ORDER BY published DESC, d.downloads DESC
-) AS downloads
-WHERE year < 2018;
-```
-
-```r
-paperframe = read.csv('downloads_publication_status.csv')
-library(car)
-leveneTest(downloads~published, data=paperframe)
-library(MASS)
-wilcox.test(downloads~published, data=paperframe, alternative="less")
-
-library(canprot)
-CLES(filter(paperframe, published=='False')$downloads, filter(paperframe, published=='True')$downloads)
+draw_plot(inset, 0.48, 0.1, 0.51, 0.65)
 ```
 
 
-## Figure S1
+## Figure 1, supplement 1
 
 ## Mean authors per paper
 
@@ -1061,7 +1100,7 @@ Extracting list of articles, the month and year they were posted, and how many a
 
 ```sql
 SELECT
-  a.id, a.collection,
+  a.id, REPLACE(a.collection, '-', ' ') AS collection,
   EXTRACT(MONTH FROM a.posted) AS month,
   EXTRACT(YEAR FROM a.posted) AS year,
   COUNT(w.author) AS authors
@@ -1084,22 +1123,221 @@ ggplot(data=authorframe, aes(
   fill=collection
 )) +
 geom_boxplot(outlier.shape = NA) +
-scale_y_continuous() +
+scale_y_continuous(expand=c(0,.10)) +
 coord_flip(ylim=c(0,25)) +
 theme_bw() +
 labs(x="collection", y="authors per paper") +
 theme(
-  panel.grid.major.y = element_blank(),
   legend.position="none",
   axis.text = element_text(size=big_fontsize, color = themedarktext),
   axis.title.y = element_text(size=big_fontsize),
+)
+```
+
+## Figure 2, supplement 1: Downloads over time relative to posting
+```sql
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 1 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+  )
+WHERE a.posted < '2017-12-01'
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 2 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 1
+  )
+WHERE a.posted < '2017-12-01'
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 3 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 2
+  )
+WHERE a.posted < '2017-12-01'
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 4 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 3
+  )
+WHERE a.posted < '2017-12-01'
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 5 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 4
+  )
+WHERE a.posted < '2017-12-01'
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 6 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 5
+  )
+WHERE a.posted < '2017-12-01'
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 7 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 6
+  )
+WHERE a.posted < '2017-12-01'
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 8 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 7
+  )
+WHERE a.posted < '2017-12-01'
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 9 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 8
+  )
+WHERE a.posted < '2017-12-01'
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 10 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 9
+  )
+WHERE a.posted < '2017-12-01'
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 11 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 10
+  )
+WHERE a.posted < '2017-12-01'
+UNION
+SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 12 AS monthnum, t.pdf AS downloads
+FROM paper.articles a
+INNER JOIN paper.article_traffic t
+  ON a.id=t.article
+  AND t.id IN (
+    SELECT id
+    FROM paper.article_traffic traf
+    WHERE traf.article=a.id
+    ORDER BY year, month
+    LIMIT 1
+    OFFSET 11
+  )
+ORDER BY id, monthnum
+
+/* Overall median: */
+SELECT median(pdf)
+FROM paper.article_traffic
+```
+
+```r
+firstframe = read.csv('downloads_by_months.csv')
+
+ggplot(data=firstframe, aes(
+  x=monthnum,
+  y=downloads,
+  group=monthnum
+)) +
+geom_boxplot(outlier.shape = NA, coef=0) +
+scale_y_continuous(breaks=seq(0, 150, 25)) +
+scale_x_continuous(breaks=seq(0, 12, 1)) +
+coord_cartesian(ylim=c(0,150)) +
+theme_bw() +
+labs(x="months on bioRxiv", y="downloads in month") +
+theme(
+  legend.position="none",
+  axis.title = element_text(size=big_fontsize),
+  axis.text = element_text(size=big_fontsize, color=themedarktext),
 ) +
-# geom_hline(yintercept=median(authorframe$authors), col=themedarkgrey, linetype="dashed", size=1) +
-# annotate("text", y=median(authorframe$authors)+4, x=1, label=paste("overall median:", round(median(authorframe$authors), 2))) +
+geom_hline(yintercept=21, col=themedarkgrey, linetype="dashed", size=1)
+
+# median_thing <- function(data, i){
+#   return(median(data[i]))
+# }
+# results <- boot(filter(firstframe, monthnum==1)$downloads, statistic=median_thing, R=100)
+# boot.ci(results, conf=0.95, type="basic")
 ```
 
 
-## Figure S2: Median downloads per year
+## Figure 2, supplement 2: Median downloads per year
 
 ```sql
 SELECT d.article, d.downloads, EXTRACT(YEAR FROM a.posted) AS year
@@ -1144,9 +1382,9 @@ library(FSA)
 dunnTest(downloads~year, data=paperframe, method="bh")
 ```
 
-## Figure S3
+## Figure 2, supplement 3: Downloads by year posted
 
-### Figure S3a: Downloads in first month on bioRxiv
+### Figure 2.3(a): Downloads in first month on bioRxiv
 ```sql
 SELECT a.id, t.month, t.year, t.pdf AS downloads
 FROM paper.articles a
@@ -1192,7 +1430,7 @@ theme(
 )
 ```
 
-### Figure S3b: Best month of downloads
+### Figure 2.3(b): Best month of downloads
 ```sql
 SELECT a.id, EXTRACT(year FROM a.posted) AS year, t.pdf AS downloads
 FROM paper.articles a
@@ -1229,7 +1467,7 @@ theme(
 )
 ```
 
-### Figure S3c: 2018 downloads, by year posted
+### Figure 2.3(c): 2018 downloads, by year posted
 ```sql
 SELECT a.id, EXTRACT(year FROM a.posted) AS year, SUM(t.pdf) AS downloads
 FROM paper.articles a
@@ -1266,7 +1504,7 @@ theme(
 )
 ```
 
-### Figure S3 combined
+### Figure 2, supplement 3 combined
 
 ```r
 plot_grid(firstplot, maxplot, latestplot,
@@ -1276,258 +1514,35 @@ plot_grid(firstplot, maxplot, latestplot,
 )
 ```
 
-### Figure S4: Total papers over time
-**NOTE: This might end up as Figure 1(inset)**
-
+## Figure 2, supplement 4: Proportion of downloads per month on bioRxiv
 ```sql
-SELECT EXTRACT(YEAR FROM posted)||'-'||lpad(EXTRACT(MONTH FROM posted)::text, 2, '0') AS date,
-	COUNT(id) AS submissions
-FROM paper.articles
-GROUP BY 1
-ORDER BY 1;
+/* This query is almost identical to the one for Figure 2, supplement 1,
+except that one cuts off articles posted at the end of December 2018; for
+this, we need data that cuts off at the end of October 2017. */
+asdf
 ```
 
 ```r
-totalframe=read.csv('submissions_per_month_overall.csv')
+monthsframe = read.csv('downloads_by_months.csv')
+pre2018 <- filter(monthsframe, posted < 2018)
+sums <- ddply(pre2018, .(id), summarise, sum = sum(downloads))
+combined <- pre2018 %>% left_join(sums)
+combined$proportion <- with(combined, downloads/sum)
 
-x <- ggplot(totalframe, aes(date, cumulative, group=1)) +
-geom_line(size=1) +
-geom_area(fill=themepurple) +
-labs(x = "Month", y = "Total preprints") +
-theme_bw() +
-scale_y_continuous(breaks=seq(0, 35000, 5000), expand=c(0,0), labels=comma) +
-scale_x_discrete(expand=c(0,0)) +
-theme(
-  axis.text.x=element_blank(),
-  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
-  axis.title.y = element_text(size=big_fontsize),
-  legend.position="none"
-)
-
-x <- add_year_x(x, TRUE, -1000)
-
-totals <- ggplot_gtable(ggplot_build(x))
-totals$layout$clip[totals$layout$name == "panel"] <- "off"
-grid.draw(totals)
-```
-
-### Figure S5: Downloads over time relative to posting
-```sql
-SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 1 AS monthnum, t.pdf AS downloads
-FROM paper.articles a
-INNER JOIN paper.article_traffic t
-  ON a.id=t.article
-  AND t.id IN (
-    SELECT id
-    FROM paper.article_traffic traf
-    WHERE traf.article=a.id
-    ORDER BY year, month
-    LIMIT 1
-  )
-UNION
-SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 2 AS monthnum, t.pdf AS downloads
-FROM paper.articles a
-INNER JOIN paper.article_traffic t
-  ON a.id=t.article
-  AND t.id IN (
-    SELECT id
-    FROM paper.article_traffic traf
-    WHERE traf.article=a.id
-    ORDER BY year, month
-    LIMIT 1
-    OFFSET 1
-  )
-UNION
-SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 3 AS monthnum, t.pdf AS downloads
-FROM paper.articles a
-INNER JOIN paper.article_traffic t
-  ON a.id=t.article
-  AND t.id IN (
-    SELECT id
-    FROM paper.article_traffic traf
-    WHERE traf.article=a.id
-    ORDER BY year, month
-    LIMIT 1
-    OFFSET 2
-  )
-UNION
-SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 4 AS monthnum, t.pdf AS downloads
-FROM paper.articles a
-INNER JOIN paper.article_traffic t
-  ON a.id=t.article
-  AND t.id IN (
-    SELECT id
-    FROM paper.article_traffic traf
-    WHERE traf.article=a.id
-    ORDER BY year, month
-    LIMIT 1
-    OFFSET 3
-  )
-UNION
-SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 5 AS monthnum, t.pdf AS downloads
-FROM paper.articles a
-INNER JOIN paper.article_traffic t
-  ON a.id=t.article
-  AND t.id IN (
-    SELECT id
-    FROM paper.article_traffic traf
-    WHERE traf.article=a.id
-    ORDER BY year, month
-    LIMIT 1
-    OFFSET 4
-  )
-UNION
-SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 6 AS monthnum, t.pdf AS downloads
-FROM paper.articles a
-INNER JOIN paper.article_traffic t
-  ON a.id=t.article
-  AND t.id IN (
-    SELECT id
-    FROM paper.article_traffic traf
-    WHERE traf.article=a.id
-    ORDER BY year, month
-    LIMIT 1
-    OFFSET 5
-  )
-UNION
-SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 7 AS monthnum, t.pdf AS downloads
-FROM paper.articles a
-INNER JOIN paper.article_traffic t
-  ON a.id=t.article
-  AND t.id IN (
-    SELECT id
-    FROM paper.article_traffic traf
-    WHERE traf.article=a.id
-    ORDER BY year, month
-    LIMIT 1
-    OFFSET 6
-  )
-UNION
-SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 8 AS monthnum, t.pdf AS downloads
-FROM paper.articles a
-INNER JOIN paper.article_traffic t
-  ON a.id=t.article
-  AND t.id IN (
-    SELECT id
-    FROM paper.article_traffic traf
-    WHERE traf.article=a.id
-    ORDER BY year, month
-    LIMIT 1
-    OFFSET 7
-  )
-UNION
-SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 9 AS monthnum, t.pdf AS downloads
-FROM paper.articles a
-INNER JOIN paper.article_traffic t
-  ON a.id=t.article
-  AND t.id IN (
-    SELECT id
-    FROM paper.article_traffic traf
-    WHERE traf.article=a.id
-    ORDER BY year, month
-    LIMIT 1
-    OFFSET 8
-  )
-UNION
-SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 10 AS monthnum, t.pdf AS downloads
-FROM paper.articles a
-INNER JOIN paper.article_traffic t
-  ON a.id=t.article
-  AND t.id IN (
-    SELECT id
-    FROM paper.article_traffic traf
-    WHERE traf.article=a.id
-    ORDER BY year, month
-    LIMIT 1
-    OFFSET 9
-  )
-UNION
-SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 11 AS monthnum, t.pdf AS downloads
-FROM paper.articles a
-INNER JOIN paper.article_traffic t
-  ON a.id=t.article
-  AND t.id IN (
-    SELECT id
-    FROM paper.article_traffic traf
-    WHERE traf.article=a.id
-    ORDER BY year, month
-    LIMIT 1
-    OFFSET 10
-  )
-UNION
-SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 12 AS monthnum, t.pdf AS downloads
-FROM paper.articles a
-INNER JOIN paper.article_traffic t
-  ON a.id=t.article
-  AND t.id IN (
-    SELECT id
-    FROM paper.article_traffic traf
-    WHERE traf.article=a.id
-    ORDER BY year, month
-    LIMIT 1
-    OFFSET 11
-  )
-ORDER BY id, monthnum
-
-/* Overall median: */
-SELECT median(pdf)
-FROM paper.article_traffic
-```
-```r
-firstframe = read.csv('downloads_by_months.csv')
-
-ggplot(data=firstframe, aes(
+ggplot(data=combined, aes(
   x=monthnum,
-  y=downloads,
+  y=proportion,
   group=monthnum
 )) +
-geom_line(outlier.shape = NA, coef=0) +
-scale_y_continuous(breaks=seq(0, 150, 25)) +
+geom_boxplot() + # (outlier.shape = NA, coef=0)
 scale_x_continuous(breaks=seq(0, 12, 1)) +
-coord_cartesian(ylim=c(0,130)) +
 theme_bw() +
-labs(x="months on bioRxiv", y="downloads in month") +
+labs(x="Months on bioRxiv", y="Proportion of downloads in month") +
 theme(
   legend.position="none",
   axis.title = element_text(size=big_fontsize),
   axis.text = element_text(size=big_fontsize, color=themedarktext),
-) +
-geom_hline(yintercept=15, col=themedarkgrey, linetype="dashed", size=1)
-
-median_thing <- function(data, i){
-  print(sort(table(i),decreasing=TRUE)[1:3])
-  return(median(data[i]))
-}
-results <- boot(filter(firstframe, monthnum==1)$downloads, statistic=median_thing, R=100)
-boot.ci(results, conf=0.95, type="basic")
-```
-
-
-## Analysis
-
-Finding papers with traffic data from before the year they were posted:
-```sql
-SELECT * FROM (
-	SELECT a.id, EXTRACT(year FROM a.posted) AS posted, MIN(t.year) AS traffic
-	FROM paper.articles a
-	INNER JOIN paper.article_traffic t ON a.id=t.article
-	GROUP BY a.id
-) AS years
-WHERE posted != traffic
-```
-
-## Table S2: Paper count by author
-
-```sql
-SELECT a.id, a.name, COUNT(p.article) AS papers, COUNT(e.email) AS emails
-FROM paper.authors a
-INNER JOIN paper.article_authors p
-  ON a.id=p.author
-INNER JOIN paper.author_emails e
-  ON a.id=e.author
-GROUP BY 1
-ORDER BY 3 DESC
-
+)
 ```
 
 
@@ -1554,4 +1569,103 @@ LEFT JOIN (
   ORDER BY 2
 ) overall
 ON firstcount.year = overall.year
+```
+
+## Table 3: Downloads of published and unpublished papers
+```sql
+/* Overall data */
+SELECT d.article, d.downloads, EXTRACT(year FROM a.posted) AS year,
+	CASE WHEN COUNT(p.article) > 0 THEN TRUE
+    	ELSE FALSE
+    END AS published
+FROM paper.alltime_ranks d
+LEFT JOIN paper.article_publications p ON d.article=p.article
+LEFT JOIN paper.articles a ON d.article=a.id
+GROUP BY d.article, a.posted
+ORDER BY published DESC, d.downloads DESC
+
+/* Data excluding all papers posted in 2018 */
+-- SELECT *
+-- FROM (
+--   SELECT d.article, d.downloads, EXTRACT(year FROM a.posted) AS year,
+-- 	CASE WHEN COUNT(p.article) > 0 THEN TRUE
+--     	ELSE FALSE
+--     END AS published
+--   FROM paper.alltime_ranks d
+--   LEFT JOIN paper.article_publications p ON d.article=p.article
+--   LEFT JOIN paper.articles a ON d.article=a.id
+--   GROUP BY d.article, a.posted
+--   ORDER BY published DESC, d.downloads DESC
+-- ) AS downloads
+-- WHERE year < 2018;
+```
+
+```r
+paperframe = read.csv('downloads_publication_status.csv')
+library(car)
+leveneTest(downloads~published, data=paperframe)
+library(MASS)
+wilcox.test(downloads~published, data=paperframe, alternative="less")
+
+library(canprot)
+CLES(filter(paperframe, published=='False')$downloads, filter(paperframe, published=='True')$downloads)
+
+# Pre-2018 papers:
+wilcox.test(downloads~published, data=filter(paperframe, year<2018), alternative="less")
+CLES(filter(paperframe, published=='False', year<2018)$downloads, filter(paperframe, published=='True', year<2018)$downloads)
+
+# Actual numbers for table:
+median(filter(paperframe, published=='False', year<2018)$downloads)
+median(filter(paperframe, published=='True', year<2018)$downloads)
+
+median(filter(paperframe, published=='False')$downloads)
+median(filter(paperframe, published=='True')$downloads)
+```
+
+## Table S2: Paper count by author
+
+```sql
+SELECT a.id, a.name, COUNT(DISTINCT p.article) AS papers, COUNT(DISTINCT e.email) AS emails
+FROM paper.authors a
+INNER JOIN paper.article_authors p
+  ON a.id=p.author
+INNER JOIN paper.author_emails e
+  ON a.id=e.author
+GROUP BY 1
+ORDER BY 3 DESC
+```
+
+
+## Analysis
+
+Total papers: `SELECT COUNT(id) FROM paper.articles`
+
+Total neuroscience papers: `SELECT COUNT(id) FROM paper.articles WHERE collection='neuroscience'`
+
+Total authors: `SELECT COUNT(id) FROM paper.authors`
+
+Authors using middle initial:
+```sql
+SELECT COUNT(name) FROM paper.authors
+WHERE name SIMILAR TO '% [A-Z].? %'
+
+SELECT COUNT(name) FROM paper.authors
+WHERE name SIMILAR TO '% [A-Z].?[A-Z].? %'
+
+SELECT * FROM paper.authors
+WHERE name SIMILAR TO '% [A-Z].?[A-Z].?[A-Z].? %'
+
+SELECT * FROM paper.authors
+WHERE name SIMILAR TO '% [A-Z].?[A-Z].?[A-Z].?[A-Z].? %'
+```
+
+Finding papers with traffic data from before the year they were posted:
+```sql
+SELECT * FROM (
+	SELECT a.id, EXTRACT(year FROM a.posted) AS posted, MIN(t.year) AS traffic
+	FROM paper.articles a
+	INNER JOIN paper.article_traffic t ON a.id=t.article
+	GROUP BY a.id
+) AS years
+WHERE posted != traffic
 ```
