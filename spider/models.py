@@ -119,7 +119,7 @@ class Article:
 
       if response is not None and len(response) > 0:
         if response[0] == self.url:
-          spider.log.record(f"Found article already: {self.title}", "debug")
+          # spider.log.record(f"Found article already: {self.title}", "debug")
           connection.db.commit()
           return False
         else:
@@ -183,7 +183,7 @@ class Article:
       response = cursor.fetchone()
 
       if response is not None and len(response) > 0 and response[0] is not None:
-        log.record(f'Article {self.id} already has a category')
+        # log.record(f'Article {self.id} already has a category')
         return False
       self.category = collection
       cursor.execute("UPDATE articles SET collection=%s WHERE id=%s;", (self.category, self.id))

@@ -246,7 +246,7 @@ class Spider(object):
           abstract = self.get_article_abstract(url)
           self.update_article(article_id, abstract)
         except ValueError as e:
-          self.log.record(f"Error retrieving abstract: {e}")
+          self.log.record(f"Error retrieving abstract for {article[1]}: {e}")
 
   def refresh_article_stats(self, collection=None, cap=10000, id=None, get_authors=False):
     """Normally, "collection" is specified, and the function will
