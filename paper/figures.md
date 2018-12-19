@@ -362,49 +362,6 @@ two_a <- ggplot(data=paperframe, aes(
 leveneTest(downloads~collection, data=paperframe)
 kruskal.test(downloads~collection, data=paperframe)
 oneway.test(downloads~collection, data=paperframe) # Welch's ANOVA
-
-# bootstrapping medians:
-# median_thing <- function(data, i){
-#   return(median(data[i]))
-# }
-
-# intervals <- function(x){
-#   answer <- boot.ci(boot(filter(paperframe, collection==x)$downloads, statistic=median_thing, R=1000), conf=0.95, type="basic")
-#   print(paste(x, answer$basic))
-#   return(answer$basic[4:5])
-# }
-# interval_low <- function(x){
-#   intervals(x)[1]
-# }
-# interval_high <- function(x){
-#   intervals(x)[2]
-# }
-
-# asdf <- boot(filter(paperframe, collection=='Synthetic Biology')$downloads, statistic=median_thing, R=10000)
-# boot.ci(asdf, conf=0.95, type="basic")
-
-
-# bars <- paperframe %>%
-#   group_by(collection) %>%
-#   summarize(median = median(downloads))
-
-# bars$low <- sapply(bars$collection, interval_low)
-# bars$high <- sapply(bars$collection, interval_high)
-
-# ggplot(bars, aes(
-#     x=reorder(collection, median),
-#     y=median, fill=collection
-#   )) +
-#   geom_bar(stat="identity", color="black") +
-#   geom_errorbar(aes(ymin=low, ymax=high), width=.2) +
-#   coord_flip() +
-#   labs(x = "Collection", y = "Median downloads per paper") +
-#   theme_bw() +
-#   theme(
-#     legend.position = "none",
-#     axis.text = element_text(size=big_fontsize, color = themedarktext),
-#     axis.title = element_text(size=big_fontsize)
-#   )
 ```
 
 ### Figure 2b: Cumulative downloads over time, per category
@@ -1662,17 +1619,24 @@ median(filter(paperframe, published=='False')$downloads)
 median(filter(paperframe, published=='True')$downloads)
 ```
 
-## Table S2: Paper count by author
+## Table S2: Papers per author
 
 ```sql
-SELECT a.id, a.name, COUNT(DISTINCT p.article) AS papers, COUNT(DISTINCT e.email) AS emails
+SELECT a.id, REPLACE(a.name, ',', ' ') AS name, COUNT(DISTINCT p.article) AS papers, COUNT(DISTINCT e.email) AS emails
 FROM paper.authors a
 INNER JOIN paper.article_authors p
   ON a.id=p.author
-INNER JOIN paper.author_emails e
+LEFT JOIN paper.author_emails e
   ON a.id=e.author
 GROUP BY 1
 ORDER BY 3 DESC
+```
+Saved as "papers_per_author.csv"
+
+Mean papers per author:
+```r
+a = read.csv('papers_per_author.csv')
+mean(a$papers)
 ```
 
 
@@ -1730,4 +1694,22 @@ FROM (
 ) AS biglist
 GROUP BY 1
 ORDER BY 2 DESC
+```
+
+Papers by top 10 percent of authors:
+```sql
+SELECT COUNT(DISTINCT article)
+FROM paper.article_authors
+WHERE author IN (
+	SELECT id
+	FROM (
+		SELECT a.id, COUNT(DISTINCT p.article) AS papers
+		FROM paper.authors a
+		INNER JOIN paper.article_authors p
+		  ON a.id=p.author
+		GROUP BY a.id
+		ORDER BY papers DESC
+		LIMIT (SELECT COUNT(id) FROM paper.authors) * 0.10
+	) as topauthors
+)
 ```
