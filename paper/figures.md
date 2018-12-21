@@ -1,5 +1,8 @@
-# Building figures from paper
+# Tracking the popularity and outcome of all bioRxiv preprints
 
+Below is the code used to generate all figures in the manuscript.
+
+## R environment setup
 ```r
 library(ggplot2)
 library(grid)
@@ -17,19 +20,13 @@ themeoffwhite = "#f2f6ff"
 themedarkgrey = "#565656"
 
 themedarktext = "#707070"
-# big_fontsize = 12
 big_fontsize = unit(12, "pt")
-
-integrated_legend = theme(
-  legend.position = c(0.35, 0.7),
-  legend.background = element_rect(fill=themeoffwhite, size=0.5, linetype="solid"),
-  legend.text = element_text(size=big_fontsize)
-)
 
 yearline = "black"
 yearline_size = 0.5
 yearline_alpha = 1
 yearline_2014 = 8 # position of first year label
+
 # Adds an x axis with delineations and labels for each year
 # plot: A ggplot object
 # labels: boolean. Whether to include the year numbers.
@@ -74,7 +71,7 @@ color.genetics = '#56bea0'
 color.cellbio = '#98a733'
 color.cancerbio = '#aba233'
 
-capitalized <- data.frame(
+capitalized_cats <- data.frame(
   "old" = c(
     'animal behavior and cognition',
     'biochemistry',
@@ -203,13 +200,11 @@ capitalized_journals <- data.frame(
     'GigaScience'
   )
 )
-
-setwd('/Users/rabdill/code/rxivist/paper/data') # *tk remove this
 ```
-
 
 ## Figure 1: Papers
 
+The following SQL query fetches monthly submissions per category; the file `submissions_per_month_cumulative.xlsx` has an example of how to use these to generate running totals for each category, which are then written to `submissions_per_month.csv`.
 ```sql
 SELECT EXTRACT(YEAR FROM posted)||'-'||lpad(EXTRACT(MONTH FROM posted)::text, 2, '0') AS date,
 	REPLACE(collection, '-', ' ') AS collection,
@@ -218,7 +213,6 @@ FROM paper.articles
 GROUP BY 1,2
 ORDER BY 1,2;
 ```
-(Data organized in `submissions_per_month_cumulative.xlsx`, then final numbers transferred to `submissions_per_month.csv`)
 
 ### Figure 1a: Cumulative monthly submissions per category
 
@@ -226,47 +220,49 @@ ORDER BY 1,2;
 monthframe=read.csv('submissions_per_month.csv')
 
 x <- ggplot(monthframe, aes(x=date, y=cumulative, group=collection, color=collection)) +
-geom_line(size=1) +
-labs(x = "", y = "Cumulative preprints") +
-theme_bw() +
-scale_y_continuous(breaks=seq(0, 6100, 1000), labels=comma) +
-theme(
-  plot.margin = unit(c(1,8,1,1), "lines"), # for right-margin labels
-  axis.text.x=element_blank(),
-  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
-  axis.title.y = element_text(size=big_fontsize),
-  legend.position="none"
-) +
-annotation_custom(
-  grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.neuroscience)),
-  ymin = 6081, ymax = 6081, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.bioinformatics)),
-  ymin = 4150, ymax = 4150, xmin = 62, xmax = 62
-) +
-annotation_custom(
-  grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.evolutionarybio)),
-  ymin = 3300, ymax = 3300, xmin = 62, xmax = 62
-) +
-annotation_custom(
-  grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genomics)),
-  ymin = 3000, ymax = 3000, xmin = 62, xmax = 62
-) +
-annotation_custom(
-  grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.microbiology)),
-  ymin = 2600, ymax = 2600, xmin = 62, xmax = 62
-) +
-annotation_custom(
-  grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genetics)),
-  ymin = 2245, ymax = 2245, xmin = 62, xmax = 62
-) +
-annotation_custom(
-  grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.cellbio)),
-  ymin = 1605, ymax = 1605, xmin = 62, xmax = 62
-)
+  geom_line(size=1) +
+  labs(x = "", y = "Cumulative preprints") +
+  theme_bw() +
+  scale_y_continuous(breaks=seq(0, 6100, 1000), labels=comma) +
+  theme(
+    plot.margin = unit(c(1,8,1,1), "lines"), # for right-margin labels
+    axis.text.x=element_blank(),
+    axis.text.y = element_text(size=big_fontsize, color = themedarktext),
+    axis.title.y = element_text(size=big_fontsize),
+    legend.position="none"
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.neuroscience)),
+    ymin = 6081, ymax = 6081, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.bioinformatics)),
+    ymin = 4150, ymax = 4150, xmin = 62, xmax = 62
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.evolutionarybio)),
+    ymin = 3300, ymax = 3300, xmin = 62, xmax = 62
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genomics)),
+    ymin = 3000, ymax = 3000, xmin = 62, xmax = 62
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.microbiology)),
+    ymin = 2600, ymax = 2600, xmin = 62, xmax = 62
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genetics)),
+    ymin = 2245, ymax = 2245, xmin = 62, xmax = 62
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.cellbio)),
+    ymin = 1605, ymax = 1605, xmin = 62, xmax = 62
+  )
 
 x <- add_year_x(x, TRUE, -480)
 
+# We have to change these settings to allow labels to appear
+# outside the plot margins:
 cumulative <- ggplot_gtable(ggplot_build(x))
 cumulative$layout$clip[cumulative$layout$name == "panel"] <- "off"
 ```
@@ -274,51 +270,52 @@ cumulative$layout$clip[cumulative$layout$name == "panel"] <- "off"
 ### Figure 1b: Monthly preprints per category
 
 ```r
+# Convert category names to capitalized versions for printing:
 printable <- monthframe %>%
-  inner_join(capitalized, by=c("collection"="old"))  %>%
+  inner_join(capitalized_cats, by=c("collection"="old"))  %>%
   mutate(collection = new) %>%
   select(date, collection, submissions, cumulative)
 
 x <- ggplot(printable, aes(x=date, y=submissions, fill=collection)) +
-geom_bar(stat="identity", color="white") +
-theme_bw() +
-labs(x="Month", y="Preprints posted (month)") +
-scale_y_continuous(labels=comma) +
-theme(
-  axis.text.x=element_blank(),
-  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
-  axis.title.y = element_text(size=big_fontsize),
-  axis.title.x = element_text(size=big_fontsize, vjust=-3),
-  legend.position="none",
-  plot.margin = unit(c(-0.45, 0, 0, 0), "cm") # for spacing in the plot_grid
-) +
-annotation_custom(
-  grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.neuroscience)),
-  ymin = 450, ymax = 450, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.microbiology)),
-  ymin = 700, ymax = 700, xmin = 62, xmax = 62
-) +
-annotation_custom(
-  grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.bioinformatics)),
-  ymin = 1710, ymax = 1710, xmin = 62, xmax = 62
-) +
-annotation_custom(
-  grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genomics)),
-  ymin = 900, ymax = 900, xmin = 62, xmax = 62
-) +
-annotation_custom(
-  grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.evolutionarybio)),
-  ymin = 1150, ymax = 1150, xmin = 62, xmax = 62
-) +
-annotation_custom(
-  grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genetics)),
-  ymin = 1000, ymax = 1000, xmin = 62, xmax = 62
-) +
-annotation_custom(
-  grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.cellbio)),
-  ymin = 1450, ymax = 1450, xmin = 62, xmax = 62
-)
+  geom_bar(stat="identity", color="white") +
+  theme_bw() +
+  labs(x="Month", y="Preprints posted (month)") +
+  scale_y_continuous(labels=comma) +
+  theme(
+    axis.text.x=element_blank(),
+    axis.text.y = element_text(size=big_fontsize, color = themedarktext),
+    axis.title.y = element_text(size=big_fontsize),
+    axis.title.x = element_text(size=big_fontsize, vjust=-3),
+    legend.position="none",
+    plot.margin = unit(c(-0.45, 0, 0, 0), "cm") # for spacing in the plot_grid
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.neuroscience)),
+    ymin = 450, ymax = 450, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.microbiology)),
+    ymin = 700, ymax = 700, xmin = 62, xmax = 62
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.bioinformatics)),
+    ymin = 1710, ymax = 1710, xmin = 62, xmax = 62
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genomics)),
+    ymin = 900, ymax = 900, xmin = 62, xmax = 62
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.evolutionarybio)),
+    ymin = 1150, ymax = 1150, xmin = 62, xmax = 62
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.genetics)),
+    ymin = 1000, ymax = 1000, xmin = 62, xmax = 62
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col=color.cellbio)),
+    ymin = 1450, ymax = 1450, xmin = 62, xmax = 62
+  )
 
 x <- add_year_x(x, TRUE, -150)
 
@@ -327,6 +324,9 @@ monthly$layout$clip[monthly$layout$name == "panel"] <- "off"
 ```
 
 #### Figure 1(inset): Total papers over time
+
+Query for fetching overall monthly submission numbers (not categorized); another column, `cumulative`, is required for the figure and was calculated in this case using Excel.
+
 ```sql
 SELECT EXTRACT(YEAR FROM posted)||'-'||lpad(EXTRACT(MONTH FROM posted)::text, 2, '0') AS month,
 	COUNT(id) AS submissions
@@ -334,8 +334,8 @@ FROM paper.articles
 GROUP BY 1
 ORDER BY 1;
 ```
-(Column added in Excel for cumulative downloads)
 
+Building the figure:
 ```r
 totalframe=read.csv('submissions_per_month_overall.csv')
 
@@ -344,18 +344,18 @@ axisfunc <- function() {
 }
 
 x <- ggplot(totalframe, aes(month, cumulative, group=1)) +
-geom_line(size=1) +
-geom_area(fill=themepurple) +
-labs(x = "Month", y = "Total preprints") +
-theme_bw() +
-scale_y_continuous(breaks=seq(0, 40000, 10000), expand=c(0,0), labels=axisfunc()) +
-scale_x_discrete(expand=c(0,0)) +
-theme(
-  axis.text.x=element_blank(),
-  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
-  axis.title.y = element_text(size=big_fontsize),
-  legend.position="none"
-)
+  geom_line(size=1) +
+  geom_area(fill=themepurple) +
+  labs(x = "Month", y = "Total preprints") +
+  theme_bw() +
+  scale_y_continuous(breaks=seq(0, 40000, 10000), expand=c(0,0), labels=axisfunc()) +
+  scale_x_discrete(expand=c(0,0)) +
+  theme(
+    axis.text.x=element_blank(),
+    axis.text.y = element_text(size=big_fontsize, color = themedarktext),
+    axis.title.y = element_text(size=big_fontsize),
+    legend.position="none"
+  )
 
 x <- add_year_x(x, FALSE)
 
@@ -366,6 +366,8 @@ totals$layout$clip[totals$layout$name == "panel"] <- "off"
 ### Figure 1 combined
 
 ```r
+# Legend is built as separate plot so we can more
+# easily control its position
 legendplot <- ggplot(
     printable, aes(x=date, y=submissions, fill=collection)
   ) +
@@ -380,66 +382,78 @@ legendplot <- ggplot(
   )
 
 plot_grid(
-  plot_grid(cumulative, monthly,
-    labels=c("\n\n(a)", "(b)"),
-    vjust = 0.25,
-    rel_heights = c(1,1),
-    ncol = 1, nrow = 2,
-    align = "v"
-  ),
-  get_legend(legendplot),
-  rel_heights = c(7,3),
-  ncol=1, nrow=2
-) +
-draw_plot(totals, 0.12, 0.77, 0.42, 0.2)
+    plot_grid(cumulative, monthly,
+      labels=c("\n\n(a)", "(b)"),
+      vjust = 0.25,
+      rel_heights = c(1,1),
+      ncol = 1, nrow = 2,
+      align = "v"
+    ),
+    get_legend(legendplot),
+    rel_heights = c(7,3),
+    ncol=1, nrow=2
+  ) +
+  draw_plot(totals, 0.12, 0.77, 0.42, 0.2)
 ```
 
 ## Figure 2: Downloads
 
+Query for monthly download data by category; as with Figure 1, running totals are calculated by inserting these values into `downloads_per_month.xlsx` and saving the results to `downloads_per_month_cumulative.csv`.
+
+```sql
+SELECT article_traffic.year||'-'||lpad(article_traffic.month::text, 2, '0') AS date,
+	SUM(article_traffic.pdf) AS month,
+	REPLACE(articles.collection, '-', ' ') AS collection
+FROM paper.article_traffic
+LEFT JOIN paper.articles ON article_traffic.article=articles.id
+GROUP BY 1,3
+ORDER BY 1,3;
+```
+
 ### Figure 2a: Monthly downloads overall
 
 ```r
-monthframe=read.csv('downloads_per_month_cumulative.csv')
+monthframe = read.csv('downloads_per_month_cumulative.csv')
 monthframe <- monthframe %>%
-  inner_join(capitalized, by=c("collection"="old"))  %>%
+  inner_join(capitalized_cats, by=c("collection"="old"))  %>%
   mutate(collection = new) %>%
   select(date,collection,month,cumulative)
 
 x <- ggplot(monthframe, aes(x=date, y=month, group=collection, fill=collection)) +
-geom_bar(stat="identity", color="white") +
-labs(x = "Month", y = "Overall downloads (month)") +
-theme_bw() +
-scale_y_continuous(breaks=seq(0, 1250000, 250000), labels=comma) +
-theme(
-  axis.text.x = element_blank(),
-  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
-  axis.title.y = element_text(size=big_fontsize),
-  axis.title.x = element_text(size=big_fontsize, vjust=1),
-  legend.position = "none",
-  plot.margin = unit(c(0,0,0,0.2), "cm"),
-  panel.border = element_rect(linetype = "solid", color="black", size=0.5, fill = NA)
-) +
-annotation_custom(
-  grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.neuroscience)),
-  ymin = 220000, ymax = 220000, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.bioinformatics)),
-  ymin = 970000, ymax = 970000, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genomics)),
-  ymin = 480000, ymax = 480000, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genetics)),
-  ymin = 580000, ymax = 580000, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.microbiology)),
-  ymin = 375000, ymax = 375000, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.evolutionarybio)),
-  ymin = 650000, ymax = 650000, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.cellbio)),
-  ymin = 780000, ymax = 780000, xmin = 62, xmax = 62)
+  geom_bar(stat="identity", color="white") +
+  labs(x = "Month", y = "Overall downloads (month)") +
+  theme_bw() +
+  scale_y_continuous(breaks=seq(0, 1250000, 250000), labels=comma) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_text(size=big_fontsize, color = themedarktext),
+    axis.title.y = element_text(size=big_fontsize),
+    axis.title.x = element_text(size=big_fontsize, vjust=1),
+    legend.position = "none",
+    plot.margin = unit(c(0,0,0,0.2), "cm"),
+    panel.border = element_rect(linetype = "solid", color="black", size=0.5, fill = NA)
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.neuroscience)),
+    ymin = 220000, ymax = 220000, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.bioinformatics)),
+    ymin = 970000, ymax = 970000, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genomics)),
+    ymin = 480000, ymax = 480000, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genetics)),
+    ymin = 580000, ymax = 580000, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.microbiology)),
+    ymin = 375000, ymax = 375000, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.evolutionarybio)),
+    ymin = 650000, ymax = 650000, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Cell Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.cellbio)),
+    ymin = 780000, ymax = 780000, xmin = 62, xmax = 62)
 
 x <- add_year_x(x, TRUE, -70000)
 
@@ -448,6 +462,9 @@ two_a$layout$clip[two_a$layout$name == "panel"] <- "off"
 ```
 
 ### Figure 2b: Downloads per month, by year
+
+Query written to `downloads_per_month_per_year.csv`:
+
 ```sql
 SELECT month, year, sum(pdf) AS downloads
 FROM paper.article_traffic
@@ -455,6 +472,7 @@ GROUP BY year, month
 ORDER BY year, month
 ```
 
+Panel:
 ```r
 dlframe=read.csv('downloads_per_month_per_year.csv')
 
@@ -520,59 +538,48 @@ two_b <- ggplot(dlframe, aes(x=month, y=downloads, group=year, color=year)) +
 
 ### Figure 2c: Cumulative downloads over time, per category
 
-```sql
-SELECT article_traffic.year||'-'||lpad(article_traffic.month::text, 2, '0') AS date,
-	SUM(article_traffic.pdf) AS month,
-	REPLACE(articles.collection, '-', ' ') AS collection
-FROM paper.article_traffic
-LEFT JOIN paper.articles ON article_traffic.article=articles.id
-GROUP BY 1,3
-ORDER BY 1,3;
-```
-(Data organized in `downloads_per_month.xlsx`, then moved to `downloads_per_month_cumulative.csv`)
-
 ```r
 monthframe=read.csv('downloads_per_month_cumulative.csv')
 monthframe <- monthframe %>%
-  inner_join(capitalized, by=c("collection"="old"))  %>%
+  inner_join(capitalized_cats, by=c("collection"="old"))  %>%
   mutate(collection = new) %>%
   select(date,collection,month,cumulative)
 
 # Cumulative downloads:
 x <- ggplot(monthframe, aes(x=date, y=cumulative, group=collection, color=collection)) +
-geom_line(size=1) +
-labs(x = "Month", y = "Total downloads (cumulative)") +
-theme_bw() +
-scale_y_continuous(breaks=seq(0, 3500000, 500000), labels=comma) +
-theme(
-  plot.margin = unit(c(0,6.5,0.5,0), "lines"), # for right-margin labels
-  axis.text.x=element_blank(),
-  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
-  axis.title = element_text(size=big_fontsize),
-  legend.position="none",
-  panel.border = element_rect(linetype = "solid", color="black", size=0.5, fill = NA)
-) +
-annotation_custom(
-  grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.neuroscience)),
-  ymin = 3200000, ymax = 3200000, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.bioinformatics)),
-  ymin = 3050000, ymax = 3050000, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genomics)),
-  ymin = 2900000, ymax = 2900000, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genetics)),
-  ymin = 1600000, ymax = 1600000, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.evolutionarybio)),
-  ymin = 1400000, ymax = 1400000, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.microbiology)),
-  ymin = 950000, ymax = 950000, xmin = 62, xmax = 62) +
-annotation_custom(
-  grob = textGrob(label = "Cancer Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.cancerbio)),
-  ymin = 700000, ymax = 700000, xmin = 62, xmax = 62)
+  geom_line(size=1) +
+  labs(x = "Month", y = "Total downloads (cumulative)") +
+  theme_bw() +
+  scale_y_continuous(breaks=seq(0, 3500000, 500000), labels=comma) +
+  theme(
+    plot.margin = unit(c(0,6.5,0.5,0), "lines"),
+    axis.text.x=element_blank(),
+    axis.text.y = element_text(size=big_fontsize, color = themedarktext),
+    axis.title = element_text(size=big_fontsize),
+    legend.position="none",
+    panel.border = element_rect(linetype = "solid", color="black", size=0.5, fill = NA)
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "Neuroscience", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.neuroscience)),
+    ymin = 3200000, ymax = 3200000, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Bioinformatics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.bioinformatics)),
+    ymin = 3050000, ymax = 3050000, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Genomics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genomics)),
+    ymin = 2900000, ymax = 2900000, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Genetics", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.genetics)),
+    ymin = 1600000, ymax = 1600000, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Evolutionary Bio.", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.evolutionarybio)),
+    ymin = 1400000, ymax = 1400000, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Microbiology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.microbiology)),
+    ymin = 950000, ymax = 950000, xmin = 62, xmax = 62) +
+  annotation_custom(
+    grob = textGrob(label = "Cancer Biology", hjust = 0, gp = gpar(fontsize = big_fontsize, col = color.cancerbio)),
+    ymin = 700000, ymax = 700000, xmin = 62, xmax = 62)
 
 x <- add_year_x(x, TRUE, -190000)
 
@@ -608,16 +615,21 @@ two_cinset <- ggplot(paperframe, aes(x=downloads)) +
 ```
 
 ### Figure 2d: Median downloads per category
+
+Query written to `downloads_per_category.csv`:
+
 ```sql
 SELECT d.article, d.downloads, REPLACE(a.collection, '-', ' ') AS collection
 FROM paper.alltime_ranks d
 INNER JOIN paper.articles a ON d.article=a.id;
 ```
 
+Panel:
+
 ```r
 paperframe = read.csv('downloads_per_category.csv')
 paperframe <- paperframe %>%
-  inner_join(capitalized, by=c("collection"="old"))  %>%
+  inner_join(capitalized_cats, by=c("collection"="old"))  %>%
   mutate(collection = new) %>%
   select(article, downloads, collection)
 
@@ -637,43 +649,29 @@ two_d <- ggplot(data=paperframe, aes(
     plot.margin = unit(c(0.5,0.5,0,0), "cm")
   ) +
   geom_hline(yintercept=median(paperframe$downloads), col='yellow', linetype="dashed", size=1.5)
-
-
-# comparing all collections:
-leveneTest(downloads~collection, data=paperframe)
-kruskal.test(downloads~collection, data=paperframe)
-oneway.test(downloads~collection, data=paperframe) # Welch's ANOVA
 ```
 
 ### Figure 2 combined
 
 ```r
-# ab <- align_plots(two_a, two_b, align = "h", axis = "bt")
-# bd <- align_plots(ab[[2]], two_d, align = "v", axis = "lr")
-# ac <- align_plots(ab[[1]], two_c, align = "v", axis = "r")
-# cd <- align_plots(ac[[2]], bd[[2]], align = "h", axis = "tb")
-
-# plot_grid(
-#   ac[[1]], bd[[1]], cd[[1]], cd[[2]],
-#   ncol = 2, nrow = 2,
-#   labels = c("(a)", "(b)", "(c)", "(d)")
-# ) +
-# draw_plot(two_binset, 0.58, 0.72, 0.22, 0.22)
-
+# Aligning panel axes:
 ac <- align_plots(two_a, two_c, align = "v", axis = "lr")
 ab <- align_plots(ac[[1]], two_b, align = "h", axis = "bt")
 bd <- align_plots(ab[[2]], two_d, align = "v", axis = "r")
 cd <- align_plots(ac[[2]], bd[[2]], align = "h", axis = "bt")
+
 plot_grid(
-  ab[[1]], bd[[1]], cd[[1]], cd[[2]],
-  ncol = 2, nrow = 2,
-  labels = c("(a)", "(b)", "(c)", "(d)"),
-  rel_widths=c(5,5)
-) +
-draw_plot(two_cinset, 0.095, 0.25, 0.22, 0.22)
+    ab[[1]], bd[[1]], cd[[1]], cd[[2]],
+    ncol = 2, nrow = 2,
+    labels = c("(a)", "(b)", "(c)", "(d)"),
+    rel_widths=c(5,5)
+  ) +
+  draw_plot(two_cinset, 0.095, 0.25, 0.22, 0.22)
 ```
 
 ## Table 1: Authors per year
+
+Query for data recorded directly in manuscript:
 
 ```sql
 SELECT firstcount.year, firstcount.count, overall.count
@@ -702,6 +700,8 @@ ON firstcount.year = overall.year
 
 ### Figure 3a: Publication rate by month
 
+Query recorded to `publication_rate_month.csv`:
+
 ```sql
 SELECT month, posted, published, published::decimal/posted AS rate
 FROM (
@@ -715,22 +715,24 @@ FROM (
 ) AS counts
 ```
 
+Panel:
+
 ```r
 paperframe = read.csv('publication_rate_month.csv')
 
 x <- ggplot(paperframe, aes(x=month, y=rate)) +
-geom_point() +
-labs(x = "Month", y = "Proportion\npublished") +
-theme_bw() +
-theme(
-  axis.text.x=element_blank(),
-  axis.text.y = element_text(size=big_fontsize, color = themedarktext),
-  axis.title.x = element_text(size=big_fontsize, hjust=0.45, vjust=-1.2),
-  axis.title.y = element_text(size=big_fontsize),
-  plot.margin = unit(c(0.5, 0.5, 0.5, 1), "cm")
-) +
-geom_hline(yintercept=0.4196, col=themedarkgrey, linetype="dashed", size=1) +
-annotate("text", y=0.48, x=9.1, label="overall: 0.4196")
+  geom_point() +
+  labs(x = "Month", y = "Proportion\npublished") +
+  theme_bw() +
+  theme(
+    axis.text.x=element_blank(),
+    axis.text.y = element_text(size=big_fontsize, color = themedarktext),
+    axis.title.x = element_text(size=big_fontsize, hjust=0.45, vjust=-1.2),
+    axis.title.y = element_text(size=big_fontsize),
+    plot.margin = unit(c(0.5, 0.5, 0.5, 1), "cm")
+  ) +
+  geom_hline(yintercept=0.4196, col=themedarkgrey, linetype="dashed", size=1) +
+  annotate("text", y=0.48, x=9.1, label="overall: 0.4196")
 
 x <- add_year_x(x, TRUE, -0.075)
 
@@ -740,6 +742,8 @@ monthrate$layout$clip[monthrate$layout$name == "panel"] <- "off"
 
 
 ### Figure 3b: Publication rate by category
+
+Query written to `publications_per_category.csv`:
 
 ```sql
 SELECT REPLACE(p.collection, '-', ' ') AS collection, p.published, t.total, (p.published::decimal / t.total) AS proportion
@@ -758,10 +762,12 @@ INNER JOIN (
 ) AS t ON t.collection=p.collection
 ```
 
+Panel:
+
 ```r
 pubframe = read.csv('publications_per_category.csv')
 pubframe <- pubframe %>%
-  inner_join(capitalized, by=c("collection"="old"))  %>%
+  inner_join(capitalized_cats, by=c("collection"="old"))  %>%
   mutate(collection = new) %>%
   select(collection, published, total, proportion)
 
@@ -789,6 +795,7 @@ catproportion <- ggplot(
 ```
 
 ### Figure 3c: Total publications by category
+
 ```r
 cattotals <- ggplot(
     data=pubframe,
@@ -835,15 +842,18 @@ plot_grid(
 
 ## Figure 4: Time to publication
 
+Query written to `publication_time_by_year.csv`:
 ### Figure 4a: Distribution of time to publication
 ```sql
 SELECT a.id, EXTRACT(YEAR FROM a.posted) AS year, REPLACE(a.collection, '-', ' ') AS collection,
 	p.date AS published, (p.date-a.posted) AS interval
 FROM paper.articles a
 INNER JOIN paper.publication_dates p ON a.id=p.article
-WHERE p.date > '1900-01-01'
+WHERE p.date > '1900-01-01' --- Dummy value used for unknown values
 ORDER BY interval DESC
 ```
+
+Panel:
 
 ```r
 distroframe=read.csv('publication_time_by_year.csv')
@@ -852,64 +862,67 @@ quantile(distroframe$interval, c(0.25, 0.50, 0.75, 0.9, 0.95))
 
 percentlabel = 900
 hist <- ggplot(distroframe, aes(x=interval)) +
-geom_histogram(
-  bins = 150
-) +
-coord_cartesian(xlim=c(0,700), ylim=c(0,1000)) +
-scale_x_continuous(breaks=seq(0, 1000, 100), expand=c(0,0)) +
-scale_y_continuous(expand=c(0,0)) +
-labs(x="Age of preprint at publication", y="Preprints") +
-theme_bw() +
-theme(
-  panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
-  axis.text = element_text(size=big_fontsize, color = themedarktext),
-  axis.title.x = element_text(size=big_fontsize),
-  axis.title.y = element_text(size=big_fontsize, vjust=0),
-  plot.margin = unit(c(0.2,1,0,0), "cm")
-) +
-geom_vline(
-  xintercept=104,
-  col=themeorange, linetype="dashed", size=1
-) +
-annotation_custom(
-  grob = textGrob(label = "25%", hjust = 0, gp = gpar(fontsize = big_fontsize)),
-  ymin = percentlabel, ymax = percentlabel, xmin = 54, xmax = 64
-) +
-geom_vline(
-  xintercept=165,
-  col=themeorange, linetype="dashed", size=1
-) +
-annotation_custom(
-  grob = textGrob(label = "50%", hjust = 0, gp = gpar(fontsize = big_fontsize)),
-  ymin = percentlabel, ymax = percentlabel, xmin = 115, xmax = 115
-) +
-geom_vline(
-  xintercept=247,
-  col=themeorange, linetype="dashed", size=1
-) +
-annotation_custom(
-  grob = textGrob(label = "75%", hjust = 0, gp = gpar(fontsize = big_fontsize)),
-  ymin = percentlabel, ymax = percentlabel, xmin = 197, xmax = 197
-) +
-geom_vline(
-  xintercept=346,
-  col="red", linetype="dashed", size=1
-) +
-annotation_custom(
-  grob = textGrob(label = "90%", hjust = 0, gp = gpar(fontsize = big_fontsize)),
-  ymin = percentlabel, ymax = percentlabel, xmin = 296, xmax = 296
-) +
-geom_vline(
-  xintercept=420,
-  col="red", linetype="dashed", size=1
-) +
-annotation_custom(
-  grob = textGrob(label = "95%", hjust = 0, gp = gpar(fontsize = big_fontsize)),
-  ymin = percentlabel, ymax = percentlabel, xmin = 370, xmax = 370
-)
+  geom_histogram(
+    bins = 150
+  ) +
+  coord_cartesian(xlim=c(0,700), ylim=c(0,1000)) +
+  scale_x_continuous(breaks=seq(0, 1000, 100), expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0)) +
+  labs(x="Age of preprint at publication", y="Preprints") +
+  theme_bw() +
+  theme(
+    panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
+    axis.text = element_text(size=big_fontsize, color = themedarktext),
+    axis.title.x = element_text(size=big_fontsize),
+    axis.title.y = element_text(size=big_fontsize, vjust=0),
+    plot.margin = unit(c(0.2,1,0,0), "cm")
+  ) +
+  geom_vline(
+    xintercept=104,
+    col=themeorange, linetype="dashed", size=1
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "25%", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+    ymin = percentlabel, ymax = percentlabel, xmin = 54, xmax = 64
+  ) +
+  geom_vline(
+    xintercept=165,
+    col=themeorange, linetype="dashed", size=1
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "50%", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+    ymin = percentlabel, ymax = percentlabel, xmin = 115, xmax = 115
+  ) +
+  geom_vline(
+    xintercept=247,
+    col=themeorange, linetype="dashed", size=1
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "75%", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+    ymin = percentlabel, ymax = percentlabel, xmin = 197, xmax = 197
+  ) +
+  geom_vline(
+    xintercept=346,
+    col="red", linetype="dashed", size=1
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "90%", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+    ymin = percentlabel, ymax = percentlabel, xmin = 296, xmax = 296
+  ) +
+  geom_vline(
+    xintercept=420,
+    col="red", linetype="dashed", size=1
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "95%", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+    ymin = percentlabel, ymax = percentlabel, xmin = 370, xmax = 370
+  )
 ```
 
 ### Figure 4b: Time to publication by journal
+
+Query written to `publication_interval_journals.csv`:
+
 ```sql
 SELECT a.id, REPLACE(j.publication,',', ' ') AS journal, (p.date - a.posted) AS interval
 FROM paper.articles a
@@ -928,6 +941,8 @@ AND j.publication IN (
 ORDER BY 3 DESC
 ```
 
+Panel:
+
 ```r
 timeframe = read.csv('publication_interval_journals.csv')
 timeframe <- timeframe %>%
@@ -935,44 +950,38 @@ timeframe <- timeframe %>%
   mutate(journal = new) %>%
   select(journal, interval)
 
-medians <- ddply(timeframe, .(journal), summarise, med = median(interval))
-library(car)
-leveneTest(interval~journal, data=timeframe)
-kruskal.test(interval~journal, data=timeframe)
-library(FSA)
-dunnTest(interval~journal, data=timeframe, method="bh")
-
 by_journal <- ggplot(timeframe, aes(
-  x=reorder(journal, interval, FUN=median),
-  y=interval,
-  group=journal
-)) +
-geom_boxplot(
-  outlier.shape = NA, coef=0,
-  fill=themepurple
-) +
-geom_hline(
-  yintercept=165,
-  col="red", linetype="dashed", size=1
-) +
-annotation_custom(
-  grob = textGrob(label = "overall median: 165", hjust = 0, gp = gpar(fontsize = big_fontsize)),
-  ymin = 200, ymax = 200, xmin = 1, xmax = 1
-) +
-coord_flip(ylim=c(0,350)) +
-scale_y_continuous(breaks=seq(0, 350, 50)) +
-theme_bw() +
-labs(x="Journal", y="Age of preprint at publication") +
-theme(
-  panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
-  axis.text = element_text(size=big_fontsize, color = themedarktext),
-  axis.title.x = element_text(size=big_fontsize),
-  axis.title.y = element_text(size=big_fontsize, vjust=0),
-  plot.margin = unit(c(0,1,0.2,0), "cm")
-)
+    x=reorder(journal, interval, FUN=median),
+    y=interval,
+    group=journal
+  )) +
+  geom_boxplot(
+    outlier.shape = NA, coef=0,
+    fill=themepurple
+  ) +
+  geom_hline(
+    yintercept=165,
+    col="red", linetype="dashed", size=1
+  ) +
+  annotation_custom(
+    grob = textGrob(label = "overall median: 165", hjust = 0, gp = gpar(fontsize = big_fontsize)),
+    ymin = 200, ymax = 200, xmin = 1, xmax = 1
+  ) +
+  coord_flip(ylim=c(0,350)) +
+  scale_y_continuous(breaks=seq(0, 350, 50)) +
+  theme_bw() +
+  labs(x="Journal", y="Age of preprint at publication") +
+  theme(
+    panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
+    axis.text = element_text(size=big_fontsize, color = themedarktext),
+    axis.title.x = element_text(size=big_fontsize),
+    axis.title.y = element_text(size=big_fontsize, vjust=0),
+    plot.margin = unit(c(0,1,0.2,0), "cm")
+  )
 ```
 
  ### Figure 4 combined
+
  ```r
 plot_grid(hist, by_journal,
   ncol = 1, nrow = 2,
@@ -987,14 +996,9 @@ plot_grid(hist, by_journal,
 
 ### Cleaning data
 
-```sql
--- TRUNCATE paper.article_publications
--- INSERT INTO paper.article_publications (
--- 	SELECT p.article, p.doi, p.publication
--- 	FROM prod.article_publications p
--- 	INNER JOIN paper.articles a ON a.id=p.article
--- )
+These queries were used to improve the accuracy of per-journal statistics by combining names that identify the same journal but would have otherwise appeared as different journals.
 
+```sql
 UPDATE paper.article_publications SET publication=LOWER(publication)
 UPDATE paper.article_publications SET publication=REGEXP_REPLACE(publication, '^the journal', 'journal');
 UPDATE paper.article_publications SET publication=REGEXP_REPLACE(publication, '^the american journal', 'american journal');
@@ -1015,7 +1019,7 @@ WHERE publication='bmc avian research';
 
 UPDATE paper.article_publications
 SET publication='bioinformatics'
-WHERE publication='bioinformatics ';
+WHERE publication='bioinformatics '; ---trailing space
 
 UPDATE paper.article_publications
 SET publication='cognitive, affective, and behavioral neuroscience'
@@ -1113,6 +1117,8 @@ SET publication='slas technology'
 WHERE publication='slas technology: translating life sciences innovation';
 ```
 
+Query written to `publications_per_journal_categorical.csv`:
+
 ```sql
 SELECT publication, tally, REPLACE(collection, '-', ' ') AS collection
 FROM (
@@ -1131,12 +1137,6 @@ WHERE publication IN (
 		LIMIT 30
 	) AS ranks
 )
-
-/* Counts for Results section: */
-SELECT publication, COUNT(article) AS articles
-FROM paper.article_publications
-GROUP BY publication
-ORDER BY articles DESC
 ```
 
 ```r
@@ -1146,7 +1146,7 @@ pubframe <- pubframe %>%
   mutate(publication = new) %>%
   select(publication, tally, collection)
 pubframe <- pubframe %>%
-  inner_join(capitalized, by=c("collection"="old"))  %>%
+  inner_join(capitalized_cats, by=c("collection"="old"))  %>%
   mutate(collection = new) %>%
   select(publication, tally, collection)
 
@@ -1166,8 +1166,8 @@ figure <- ggplot(pubframe, aes(x=publication, y=tally, fill=collection)) +
     plot.margin = unit(c(0.2,1,0.5,0.2), "cm"),
   )
 
-# The wide x-axis labels (up the side of the plot) mess up the
-# alignment of the legend, so it gets added by hand
+# The wide x-axis labels (the vertical axis, in this case) mess up the
+# alignment of the legend, so it gets added separately
 legendplot <- ggplot(pubframe, aes(x=publication, y=tally, fill=collection)) +
   geom_bar(stat="identity", color="white") +
   aes(x = reorder(publication, tally, sum), y = tally, label = tally, fill = collection) +
@@ -1191,6 +1191,8 @@ plot_grid(figure, get_legend(legendplot),
 
 ## Figure 6: Median bioRxiv downloads per journal
 
+Query written to `downloads_journal.csv`:
+
 ```sql
 SELECT d.article, d.downloads, p.publication AS journal
 FROM paper.alltime_ranks d
@@ -1207,6 +1209,8 @@ WHERE p.publication IS NULL OR p.publication IN (
 ORDER BY p.publication DESC, d.downloads DESC
 ```
 
+Panel:
+
 ```r
 journalframe = read.csv('downloads_journal.csv')
 journalframe <- journalframe %>%
@@ -1218,43 +1222,38 @@ impactframe = read.csv('impact_scores.csv')
 details <- journalframe %>% left_join(impactframe)
 
 main <- ggplot(data=details, aes(
-  x=reorder(journal, downloads, FUN=median),
-  y=downloads,
-  fill=Access
-)) +
-geom_boxplot(
-  outlier.shape = NA, coef=0
-) +
-theme_bw() +
-coord_flip(ylim=c(0, 3650)) +
-scale_y_continuous(breaks=seq(0, 3500, 500), expand=c(0,0), labels=comma) +
-labs(x="Journal", y="Downloads per preprint") +
-theme(
-  axis.title = element_text(size=big_fontsize),
-  axis.text= element_text(size=big_fontsize, color = themedarktext),
-  legend.text = element_text(size=big_fontsize),
-  legend.title = element_text(size=big_fontsize),
-  legend.position = "top"
-)
-
-library(car)
-leveneTest(downloads~journal, data=journalframe)
-kruskal.test(downloads~journal, data=journalframe)
-library(FSA)
-dunnTest(downloads~journal, data=journalframe, method="bh")
-
-medians <- journalframe %>%
-  group_by(journal) %>%
-  summarize(median = median(downloads))
+    x=reorder(journal, downloads, FUN=median),
+    y=downloads,
+    fill=Access
+  )) +
+  geom_boxplot(
+    outlier.shape = NA, coef=0
+  ) +
+  theme_bw() +
+  coord_flip(ylim=c(0, 3650)) +
+  scale_y_continuous(breaks=seq(0, 3500, 500), expand=c(0,0), labels=comma) +
+  labs(x="Journal", y="Downloads per preprint") +
+  theme(
+    axis.title = element_text(size=big_fontsize),
+    axis.text= element_text(size=big_fontsize, color = themedarktext),
+    legend.text = element_text(size=big_fontsize),
+    legend.title = element_text(size=big_fontsize),
+    legend.position = "top"
+  )
 ```
 
 ### Figure 6 inset: Impact factor vs. median downloads
+
+Query written to `publications_per_journal.csv`:
+
 ```sql
 SELECT REPLACE(publication, ',', '') AS journal, COUNT(article) AS Papers
 FROM paper.article_publications
 GROUP BY 1
 ORDER BY 2 DESC, 1
 ```
+
+Panel:
 
 ```r
 journalonlyframe = filter(journalframe, journal!='(unpublished)')
@@ -1271,115 +1270,64 @@ medians <- journalonlyframe %>%
 all <- medians %>% left_join(impactframe)
 all <- all %>% left_join(totals)
 
-library(car)
-leveneTest(median~impact, data=all)
-library(stats)
-cor.test(all$impact, all$median, method="kendall")
-
-# Find the regression results, input them into the plot:
+# Find the regression results for the plot:
 summary(lm(impact~median, data=all))
 
 inset <- ggplot(data=all, aes(
-  x=median,
-  y=impact,
-  label=journal,
-  color=Access,
-  size=Papers,
-  alpha=0.5
-)) +
-geom_point() +
-theme_bw() +
-scale_x_continuous(label=comma) +
-coord_cartesian(xlim=c(0,3000)) +
-theme(
-  panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
-  axis.text = element_text(size=big_fontsize, color = themedarktext),
-  axis.title = element_text(size=big_fontsize),
-  legend.position = c(0.85, 0.2)
-) +
-labs(x="Median downloads per preprint", y="Journal impact score, 2017") +
-geom_text_repel(
-  data=subset(all, journal %in% c(
-    'Nature Genetics',
-    'Nature Methods',
-    'Genome Biology',
-    'Nature Communications',
-    # 'Nucleic Acids Research',
-    # 'Scientific Reports',
-    'eLife',
-    'Bioinformatics'
-    # 'PNAS'
-  )),
-  # Separate aesthetic for the labels so they don't
-  # scale with dot size:
-  aes(median, impact,label=journal),
-  size=4,
-  max.iter = 5000,
-  box.padding = unit(1.5, "lines"),
-  point.padding = unit(0.4, "lines"),
-  alpha=1
-) +
-geom_abline(intercept=0.136331, slope=0.013725, color=themedarkgrey, size=1, alpha=0.35) +
-guides(
-  color = "none",
-  alpha = "none"
-)
-
-# MULTIPLE LINEAR REGRESSION shows open_access isn't really a factor:
-summary(lm(median~impact+Access, data=all))
+    x=median,
+    y=impact,
+    label=journal,
+    color=Access,
+    size=Papers,
+    alpha=0.5
+  )) +
+  geom_point() +
+  theme_bw() +
+  scale_x_continuous(label=comma) +
+  coord_cartesian(xlim=c(0,3000)) +
+  theme(
+    panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
+    axis.text = element_text(size=big_fontsize, color = themedarktext),
+    axis.title = element_text(size=big_fontsize),
+    legend.position = c(0.85, 0.2)
+  ) +
+  labs(x="Median downloads per preprint", y="Journal impact score, 2017") +
+  geom_text_repel(
+    data=subset(all, journal %in% c(
+      'Nature Genetics',
+      'Nature Methods',
+      'Genome Biology',
+      'Nature Communications',
+      'eLife',
+      'Bioinformatics'
+    )),
+    # Separate aesthetic for the labels so they don't
+    # scale with dot size:
+    aes(median, impact,label=journal),
+    size=4,
+    max.iter = 5000,
+    box.padding = unit(1.5, "lines"),
+    point.padding = unit(0.4, "lines"),
+    alpha=1
+  ) +
+  geom_abline(intercept=0.136331, slope=0.013725, color=themedarkgrey, size=1, alpha=0.35) +
+  guides(
+    color = "none",
+    alpha = "none"
+  )
 ```
 
 ### Figure 6 combined
 
 ```r
-# INSET:
 plot_grid(main) +
-draw_plot(inset, 0.48, 0.1, 0.51, 0.65)
-```
-
-## Figure 1, supplement 1
-
-## Mean authors per paper
-
-Extracting list of articles, the month and year they were posted, and how many authors they had:
-
-```sql
-SELECT
-  a.id, REPLACE(a.collection, '-', ' ') AS collection,
-  EXTRACT(MONTH FROM a.posted) AS month,
-  EXTRACT(YEAR FROM a.posted) AS year,
-  COUNT(w.author) AS authors
-FROM paper.articles a
-LEFT JOIN paper.article_authors w ON w.article=a.id
-GROUP BY a.id, a.collection, a.posted
-ORDER BY year, month;
-```
-
-Building figure:
-
-```r
-authorframe = read.csv('authors_per_paper.csv')
-
-medians <- ddply(authorframe, .(collection), summarise, med = median(authors))
-
-ggplot(data=authorframe, aes(
-  x=reorder(collection, authors, FUN=median),
-  y=authors,
-  fill=collection
-)) +
-geom_boxplot(outlier.shape = NA) +
-scale_y_continuous(expand=c(0,.10)) +
-coord_flip(ylim=c(0,25)) +
-theme_bw() +
-labs(x="collection", y="authors per paper") +
-theme(
-  legend.position="none",
-  axis.text = element_text(size=big_fontsize, color = themedarktext),
-  axis.title.y = element_text(size=big_fontsize),
-)
+  draw_plot(inset, 0.48, 0.1, 0.51, 0.65)
 ```
 
 ## Figure 2, supplement 1: Downloads over time relative to posting
+
+Query written to `downloads_by_months.csv`:
+
 ```sql
 SELECT a.id, EXTRACT(YEAR FROM a.posted) AS posted, a.collection, 1 AS monthnum, t.pdf AS downloads
 FROM paper.articles a
@@ -1553,32 +1501,28 @@ SELECT median(pdf)
 FROM paper.article_traffic
 ```
 
+Figure:
+
 ```r
 firstframe = read.csv('downloads_by_months.csv')
 
 ggplot(data=firstframe, aes(
-  x=monthnum,
-  y=downloads,
-  group=monthnum
-)) +
-geom_boxplot(outlier.shape = NA, coef=0) +
-scale_y_continuous(breaks=seq(0, 150, 25)) +
-scale_x_continuous(breaks=seq(0, 12, 1)) +
-coord_cartesian(ylim=c(0,150)) +
-theme_bw() +
-labs(x="Months on bioRxiv", y="Downloads in month") +
-theme(
-  legend.position="none",
-  axis.title = element_text(size=big_fontsize),
-  axis.text = element_text(size=big_fontsize, color=themedarktext),
-) +
-geom_hline(yintercept=21, col=themedarkgrey, linetype="dashed", size=1)
-
-# median_thing <- function(data, i){
-#   return(median(data[i]))
-# }
-# results <- boot(filter(firstframe, monthnum==1)$downloads, statistic=median_thing, R=100)
-# boot.ci(results, conf=0.95, type="basic")
+    x=monthnum,
+    y=downloads,
+    group=monthnum
+  )) +
+  geom_boxplot(outlier.shape = NA, coef=0) +
+  scale_y_continuous(breaks=seq(0, 150, 25)) +
+  scale_x_continuous(breaks=seq(0, 12, 1)) +
+  coord_cartesian(ylim=c(0,150)) +
+  theme_bw() +
+  labs(x="Months on bioRxiv", y="Downloads in month") +
+  theme(
+    legend.position="none",
+    axis.title = element_text(size=big_fontsize),
+    axis.text = element_text(size=big_fontsize, color=themedarktext),
+  ) +
+  geom_hline(yintercept=21, col=themedarkgrey, linetype="dashed", size=1)
 ```
 
 ## Figure 2, supplement 2: Proportion of downloads per month on bioRxiv
@@ -1590,25 +1534,28 @@ combined <- pre2018 %>% left_join(sums)
 combined$proportion <- with(combined, downloads/sum)
 
 ggplot(data=combined, aes(
-  x=monthnum,
-  y=proportion,
-  group=monthnum
-)) +
-geom_boxplot() + # (outlier.shape = NA, coef=0)
-scale_x_continuous(breaks=seq(0, 12, 1)) +
-scale_y_continuous(breaks=seq(0, 1, 0.1)) +
-theme_bw() +
-labs(x="Months on bioRxiv", y="Proportion of downloads in month") +
-theme(
-  legend.position="none",
-  axis.title = element_text(size=big_fontsize),
-  axis.text = element_text(size=big_fontsize, color=themedarktext),
-)
+    x=monthnum,
+    y=proportion,
+    group=monthnum
+  )) +
+  geom_boxplot() +
+  scale_x_continuous(breaks=seq(0, 12, 1)) +
+  scale_y_continuous(breaks=seq(0, 1, 0.1)) +
+  theme_bw() +
+  labs(x="Months on bioRxiv", y="Proportion of downloads in month") +
+  theme(
+    legend.position="none",
+    axis.title = element_text(size=big_fontsize),
+    axis.text = element_text(size=big_fontsize, color=themedarktext),
+  )
 ```
 
 ## Figure 2, supplement 3: Downloads by year posted
 
 ### Figure 2.3a: Downloads in first month on bioRxiv
+
+Query written to `downloads_by_first_month.csv`:
+
 ```sql
 SELECT a.id, t.month, t.year, t.pdf AS downloads
 FROM paper.articles a
@@ -1631,30 +1578,36 @@ LEFT JOIN paper.article_traffic t
   )
 ORDER BY id
 ```
+
+Panel:
+
 ```r
 firstframe = read.csv('downloads_by_first_month.csv')
 
 firstplot <- ggplot(data=firstframe, aes(
-  x=year,
-  y=downloads,
-  group=year
-)) +
-geom_boxplot(outlier.shape = NA, coef=0) +
-scale_y_continuous(breaks=seq(0, 250, 50)) +
-scale_x_continuous(breaks=seq(2013, 2018, 1)) +
-coord_cartesian(ylim=c(0,160)) +
-theme_bw() +
-labs(x="Year", y="Downloads in first month") +
-theme(
-  legend.position="none",
-  axis.text.y = element_text(size=big_fontsize),
-  axis.title.y = element_text(size=big_fontsize),
-  axis.title.x = element_blank(),
-  axis.text.x = element_blank()
-)
+    x=year,
+    y=downloads,
+    group=year
+  )) +
+  geom_boxplot(outlier.shape = NA, coef=0) +
+  scale_y_continuous(breaks=seq(0, 250, 50)) +
+  scale_x_continuous(breaks=seq(2013, 2018, 1)) +
+  coord_cartesian(ylim=c(0,160)) +
+  theme_bw() +
+  labs(x="Year", y="Downloads in first month") +
+  theme(
+    legend.position="none",
+    axis.text.y = element_text(size=big_fontsize),
+    axis.title.y = element_text(size=big_fontsize),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank()
+  )
 ```
 
-### Figure 2.3(b): Best month of downloads
+### Figure 2.3b: Best month of downloads
+
+Query written to `downloads_max_by_year_posted.csv`:
+
 ```sql
 SELECT t.article AS id, EXTRACT(year FROM a.posted) AS year, MAX(t.pdf) AS downloads
 FROM paper.article_traffic t
@@ -1662,6 +1615,8 @@ LEFT JOIN paper.articles a ON t.article=a.id
 GROUP BY 1,2
 ORDER BY 3 desc
 ```
+
+Panel:
 
 ```r
 maxframe = read.csv('downloads_max_by_year_posted.csv')
@@ -1687,6 +1642,9 @@ theme(
 ```
 
 ### Figure 2.3(c): 2018 downloads, by year posted
+
+Query written to `2018_downloads_by_year_posted.csv`:
+
 ```sql
 SELECT a.id, EXTRACT(year FROM a.posted) AS year, SUM(t.pdf) AS downloads
 FROM paper.articles a
@@ -1696,31 +1654,33 @@ GROUP BY a.id
 ORDER BY downloads DESC
 ```
 
+Panel:
+
 ```r
 latestframe = read.csv('2018_downloads_by_year_posted.csv')
 
 latestplot <- ggplot(data=latestframe, aes(
-  x=year,
-  y=downloads,
-  group=year
-)) +
-geom_boxplot(outlier.shape = NA, coef=0) +
-scale_x_continuous(breaks=seq(2013, 2018, 1)) +
-scale_y_continuous(breaks=seq(0, 325, 50)) +
-coord_cartesian(ylim=c(0,325)) +
-theme_bw() +
-labs(x="Year posted", y="Downloads in 2018") +
-theme(
-  legend.position="none",
-  axis.text.y = element_text(size=big_fontsize, color=themedarktext),
-  axis.title = element_text(size=big_fontsize),
-  axis.text.x = element_text(
-    size=big_fontsize,
-    hjust=1,
-    color=themedarktext,
-    angle = 45
+    x=year,
+    y=downloads,
+    group=year
+  )) +
+  geom_boxplot(outlier.shape = NA, coef=0) +
+  scale_x_continuous(breaks=seq(2013, 2018, 1)) +
+  scale_y_continuous(breaks=seq(0, 325, 50)) +
+  coord_cartesian(ylim=c(0,325)) +
+  theme_bw() +
+  labs(x="Year posted", y="Downloads in 2018") +
+  theme(
+    legend.position="none",
+    axis.text.y = element_text(size=big_fontsize, color=themedarktext),
+    axis.title = element_text(size=big_fontsize),
+    axis.text.x = element_text(
+      size=big_fontsize,
+      hjust=1,
+      color=themedarktext,
+      angle = 45
+    )
   )
-)
 ```
 
 ### Figure 2, supplement 3 combined
@@ -1736,11 +1696,15 @@ plot_grid(firstplot, maxplot, latestplot,
 
 ## Figure 2, supplement 4: Median downloads per year
 
+Query written to `downloads_per_year.csv`:
+
 ```sql
 SELECT d.article, d.downloads, EXTRACT(YEAR FROM a.posted) AS year
 FROM paper.alltime_ranks d
 INNER JOIN paper.articles a ON d.article=a.id;
 ```
+
+Figure:
 
 ```r
 aframe = read.csv('downloads_per_year.csv')
@@ -1771,17 +1735,13 @@ ggplot(data=aframe, aes(
   theme(
     strip.text = element_text(size=big_fontsize)
   )
-
-leveneTest(downloads~year, data=paperframe)
-kruskal.test(downloads~year, data=paperframe)
-library(FSA)
-dunnTest(downloads~year, data=paperframe, method="bh")
 ```
 
 
 ## Table 2: Downloads of published and unpublished papers
+
+Query written to `downloads_publication_status.csv`:
 ```sql
-/* Overall data */
 SELECT d.article, d.downloads, EXTRACT(year FROM a.posted) AS year,
 	CASE WHEN COUNT(p.article) > 0 THEN TRUE
     	ELSE FALSE
@@ -1792,6 +1752,8 @@ LEFT JOIN paper.articles a ON d.article=a.id
 GROUP BY d.article, a.posted
 ORDER BY published DESC, d.downloads DESC
 ```
+
+Analysis and generation of numbers used in table:
 
 ```r
 paperframe = read.csv('downloads_publication_status.csv')
@@ -1817,6 +1779,8 @@ median(filter(paperframe, published=='True')$downloads)
 
 ## Table S2: Papers per author
 
+Query written to `papers_per_author.csv`:
+
 ```sql
 SELECT a.id, REPLACE(a.name, ',', ' ') AS name, COUNT(DISTINCT p.article) AS papers, COUNT(DISTINCT e.email) AS emails
 FROM paper.authors a
@@ -1827,15 +1791,12 @@ LEFT JOIN paper.author_emails e
 GROUP BY 1
 ORDER BY 3 DESC
 ```
-Saved as "papers_per_author.csv"
 
-Mean papers per author:
-```r
-a = read.csv('papers_per_author.csv')
-mean(a$papers)
-```
+(Top values inserted into table.)
 
 ## Table S3: Authors and papers by institution
+
+Query written to `authors_per_institution.csv`:
 
 ```sql
 SELECT authors.institution, authors.authors, p.papers
@@ -1855,20 +1816,7 @@ LEFT JOIN (
 ORDER BY 3 DESC, 2 DESC, 1
 ```
 
-Analysis:
-```r
-# authorframe = read.csv('authors_per_institution.csv')
-
-# # Testing if variables are normally distributed
-# library(nortest)
-# ad.test(authorframe$authors)
-# ad.test(authorframe$papers)
-# library(stats)
-# cor.test(authorframe$authors, authorframe$papers, method="pearson")
-
-# ggplot(authorframe, aes(x=authors, y=papers)) +
-# geom_point()
-```
+(Top values added to table.)
 
 ## Analysis
 
