@@ -2,23 +2,21 @@
 
 Below is the code used to generate all figures in the manuscript.
 
-* [Figure 1](#figure-1-papers)
-* [Figure 2](#figure-2-downloads)
-  * [Supplement 1](#figure-2-supplement-1-downloads-over-time-relative-to-posting)
-  * [Supplement 2](#figure-2-supplement-2-proportion-of-downloads-per-month-on-biorxiv)
-  * [Supplement 3](#figure-2-supplement-3-downloads-by-year-posted)
-  * [Supplement 4](#figure-2-supplement-4-median-downloads-per-year)
-* [Figure 3](#figure-3-publications)
-* [Figure 4](#figure-4-time-to-publication)
-* [Figure 5](#figure-5-preprint-publications-per-journal)
-* [Figure 6](#figure-6-median-biorxiv-downloads-per-journal)
-
-* [Table 1](#table-1-authors-per-year)
-* [Table 2](#table-2-downloads-of-published-and-unpublished-papers)
-* [Table S1](*tk)
-* [Table S2](#table-s2-papers-per-author)
-* [Table S3](#table-s3-authors-and-papers-by-institution)
-
+* [Figure 1](#figure-1-papers): Papers
+* [Figure 2](#figure-2-downloads): Downloads
+  * [Supplement 1](#figure-2-supplement-1-downloads-over-time-relative-to-posting): Downloads over time relative to posting
+  * [Supplement 2](#figure-2-supplement-2-proportion-of-downloads-per-month-on-biorxiv): Proportion of downloads per month on bioRxiv
+  * [Supplement 3](#figure-2-supplement-3-downloads-by-year-posted): Downloads by year posted
+  * [Supplement 4](#figure-2-supplement-4-median-downloads-per-year): Median downloads per year posted
+* [Figure 3](#figure-3-publications): Publications
+* [Figure 4](#figure-4-time-to-publication): Time to publication
+* [Figure 5](#figure-5-preprint-publications-per-journal): Preprint publications per journal
+* [Figure 6](#figure-6-median-biorxiv-downloads-per-journal): Median bioRxiv downloads per journal
+* [Table 1](#table-1-authors-per-year): Authors per journal
+* [Table 2](#table-2-downloads-of-published-and-unpublished-papers): Downloads of published and unpublished papers
+* [Table S1](#table-s1-articles-per-journal-september-2018): Articles per journal, September 2018
+* [Table S2](#table-s2-papers-per-author): Papers per author
+* [Table S3](#table-s3-authors-and-papers-by-institution): Authors and papers by institution
 * [In-text analysis](#analysis)
 
 ## R environment setup
