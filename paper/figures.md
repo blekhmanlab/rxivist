@@ -2,6 +2,25 @@
 
 Below is the code used to generate all figures in the manuscript.
 
+* [Figure 1](#figure-1-papers)
+* [Figure 2](#figure-2-downloads)
+  * [Supplement 1](#figure-2-supplement-1-downloads-over-time-relative-to-posting)
+  * [Supplement 2](#figure-2-supplement-2-proportion-of-downloads-per-month-on-biorxiv)
+  * [Supplement 3](#figure-2-supplement-3-downloads-by-year-posted)
+  * [Supplement 4](#figure-2-supplement-4-median-downloads-per-year)
+* [Figure 3](#figure-3-publications)
+* [Figure 4](#figure-4-time-to-publication)
+* [Figure 5](#figure-5-preprint-publications-per-journal)
+* [Figure 6](#figure-6-median-biorxiv-downloads-per-journal)
+
+* [Table 1](#table-1-authors-per-year)
+* [Table 2](#table-2-downloads-of-published-and-unpublished-papers)
+* [Table S1](*tk)
+* [Table S2](#table-s2-papers-per-author)
+* [Table S3](#table-s3-authors-and-papers-by-institution)
+
+* [In-text analysis](#analysis)
+
 ## R environment setup
 ```r
 library(ggplot2)
@@ -323,7 +342,7 @@ monthly <- ggplot_gtable(ggplot_build(x))
 monthly$layout$clip[monthly$layout$name == "panel"] <- "off"
 ```
 
-#### Figure 1(inset): Total papers over time
+#### Figure 1a (inset): Total papers over time
 
 Query for fetching overall monthly submission numbers (not categorized); another column, `cumulative`, is required for the figure and was calculated in this case using Excel.
 
@@ -1324,6 +1343,46 @@ plot_grid(main) +
   draw_plot(inset, 0.48, 0.1, 0.51, 0.65)
 ```
 
+## Table 2: Downloads of published and unpublished papers
+
+Query written to `downloads_publication_status.csv`:
+```sql
+SELECT d.article, d.downloads, EXTRACT(year FROM a.posted) AS year,
+	CASE WHEN COUNT(p.article) > 0 THEN TRUE
+    	ELSE FALSE
+    END AS published
+FROM paper.alltime_ranks d
+LEFT JOIN paper.article_publications p ON d.article=p.article
+LEFT JOIN paper.articles a ON d.article=a.id
+GROUP BY d.article, a.posted
+ORDER BY published DESC, d.downloads DESC
+```
+
+Analysis and generation of numbers used in table:
+
+```r
+paperframe = read.csv('downloads_publication_status.csv')
+library(car)
+leveneTest(downloads~published, data=paperframe)
+library(MASS)
+wilcox.test(downloads~published, data=paperframe, alternative="less")
+
+library(canprot)
+CLES(filter(paperframe, published=='False')$downloads, filter(paperframe, published=='True')$downloads)
+
+# pre-2018:
+wilcox.test(downloads~published, data=filter(paperframe, year<2018), alternative="less")
+CLES(filter(paperframe, published=='False', year<2018)$downloads, filter(paperframe, published=='True', year<2018)$downloads)
+
+# Actual numbers for table:
+median(filter(paperframe, published=='False', year<2018)$downloads)
+median(filter(paperframe, published=='True', year<2018)$downloads)
+
+median(filter(paperframe, published=='False')$downloads)
+median(filter(paperframe, published=='True')$downloads)
+```
+
+
 ## Figure 2, supplement 1: Downloads over time relative to posting
 
 Query written to `downloads_by_months.csv`:
@@ -1737,45 +1796,15 @@ ggplot(data=aframe, aes(
   )
 ```
 
+## Table S1: Articles per journal, September 2018
 
-## Table 2: Downloads of published and unpublished papers
+Tables of contents:
 
-Query written to `downloads_publication_status.csv`:
-```sql
-SELECT d.article, d.downloads, EXTRACT(year FROM a.posted) AS year,
-	CASE WHEN COUNT(p.article) > 0 THEN TRUE
-    	ELSE FALSE
-    END AS published
-FROM paper.alltime_ranks d
-LEFT JOIN paper.article_publications p ON d.article=p.article
-LEFT JOIN paper.articles a ON d.article=a.id
-GROUP BY d.article, a.posted
-ORDER BY published DESC, d.downloads DESC
-```
-
-Analysis and generation of numbers used in table:
-
-```r
-paperframe = read.csv('downloads_publication_status.csv')
-library(car)
-leveneTest(downloads~published, data=paperframe)
-library(MASS)
-wilcox.test(downloads~published, data=paperframe, alternative="less")
-
-library(canprot)
-CLES(filter(paperframe, published=='False')$downloads, filter(paperframe, published=='True')$downloads)
-
-# pre-2018:
-wilcox.test(downloads~published, data=filter(paperframe, year<2018), alternative="less")
-CLES(filter(paperframe, published=='False', year<2018)$downloads, filter(paperframe, published=='True', year<2018)$downloads)
-
-# Actual numbers for table:
-median(filter(paperframe, published=='False', year<2018)$downloads)
-median(filter(paperframe, published=='True', year<2018)$downloads)
-
-median(filter(paperframe, published=='False')$downloads)
-median(filter(paperframe, published=='True')$downloads)
-```
+* [*Cell* 174(6)](https://www.sciencedirect.com/journal/cell/vol/174/issue/6), 6 Sep 2018
+* [*Cell* 175(1)](https://www.sciencedirect.com/journal/cell/vol/175/issue/1), 20 Sep 2018
+* [*Genetics* 210(1)](http://www.genetics.org/content/210/1), September 2018
+* [*The Journal of Biochemistry* 164(3)](https://academic.oup.com/jb/issue/164/3), September 2018
+* [*PLOS Biology* 16(9)](https://journals.plos.org/plosbiology/issue?id=10.1371/issue.pbio.v16.i09), September 2018
 
 ## Table S2: Papers per author
 
