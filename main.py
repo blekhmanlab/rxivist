@@ -174,6 +174,14 @@ def display_author_details(author_id):
     return {"error": f"Server error – {e}"}
   return author.json()
 
+@bottle.get('/v1/top/<year:int>')
+def alltime_author_ranks(year):
+  resp = endpoints.top_year(year, connection)
+  # bottle.response.set_header("Cache-Control", f'max-age=15552000, stale-while-revalidate=15552000')
+  return {
+    "results": [x.json() for x in resp]
+  }
+
 # categories list endpoint
 @bottle.get('/v1/data/categories')
 def get_category_list():

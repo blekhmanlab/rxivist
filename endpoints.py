@@ -246,19 +246,20 @@ def get_distribution(category, metric, connection):
 
 def top_year(year, connection):
   resp = connection.read("""
-    SELECT t.article, SUM(t.pdf) as downloads
-    FROM prod.article_traffic t
-    INNER JOIN prod.articles a ON t.article=a.id
+  SELECT SUM(t.pdf) as downloads, t.article, a.url,
+    a.title, a.abstract, a.collection, a.posted, a.doi
+    FROM article_traffic t
+    INNER JOIN articles a ON t.article=a.id
     WHERE t.year = %s
       AND a.posted >= '%s-01-01'
-    GROUP BY 1
-    ORDER BY 2 DESC
-    LIMIT 50
-  """, (year,year))
+      AND a.posted <= '%s-12-31'
+    GROUP BY 2,3,4,5,6,7,8
+    ORDER BY 1 DESC
+    LIMIT 25
+  """, (year,year,year))
   if len(resp) == 0:
     return []
-  results = [{"id": x[0], "downloads": x[1]} for x in resp]
-  print(results)
+  results = [models.SearchResultArticle(a, connection) for a in resp]
   return results
 
 def site_stats(connection):
