@@ -244,6 +244,23 @@ def get_distribution(category, metric, connection):
     averages[avg] = answer[0][0]
   return results, averages
 
+def top_year(year, connection):
+  resp = connection.read("""
+    SELECT t.article, SUM(t.pdf) as downloads
+    FROM prod.article_traffic t
+    INNER JOIN prod.articles a ON t.article=a.id
+    WHERE t.year = %s
+      AND a.posted >= '%s-01-01'
+    GROUP BY 1
+    ORDER BY 2 DESC
+    LIMIT 50
+  """, (year,year))
+  if len(resp) == 0:
+    return []
+  results = [{"id": x[0], "downloads": x[1]} for x in resp]
+  print(results)
+  return results
+
 def site_stats(connection):
   """Returns a (very) brief summary of the information indexed by Rxivist
 
