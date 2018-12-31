@@ -120,8 +120,22 @@ def index():
   return resp.json()
 
 # paper details
-@bottle.get('/v1/papers/<id:int>')
+@bottle.get('/v1/papers/<id:path>')
 def paper_details(id):
+  print(f"GOT {id}")
+  # if the ID passed in isn't an integer, assume it's a DOI
+  try:
+    article_id = int(id)
+  except Exception:
+    print("\n\n\nNOT AN INT")
+    new_id = helpers.doi_to_id(id, connection)
+    print(f'New ID is {new_id}')
+    if new_id:
+      print(f"{config.host}/v1/papers/{new_id}")
+      return bottle.redirect(f"{config.host}/v1/papers/{new_id}", 301)
+    else:
+      bottle.response.status = 404
+      return {"error": "Could not find bioRxiv paper with that DOI"}
   try:
     paper = endpoints.paper_details(id, connection)
   except helpers.NotFoundError as e:
@@ -133,7 +147,7 @@ def paper_details(id):
   return paper.json()
 
 # paper download stats
-@bottle.get('/v1/papers/<id:int>/downloads')
+@bottle.get('/v1/downloads/<id>')
 def paper_downloads(id):
   try:
     details = endpoints.paper_downloads(id ,connection)

@@ -28,6 +28,18 @@ def find_new_id(old, connection):
     return False
   return result[0][0]
 
+def doi_to_id(doi, connection):
+  """If a request comes in for an author of an ID that indicates
+  it's part of the old numbering scheme, this will check to see if
+  we have an updated number to redirect to."""
+  print(f"LOOKIN FOR {doi}")
+  result = connection.read("SELECT id FROM articles WHERE doi=%s", (doi,))
+  if len(result) == 0:
+    return False
+  if len(result[0]) == 0:
+    return False
+  return result[0][0]
+
 def num_to_month(monthnum):
   """Converts a (1-indexed) numerical representation of a month
   of the year into a three-character string for printing. If
