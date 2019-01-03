@@ -191,7 +191,7 @@ def display_author_details(author_id):
 @bottle.get('/v1/top/<year:int>')
 def alltime_author_ranks(year):
   resp = endpoints.top_year(year, connection)
-  # bottle.response.set_header("Cache-Control", f'max-age=15552000, stale-while-revalidate=15552000')
+  bottle.response.set_header("Cache-Control", f'max-age=15552000, stale-while-revalidate=15552000')
   return {
     "results": [x.json() for x in resp]
   }

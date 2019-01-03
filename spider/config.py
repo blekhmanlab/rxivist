@@ -1,46 +1,5 @@
 import os
 
-# Information about how to connect to a postgres database will
-# all the Rxivist data
-db = {
-  "host": os.environ['RX_DBHOST'],
-  "db": "rxdb",
-  "user": "root",
-  "password": os.environ['RX_DBPASSWORD']
-}
-
-# How much output to send to application logs
-log_level = "debug"
-# Whether to print messages to stdout
-log_to_stdout = True
-# Whether to record messages in a timestamped file
-log_to_file = False
-
-# how the web crawler should identify itself when sending http requests
-# to sites such as bioRxiv and crossref
-user_agent = "rxivist web crawler (rxivist.org)"
-
-# whether to add pauses at several places in the crawl
-polite = True
-
-# whether to stop crawling once we've encountered a set
-# number of papers that we've already recorded. setting this
-# to 0 would make sense, except if papers are added to a
-# collection WHILE you're indexing it, the crawler dies early.
-# (if this is set to False, the crawler will go through every
-# single page of results for a collection, which is probably
-# wasteful.)
-stop_on_recognized = True
-
-# if stop_on_recognized is True, how many papers we have
-# to recognize *in a row* before we assume that we've indexed
-# all the papers at that point in the chronology.
-recognized_limit = 18
-
-# The crawler uses temporary files to speed up database writes.
-# Setting this flag to True will delete them after they're processed.
-delete_csv = True
-
 # When updating the statistics of papers that probably have new
 # download information ready, we don't have to get every single
 # outdated paper in one run of the spider. limit_refresh caps
@@ -52,34 +11,14 @@ delete_csv = True
 # stats should be before we refresh them. (This string MUST
 # be able to be interpreted by Postgres as a time interval
 # to subtract from the current date.)
-refresh_interval = "4 weeks"
+refresh_interval = "30 days"
 limit_refresh = True
 refresh_category_cap = 100
 
-# information about the biorxiv web addresses to be scraped
-biorxiv = {
-  "endpoints": {
-    "collection": "https://www.biorxiv.org/collection",
-    "pub_doi": "https://connect.biorxiv.org/bx_pub_doi_get.php"
-  }
-}
-
-crossref = {
-  "endpoints": {
-    "events": "https://api.eventdata.crossref.org/v1/events"
-  },
-  "parameters": {
-    "email": "blekhmanlab@gmail.com" # an email address to attach to each Crossref call, per their request
-  }
-}
-
-rxivist = {
-  "base_url": "https://rxivist.org" # used for building sitemaps
-}
-
 # Which actions to take as part of the crawling session
 crawl = {
-  "fetch_new": True, # Check for new papers in each collection
+  "fetch_new": True, # Check for new papers
+  "fetch_collections": True, # Fill in the collection for new articles
   "fetch_abstracts": True, # Check for any Rxivist papers missing an abstract and fill it in (Papers don't have an abstract when first crawled)
   "fetch_crossref": True, # Update daily Crossref stats
   "refresh_stats": True, # Look for articles with outdated download info and re-crawl them
@@ -93,6 +32,84 @@ perform_ranks = {
   "authors": True,
   "article_categories": True,
   "author_categories": True
+}
+
+# Information about how to connect to a postgres database will
+# all the Rxivist data
+db = {
+  "host": os.environ['RX_DBHOST'],
+  "db": "rxdb",
+  "user": "root",
+  "password": os.environ['RX_DBPASSWORD'],
+  "schema": "prod"
+}
+
+# How much output to send to application logs
+log_level = "debug"
+# Whether to print messages to stdout
+log_to_stdout = True
+# Whether to record messages in a timestamped file
+log_to_file = True
+
+# how the web crawler should identify itself when sending http requests
+# to sites such as bioRxiv and crossref
+user_agent = "rxivist web crawler (your_hostname_here.org)"
+
+# whether to add pauses at several places in the crawl
+polite = True
+
+# whether to stop crawling once we've encountered a set
+# number of papers that we've already recorded. setting this
+# to 0 would make sense, except if papers are added to a
+# collection WHILE you're indexing it, the crawler dies early.
+# (if this is set to False, the crawler will go through every
+# single page of results for a collection, which is probably
+# wasteful and definitely takes a long time.)
+stop_on_recognized = True
+
+# Papers are listed on bioRxiv in (approximately) chronological
+# order. if stop_on_recognized is True, how many papers we have
+# to recognize *in a row* before we assume that we've indexed
+# all the papers at that point in the chronology.
+recognized_limit = 31
+
+# Papers are initially recorded without a collection, because
+# the only way to determine a paper's collection is by observing
+# it in the chronological list of papers available for each collection.
+# Similarly to the search for new papers, this is how many papers
+# we should recognize a collection's list before we assume we
+# have already seen the rest.
+cat_recognized_limit = 51
+
+# The crawler uses temporary files to speed up database writes.
+# Setting this flag to True will delete them after they're processed.
+delete_csv = True
+
+# Normally, a paper's author list is refreshed only when a revision is
+# posted, NOT when the download stats are periodically updated. Flip this
+# setting to True to re-evaluate the authors every time.
+record_authors_on_refresh = False
+
+# information about the biorxiv web addresses to be scraped
+biorxiv = {
+  "endpoints": {
+    "collection": "https://www.biorxiv.org/collection",
+    "recent": "https://www.biorxiv.org/content/early/recent",
+    "pub_doi": "https://connect.biorxiv.org/bx_pub_doi_get.php"
+  }
+}
+
+crossref = {
+  "endpoints": {
+    "events": "https://api.eventdata.crossref.org/v1/events"
+  },
+  "parameters": {
+    "email": "your_email_here@gmail.com" # an email address to attach to each Crossref call, per their request
+  }
+}
+
+rxivist = {
+  "base_url": "https://web_url_here" # Utility for the website; used for building sitemaps
 }
 
 # The graphs for the distribution of downloads for articles and authors
