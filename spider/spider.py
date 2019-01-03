@@ -1016,6 +1016,77 @@ def month_to_num(month):
   months_to_num = dict(zip(months, range(1,13)))
   return months_to_num[month]
 
+def pieces_to_date(pieces):
+  if len(pieces) == 3:
+    return f'{pieces[0]}-{pieces[1]}-{pieces[2]}'
+  else:
+    print(f"  WEIRD DATE HERE: {pieces}")
+    return False
+
+def get_publication_dates(spider):
+  for x in range(0,100):
+    answers = []
+    with spider.connection.db.cursor() as cursor:
+      cursor.execute(f"""
+      SELECT p.article, p.doi
+      FROM {config.db['schema']}.article_publications p
+      LEFT JOIN paper.publication_dates d ON p.article=d.article
+      WHERE d.date IS NULL
+      """)
+      done = 0
+      for article in cursor:
+        if done >= 100:
+          break
+        done += 1
+        time.sleep(0.5)
+        article_id = article[0]
+        doi = article[1]
+        print(f"Checking DOI {doi}")
+        headers = {'user-agent': config.user_agent}
+        r = requests.get(f"https://api.crossref.org/works/{doi}?mailto={config.crossref['parameters']['email']}", headers=headers)
+        if r.status_code != 200:
+          if r.status_code == 404:
+            print("  Not found.")
+            # HACK: This makes it easy to skip missing papers in the future
+            answers.append((article_id, '1900-01-01'))
+            continue
+          print(f"  Got weird status code: {r.status_code}")
+          print(r)
+          continue
+        resp = r.json()
+
+        if "message" not in resp.keys():
+          print("  No message found.")
+          continue
+        if "published-online" in resp['message']:
+          if 'date-parts' in resp['message']['published-online']:
+            pieces = resp['message']['published-online']['date-parts'][0]
+            answer = pieces_to_date(pieces)
+            if answer:
+              print(f"  FOUND DATE (online): {answer}")
+              answers.append((article_id, answer))
+              continue
+        if "published-print" in resp['message']:
+          if 'date-parts' in resp['message']['published-print']:
+            pieces = resp['message']['published-print']['date-parts'][0]
+            answer = pieces_to_date(pieces)
+            if answer:
+              print(f"  FOUND DATE (print): {answer}")
+              answers.append((article_id, answer))
+              continue
+        if "created" in resp['message']:
+          if 'date-parts' in resp['message']['created']:
+            pieces = resp['message']['created']['date-parts'][0]
+            answer = pieces_to_date(pieces)
+            if answer:
+              print(f"  FOUND DATE (created): {answer}")
+              answers.append((article_id, answer))
+              continue
+    print("\n\n\n\nRECORDING BATCH!\n\n\n\n")
+    with spider.connection.db.cursor() as cursor:
+      sql = f"INSERT INTO paper.publication_dates (article, date) VALUES (%s, %s);"
+      cursor.executemany(sql, answers)
+
 if __name__ == "__main__":
   spider = Spider()
   if len(sys.argv) == 1: # if no action is specified, do everything
@@ -1026,7 +1097,7 @@ if __name__ == "__main__":
     else:
       spider.pull_todays_crossref_data()
   elif sys.argv[1] == "test":
-    cachewarmer(spider)
+    get_publication_dates(spider)
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   elif sys.argv[1] == "refresh":
