@@ -4,10 +4,6 @@ Below is the code used to generate all figures in the manuscript.
 
 * [Figure 1](#figure-1-papers): Papers
 * [Figure 2](#figure-2-downloads): Downloads
-  * [Supplement 1](#figure-2-supplement-1-downloads-over-time-relative-to-posting): Downloads over time relative to posting
-  * [Supplement 2](#figure-2-supplement-2-proportion-of-downloads-per-month-on-biorxiv): Proportion of downloads per month on bioRxiv
-  * [Supplement 3](#figure-2-supplement-3-downloads-by-year-posted): Downloads by year posted
-  * [Supplement 4](#figure-2-supplement-4-median-downloads-per-year): Median downloads per year posted
 * [Figure 3](#figure-3-publications): Publications
 * [Figure 4](#figure-4-time-to-publication): Time to publication
 * [Figure 5](#figure-5-preprint-publications-per-journal): Preprint publications per journal
@@ -17,7 +13,30 @@ Below is the code used to generate all figures in the manuscript.
 * [Table S1](#table-s1-articles-per-journal-september-2018): Articles per journal, September 2018
 * [Table S2](#table-s2-papers-per-author): Papers per author
 * [Table S3](#table-s3-authors-and-papers-by-institution): Authors and papers by institution
+* [Figure S1](#figure-s1-downloads-over-time-relative-to-posting): Downloads over time relative to posting
+* [Figure S2](#figure-s2-proportion-of-downloads-per-month-on-biorxiv): Proportion of downloads per month on bioRxiv
+* [Figure S3](#figure-s3-downloads-by-year-posted): Downloads by year posted
+* [Figure S4](#figure-s4-median-downloads-per-year): Median downloads per year posted
 * [In-text analysis](#analysis)
+
+## PostgreSQL snapshot restoration
+
+Any conventional method of restoring Postgres backups should work properly for these snapshots, but a straightforward method using a conventional workstation is described below.
+
+1. Download the database snapshot from [our Zenodo repository](https://doi.org/10.5281/zenodo.2465689) at doi 10.5281/zenodo.2465689. The file is called `rxivist.paper.backup`.
+1. Install [Docker](https://www.docker.com/products/docker-desktop), a free containerization platform. Containers are used for all the Rxivist components to limit external dependencies and side-effects from installation of tools such as PostgreSQL.
+1. Start the Docker daemon.
+1. Open a command terminal and start a PostgreSQL server as a background process: `docker run --name devdb -e POSTGRES_PASSWORD=asdf -d -p 5432:5432 postgres` This should result in a database server being available on your workstation at `localhost:5432`, the standard Postgres port.
+1. While you can use the `psql` tool to run the queries in this file from within the container, those unfamiliar with SQL databases may have an easier time installing [pgAdmin 4](https://www.pgadmin.org/download/), a free tool that adds a browser-based interface with which to run commands. (Be careful—the sidebar of their website sometimes includes spam "START NOW" advertisements that look like download buttons.)
+1. Start pgAdmin. This should launch a new browser tab with the application. If not, navigating to [`http://127.0.0.1:57146/browser/`](http://127.0.0.1:57146/browser/) may work.
+1. On the left side, right-click on "Servers," and select "Create Server." Give this connection a name, then, in the "Connection" tab of the "Create - Server" dialog, enter the properties of the PostgreSQL database you created in step 4. "Host name/address" should be `localhost`; most other values can remain unchanged. For the "Password" field, enter whatever password you specified in the Docker command in step 4 (in the example, it's `asdf`.) Click "Save."
+1. The new server connections should now appear in the "Servers" tree in the left sidebar. Open this, and select the `postgres` database from under the `Databases` category. Right-click on `postgres`, and select the "Restore..." option.
+1. This should open the "Restore" dialog. For "Filename," click on the ellipsis on the right side of the box and find the `rxivist.paper.backup` file that you downloaded in step 1.
+1. Switch to the "Restore options" tab of this dialog box. Most of these values can remain unchanged, but two values need to be changed from "No" to "Yes": "Pre-data," "Data" and "Owner."
+1. Click the blue "Restore" button.
+1. Once this process is complete, your "postgres" database should have two schemas: "prod" and "paper." The "paper" schema contains the data used in this study.
+
+(For those looking to create a snapshot of their own, Snapshots are created using the "Backup" dialog with the "Yes" option selected for "Pre-data," "Data," "Blobs," "Owner," "Privilege," "With OID(s)" and "Verbose messages.")
 
 ## R environment setup
 ```r
@@ -32,8 +51,6 @@ library(ggrepel)
 
 themepurple = "#d0c1ff"
 themeorange = "#ffab03"
-themeyellow = "#fff7c1"
-themeoffwhite = "#f2f6ff"
 themedarkgrey = "#565656"
 
 themedarktext = "#707070"
@@ -43,7 +60,6 @@ yearline = "black"
 yearline_size = 0.5
 yearline_alpha = 1
 yearline_2014 = 8 # position of first year label
-
 # Adds an x axis with delineations and labels for each year
 # plot: A ggplot object
 # labels: boolean. Whether to include the year numbers.
@@ -181,7 +197,8 @@ capitalized_journals <- data.frame(
     'molecular ecology',
     'development',
     'molecular biology of the cell',
-    'gigascience'
+    'gigascience',
+    '(unpublished)'
   ),
   "new" = c(
     'Scientific Reports',
@@ -214,7 +231,8 @@ capitalized_journals <- data.frame(
     'Molecular Ecology',
     'Development',
     'Molecular Biology of the Cell',
-    'GigaScience'
+    'GigaScience',
+    '(unpublished)'
   )
 )
 ```
@@ -284,6 +302,49 @@ cumulative <- ggplot_gtable(ggplot_build(x))
 cumulative$layout$clip[cumulative$layout$name == "panel"] <- "off"
 ```
 
+#### Figure 1a (inset): Total papers over time
+
+Query for fetching overall monthly submission numbers (not categorized); another column, `cumulative`, is required for the figure and was calculated in this case using Excel.
+
+```sql
+SELECT EXTRACT(YEAR FROM posted)||'-'||lpad(EXTRACT(MONTH FROM posted)::text, 2, '0') AS month,
+	COUNT(id) AS submissions
+FROM paper.articles
+GROUP BY 1
+ORDER BY 1;
+```
+
+
+Building the figure:
+```r
+totalframe=read.csv('submissions_per_month_overall.csv')
+
+axisfunc <- function() {
+  function(x) paste(x/1000, "k")
+}
+
+x <- ggplot(totalframe, aes(month, cumulative, group=1)) +
+  geom_line(size=1) +
+  geom_area(fill=themepurple) +
+  labs(x = "Month", y = "Total preprints") +
+  theme_bw() +
+  scale_y_continuous(breaks=seq(0, 40000, 10000), expand=c(0,0), labels=axisfunc()) +
+  scale_x_discrete(expand=c(0,0)) +
+  coord_cartesian(ylim=c(0,40000)) +
+  theme(
+    axis.text.x=element_blank(),
+    axis.text.y = element_text(size=big_fontsize, color = themedarktext),
+    axis.title.y = element_text(size=big_fontsize),
+    legend.position="none"
+  )
+
+x <- add_year_x(x, FALSE)
+
+totals <- ggplot_gtable(ggplot_build(x))
+totals$layout$clip[totals$layout$name == "panel"] <- "off"
+```
+
+
 ### Figure 1b: Monthly preprints per category
 
 ```r
@@ -340,45 +401,6 @@ monthly <- ggplot_gtable(ggplot_build(x))
 monthly$layout$clip[monthly$layout$name == "panel"] <- "off"
 ```
 
-#### Figure 1a (inset): Total papers over time
-
-Query for fetching overall monthly submission numbers (not categorized); another column, `cumulative`, is required for the figure and was calculated in this case using Excel.
-
-```sql
-SELECT EXTRACT(YEAR FROM posted)||'-'||lpad(EXTRACT(MONTH FROM posted)::text, 2, '0') AS month,
-	COUNT(id) AS submissions
-FROM paper.articles
-GROUP BY 1
-ORDER BY 1;
-```
-
-Building the figure:
-```r
-totalframe=read.csv('submissions_per_month_overall.csv')
-
-axisfunc <- function() {
-  function(x) paste(x/1000, "k")
-}
-
-x <- ggplot(totalframe, aes(month, cumulative, group=1)) +
-  geom_line(size=1) +
-  geom_area(fill=themepurple) +
-  labs(x = "Month", y = "Total preprints") +
-  theme_bw() +
-  scale_y_continuous(breaks=seq(0, 40000, 10000), expand=c(0,0), labels=axisfunc()) +
-  scale_x_discrete(expand=c(0,0)) +
-  theme(
-    axis.text.x=element_blank(),
-    axis.text.y = element_text(size=big_fontsize, color = themedarktext),
-    axis.title.y = element_text(size=big_fontsize),
-    legend.position="none"
-  )
-
-x <- add_year_x(x, FALSE)
-
-totals <- ggplot_gtable(ggplot_build(x))
-totals$layout$clip[totals$layout$name == "panel"] <- "off"
-```
 
 ### Figure 1 combined
 
@@ -410,7 +432,7 @@ plot_grid(
     rel_heights = c(7,3),
     ncol=1, nrow=2
   ) +
-  draw_plot(totals, 0.12, 0.77, 0.42, 0.2)
+  draw_plot(totals, 0.14, 0.77, 0.4, 0.2)
 ```
 
 ## Figure 2: Downloads
@@ -555,6 +577,15 @@ two_b$layout$clip[two_b$layout$name == "panel"] <- "off"
 
 ### Figure 2b (inset): Distribution of downloads per paper
 
+Query written to `downloads_per_category.csv`:
+
+```sql
+SELECT a.id AS article, REPLACE(a.collection, '-', ' ') AS collection, COALESCE(d.downloads, 0) AS downloads
+FROM paper.articles a
+LEFT JOIN paper.alltime_ranks d ON a.id=d.article
+```
+
+Panel:
 ```r
 paperframe = read.csv('downloads_per_category.csv')
 
@@ -584,16 +615,6 @@ two_binset <- ggplot(paperframe, aes(x=downloads)) +
 
 
 ### Figure 2c: Median downloads per category
-
-Query written to `downloads_per_category.csv`:
-
-```sql
-SELECT d.article, d.downloads, REPLACE(a.collection, '-', ' ') AS collection
-FROM paper.alltime_ranks d
-INNER JOIN paper.articles a ON d.article=a.id;
-```
-
-Panel:
 
 ```r
 paperframe = read.csv('downloads_per_category.csv')
@@ -1219,11 +1240,9 @@ library(MASS)
 wilcox.test(downloads~published, data=paperframe, alternative="less")
 
 library(canprot)
-CLES(filter(paperframe, published=='False')$downloads, filter(paperframe, published=='True')$downloads)
 
 # pre-2018:
 wilcox.test(downloads~published, data=filter(paperframe, year<2018), alternative="less")
-CLES(filter(paperframe, published=='False', year<2018)$downloads, filter(paperframe, published=='True', year<2018)$downloads)
 
 # Actual numbers for table:
 median(filter(paperframe, published=='False', year<2018)$downloads)
@@ -1380,7 +1399,7 @@ plot_grid(histbox, hist, by_journal,
  ```
 
 
-## Figure 2, supplement 1: Downloads over time relative to posting
+## Figure S1: Downloads over time relative to posting
 
 Query written to `downloads_by_months.csv`:
 
@@ -1581,7 +1600,7 @@ ggplot(data=firstframe, aes(
   geom_hline(yintercept=21, col=themedarkgrey, linetype="dashed", size=1)
 ```
 
-## Figure 2, supplement 2: Proportion of downloads per month on bioRxiv
+## Figure S2: Proportion of downloads per month on bioRxiv
 
 ```r
 pre2018 <- filter(firstframe, posted < 2018)
@@ -1606,9 +1625,9 @@ ggplot(data=combined, aes(
   )
 ```
 
-## Figure 2, supplement 3: Downloads by year posted
+## Figure S3: Downloads by year posted
 
-### Figure 2.3a: Downloads in first month on bioRxiv
+### Figure S3a: Downloads in first month on bioRxiv
 
 Query written to `downloads_by_first_month.csv`:
 
@@ -1660,7 +1679,7 @@ firstplot <- ggplot(data=firstframe, aes(
   )
 ```
 
-### Figure 2.3b: Best month of downloads
+### Figure S3b: Best month of downloads
 
 Query written to `downloads_max_by_year_posted.csv`:
 
@@ -1697,7 +1716,7 @@ theme(
 )
 ```
 
-### Figure 2.3(c): 2018 downloads, by year posted
+### Figure S3(c): 2018 downloads, by year posted
 
 Query written to `2018_downloads_by_year_posted.csv`:
 
@@ -1739,7 +1758,7 @@ latestplot <- ggplot(data=latestframe, aes(
   )
 ```
 
-### Figure 2, supplement 3 combined
+### Figure S3 combined
 
 ```r
 plot_grid(firstplot, maxplot, latestplot,
@@ -1750,7 +1769,7 @@ plot_grid(firstplot, maxplot, latestplot,
 )
 ```
 
-## Figure 2, supplement 4: Median downloads per year
+## Figure S4: Median downloads per year
 
 Query written to `downloads_per_year.csv`:
 
@@ -1847,7 +1866,7 @@ ORDER BY 3 DESC, 2 DESC, 1
 ## Analysis
 
 Total papers: `SELECT COUNT(id) FROM paper.articles`
-Total papers in 2018: `SELECT COUNT(id) FROM paper.articles WHERE posted > '2017-12-31'`
+Total papers in 2018: `SELECT COUNT(id) FROM paper.articles WHERE posted >= '2018-01-01'`
 Total papers before 2018: `SELECT COUNT(id) FROM paper.articles WHERE posted < '2018-01-01'`
 
 Total neuroscience papers: `SELECT COUNT(id) FROM paper.articles WHERE collection='neuroscience'`
@@ -1862,7 +1881,7 @@ ddply(paperframe, .(isneuro), summarise, med = median(downloads))
 wilcox.test(downloads~isneuro, data=paperframe)
 ```
 
-Info from Figure 2, supplement 1:
+Info from Figure S1:
 ```r
 firstframe = read.csv('downloads_by_months.csv')
 median(filter(firstframe, monthnum==1)$downloads)
@@ -1888,16 +1907,23 @@ LIMIT 1
 
 Total authors: `SELECT COUNT(id) FROM paper.authors`
 
+Authors with only a single preprint:
 
 ```sql
-SELECT publication, COUNT(DISTINCT collection)
+SELECT COUNT(author)
 FROM (
-	SELECT p.publication, a.collection
-	FROM paper.article_publications p
-	INNER JOIN paper.articles a ON p.article=a.id
-) AS biglist
-GROUP BY 1
-ORDER BY 2 DESC
+	SELECT author, COUNT(article)
+	FROM paper.article_authors
+	GROUP BY 1
+	ORDER BY 2
+) AS counts
+WHERE count=1
+```
+
+Mean papers per author:
+```r
+aframe = read.csv('papers_per_author.csv')
+mean(aframe$papers)
 ```
 
 Papers by top 10 percent of authors:
@@ -1916,4 +1942,48 @@ WHERE author IN (
 		LIMIT (SELECT COUNT(id) FROM paper.authors) * 0.10
 	) as topauthors
 )
+```
+
+Categories published, by journal:
+```sql
+SELECT publication, COUNT(DISTINCT collection)
+FROM (
+	SELECT p.publication, a.collection
+	FROM paper.article_publications p
+	INNER JOIN paper.articles a ON p.article=a.id
+) AS biglist
+GROUP BY 1
+ORDER BY 2 DESC
+```
+
+Comparing publication interval by journal:
+
+```r
+timeframe = read.csv('publication_interval_journals.csv')
+timeframe <- timeframe %>%
+  inner_join(capitalized_journals, by=c("journal"="old"))  %>%
+  mutate(journal = new) %>%
+  select(journal, interval)
+
+medians <- ddply(timeframe, .(journal), summarise, med = median(interval))
+library(car)
+leveneTest(interval~journal, data=timeframe)
+kruskal.test(interval~journal, data=timeframe)
+library(FSA)
+dunnTest(interval~journal, data=timeframe, method="bh")
+```
+
+Preprints published within a week of posting:
+
+```sql
+SELECT COUNT(id)
+FROM (
+	SELECT a.id, EXTRACT(YEAR FROM a.posted) AS year, REPLACE(a.collection, '-', ' ') AS collection,
+	p.date AS published, (p.date-a.posted) AS interval
+	FROM paper.articles a
+	INNER JOIN paper.publication_dates p ON a.id=p.article
+	WHERE p.date > '1900-01-01' --- Dummy value used for unknown values
+	ORDER BY interval DESC
+) AS intervals
+WHERE interval >=0 AND interval <= 7
 ```
