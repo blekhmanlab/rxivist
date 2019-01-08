@@ -597,7 +597,7 @@ two_binset <- ggplot(paperframe, aes(x=downloads)) +
   scale_x_log10(labels = comma, expand=c(0,0)) +
   scale_y_continuous(labels = comma) +
   coord_cartesian(xlim=c(1, 100000)) +
-  labs(y = "Papers", x = "Total downloads (log scale)") +
+  labs(y = "Preprints", x = "Total downloads (log scale)") +
   geom_vline(
     xintercept=median(paperframe$downloads),
     col=themedarkgrey, linetype="dashed", size=1
@@ -1986,4 +1986,16 @@ FROM (
 	ORDER BY interval DESC
 ) AS intervals
 WHERE interval >=0 AND interval <= 7
+```
+
+Publication rate as of 17 Apr 2017 of papers posted before 2016:
+```sql
+SELECT COUNT(a.id)
+FROM paper.articles a
+WHERE a.posted < '1 Jan 2016'
+
+SELECT COUNT(a.id)
+FROM paper.articles a
+INNER JOIN paper.article_publications p ON a.id=p.article
+WHERE a.posted < '1 Jan 2016'
 ```
