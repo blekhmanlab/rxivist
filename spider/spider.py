@@ -201,13 +201,14 @@ class Spider(object):
     # funny's going on
     recognized_any = False
 
-    for article in results:
+    for article in results: # note: this first loop only for the first page
       article.collection = collection
       # make sure we know about the article already:
       if not article.get_id(self.connection):
         if recognized_any:
           self.log.record(f'Encountered unknown paper in category listings: {article.doi}', 'fatal')
         else:
+          self.log.record(f'New paper at top of category listings: {article.doi}', 'debug')
           continue
 
       recognized_any = True
@@ -236,8 +237,13 @@ class Spider(object):
       for article in results:
         article.collection = collection
         if not article.get_id(self.connection):
-          self.log.record(f'Encountered unknown paper in category listings: {article.doi}', 'fatal')
+          if recognized_any:
+            self.log.record(f'Encountered unknown paper in category listings: {article.doi}', 'fatal')
+          else:
+            self.log.record(f'New paper at top of category listings: {article.doi}', 'debug')
+            continue
 
+        recognized_any = True
         if not article.record_category(collection, self.connection, self.log):
           consecutive_recognized += 1
           if consecutive_recognized >= config.cat_recognized_limit and config.stop_on_recognized:
