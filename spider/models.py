@@ -187,5 +187,5 @@ class Article:
         return False
       self.category = collection
       cursor.execute("UPDATE articles SET collection=%s WHERE id=%s;", (self.category, self.id))
-      log.record(f"Updated collection for article {self.id}: {self.category}", "debug")
+      log.record(f"Updated collection for article {self.id}: {self.category}", "info")
       return True

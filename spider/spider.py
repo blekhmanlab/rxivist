@@ -182,7 +182,7 @@ class Spider(object):
 
   def determine_collection(self, collection):
     # we need to grab the first page to figure out how many pages there are
-    self.log.record(f"Fetching page 0 in {collection}")
+    self.log.record(f"Fetching page 0 in {collection}", 'debug')
     try:
       r = self.session.get(f'{config.biorxiv["endpoints"]["collection"]}/{collection}')
     except Exception as e:
@@ -221,7 +221,7 @@ class Spider(object):
     for p in range(1, determine_page_count(r.html)): # iterate through each page of results
       if config.polite:
         time.sleep(3)
-      self.log.record(f"Fetching page {p} in {collection}") # pages are zero-indexed
+      self.log.record(f"Fetching page {p} in {collection}", 'debug') # pages are zero-indexed
       try:
         r = self.session.get("{}/{}?page={}".format(config.biorxiv["endpoints"]["collection"], collection, p))
       except Exception as e:
@@ -573,6 +573,7 @@ class Spider(object):
       cursor.execute("TRUNCATE author_ranks_category_working")
       cursor.execute("TRUNCATE author_ranks_category_working")
       cursor.execute("TRUNCATE category_ranks_working")
+    self.log.record('Starting categorical ranking process.', 'info')
     for category in self.fetch_categories():
       if config.perform_ranks["article_categories"] is not False:
         self._rank_articles_categories(category)
@@ -592,7 +593,7 @@ class Spider(object):
     self.log.record(f"{end} - Full ranking process complete after {end-start}.")
 
   def activate_tables(self, table):
-    self.log.record(f"Activating tables for {table}")
+    self.log.record(f"Activating tables for {table}", 'debug')
     queries = [
       f"ALTER TABLE {table} RENAME TO {table}_temp",
       f"ALTER TABLE {table}_working RENAME TO {table}",
@@ -607,7 +608,11 @@ class Spider(object):
       try:
         os.remove(to_delete)
       except Exception as e:
-        self.log.record(f"Problem deleting {to_delete}: {e}", "warn")
+        if to_delete not in [ # HACK These aren't there on the last loop
+          'category_ranks_working.csv',
+          'author_ranks_category_working.csv'
+        ]:
+          self.log.record(f"Problem deleting {to_delete}: {e}", "warn")
 
   def _calculate_download_distributions(self):
     self.log.record("Calculating distribution of download counts with logarithmic scales.")
@@ -640,7 +645,7 @@ class Spider(object):
           buckets.append(current)
           if None in [current, biggest] or current > biggest:
             break
-        self.log.record(f"Buckets determined! {len(buckets)} buckets between 0 and {buckets[-1]}")
+        self.log.record(f"Buckets determined! {len(buckets)} buckets between 0 and {buckets[-1]}", 'debug')
         for bucket in buckets:
           results[bucket] = 0
         # now fill in the buckets:
@@ -661,7 +666,7 @@ class Spider(object):
         self.log.record("Recording distributions...")
         cursor.executemany(sql, params)
 
-        self.log.record(f'Calculating median for {task["name"]}')
+        self.log.record(f'Calculating median for {task["name"]}', 'debug')
         if len(values) % 2 == 1:
           median = values[int((len(values) - 1) / 2)]
         else:
@@ -672,7 +677,7 @@ class Spider(object):
         sql = f"INSERT INTO {config.db['schema']}.download_distribution (category, bucket, count) VALUES ('{task['name']}_median', 0, %s);"
         cursor.execute(sql, (median,))
 
-        self.log.record(f'Calculating mean for {task["name"]}')
+        self.log.record(f'Calculating mean for {task["name"]}', 'debug')
         total = 0
         for x in values:
           total += x
@@ -692,7 +697,7 @@ class Spider(object):
     record_ranks_file(params, "alltime_ranks_working")
 
   def _rank_articles_categories(self, category):
-    self.log.record(f"Ranking papers by popularity in category {category}...")
+    self.log.record(f"Ranking papers by popularity in category {category}...", 'debug')
     with self.connection.db.cursor() as cursor:
       query = """
         SELECT t.article, SUM(t.pdf) as downloads
@@ -789,7 +794,7 @@ class Spider(object):
     record_ranks_file(params, "author_ranks_working")
 
   def _rank_authors_category(self, category):
-    self.log.record(f"Ranking authors by popularity in category {category}...")
+    self.log.record(f"Ranking authors by popularity in category {category}...", 'debug')
     with self.connection.db.cursor() as cursor:
       cursor.execute("""
       SELECT article_authors.author, SUM(alltime_ranks.downloads) as downloads
@@ -894,7 +899,7 @@ class Spider(object):
 def load_rankings_from_file(batch, log):
   os.environ["PGPASSWORD"] = config.db["password"]
   to_delete = None
-  log.record(f"Loading {batch} from file.")
+  log.record(f"Loading {batch} from file.", 'debug')
   if batch in ["alltime_ranks", "ytd_ranks", "month_ranks"]:
     query = f'\copy {config.db["schema"]}.{batch}_working (article, rank, downloads) FROM \'{batch}_working.csv\' with (format csv);'
   elif batch == "author_ranks":
@@ -924,35 +929,35 @@ def full_run(spider):
   if config.crawl["fetch_new"] is not False:
     spider.find_record_new_articles()
   else:
-    spider.log.record("Skipping search for new articles: disabled in configuration file.")
+    spider.log.record("Skipping search for new articles: disabled in configuration file.", 'debug')
   if config.crawl["fetch_abstracts"] is not False:
     spider.fetch_abstracts()
   else:
-    spider.log.record("Skipping step to fetch unknown abstracts: disabled in configuration file.")
+    spider.log.record("Skipping step to fetch unknown abstracts: disabled in configuration file.", 'debug')
 
   for collection in spider.fetch_categories():
     spider.log.record(f"\n\nBeginning category {collection}", "info")
     if config.crawl["fetch_collections"] is not False:
       spider.determine_collection(collection)
     else:
-      spider.log.record("Skipping determination of new article collection: disabled in configuration file.")
+      spider.log.record("Skipping determination of new article collection: disabled in configuration file.", 'debug')
     if config.crawl["refresh_stats"] is not False:
       spider.refresh_article_stats(collection, config.refresh_category_cap)
       spider.refresh_article_stats(get_authors=True)
     else:
-      spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.")
+      spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.", 'debug')
 
   if config.crawl["fetch_crossref"] is not False:
     spider.pull_todays_crossref_data()
   else:
-    spider.log.record("Skipping call to fetch Crossref data: disabled in configuration file.")
+    spider.log.record("Skipping call to fetch Crossref data: disabled in configuration file.", 'debug')
 
   spider.calculate_vectors()
 
   if config.perform_ranks["enabled"] is not False:
     spider.process_rankings()
   else:
-    spider.log.record("Skipping all ranking steps: disabled in configuration file.")
+    spider.log.record("Skipping all ranking steps: disabled in configuration file.", 'debug')
 
 # helper method to fill in newly added field author_vector
 def fill_in_author_vectors(spider):
