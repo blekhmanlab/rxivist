@@ -11,7 +11,7 @@ LABEL org.label-schema.name = "Rxivist API"
 LABEL org.label-schema.description = "The Rxivist API web application, a Python-based interface built using the Bottle framework."
 LABEL org.label-schema.vcs-url = "https://github.com/blekhmanlab/rxivist"
 LABEL org.label-schema.url = "https://rxivist.org"
-LABEL maintainer="rabdill@umn.edu"
+LABEL maintainer="rxivist@umn.edu"
 
 LABEL org.label-schema.version = "0.7.0"
 

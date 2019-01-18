@@ -262,7 +262,7 @@ class Spider(object):
           abstract = self.get_article_abstract(url)
           self.update_article(article_id, abstract)
         except ValueError as e:
-          self.log.record(f"Error retrieving abstract for {article[1]}: {e}")
+          self.log.record(f"Error retrieving abstract for {article[1]}: {e}", "error")
 
   def refresh_article_stats(self, collection=None, cap=10000, id=None, get_authors=False):
     """Normally, "collection" is specified, and the function will
@@ -291,6 +291,7 @@ class Spider(object):
       else:
         cursor.execute("SELECT id, url, doi FROM articles WHERE id=%s;", (id,))
       updated = 0
+      consecutive_errors = 0
       for article in cursor:
         article_id = article[0]
         url = article[1]
@@ -302,7 +303,13 @@ class Spider(object):
         try:
           pub_data = self.check_publication_status(article_id, doi, True)
         except ValueError:
-          continue
+          consecutive_errors += 1
+          if consecutive_errors >= 5:
+            self.log.record("Too many errors in a row. Exiting.", "fatal")
+          else:
+            self.log.record("Encountered error. Waiting one minute to continue.", "warn")
+            time.sleep(60)
+            continue
         if pub_data is not None: # if we found something
           self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
         self.save_article_stats(article_id, stat_table)
@@ -320,7 +327,7 @@ class Spider(object):
     return updated
 
   def check_publication_status(self, article_id, doi, retry=False):
-    self.log.record(f"Determining publication status for DOI {doi}.")
+    self.log.record(f"Determining publication status for DOI {doi}.", "debug")
     with self.connection.db.cursor() as cursor:
       # we check for which ones are already recorded because
       # the postgres UPSERT feature is bananas
@@ -334,8 +341,8 @@ class Spider(object):
     except Exception as e:
       self.log.record(f"Error fetching publication data: {e}", "warn")
       if retry:
-        self.log.record("Retrying:")
-        time.sleep(3)
+        self.log.record("Retrying:", "debug")
+        time.sleep(30)
         return self.check_publication_status(article_id, doi)
       else:
         self.log.record("Giving up on this one for now.", "error")
@@ -360,7 +367,7 @@ class Spider(object):
       self.log.record("Publication data found, but missing important field(s). Skipping.")
       return
 
-    self.log.record(f'Publication found: {data[0]["pub_journal"]}')
+    self.log.record(f'Publication found: {data[0]["pub_journal"]}', 'debug')
 
     with self.connection.db.cursor() as cursor:
       self.log.record("Saving publication info.", "debug")
@@ -376,7 +383,7 @@ class Spider(object):
       self.log.record(f"Error fetching abstract: {e}", "warn")
       if retry:
         self.log.record("Retrying:")
-        time.sleep(3)
+        time.sleep(10)
         return self.get_article_abstract(url, False)
       else:
         self.log.record("Giving up on this one for now.", "error")
@@ -410,7 +417,7 @@ class Spider(object):
     return stats, authors
 
   def get_article_posted_date(self, url, retry_count=0):
-    self.log.record("Determining posting date.")
+    self.log.record("Determining posting date.", 'debug')
     try:
       resp = self.session.get(f"{url}.article-info")
     except Exception as e:
@@ -425,7 +432,7 @@ class Spider(object):
     # Also grab the "Posted on" date on this page:
     posted = resp.html.find('meta[name="article:published_time"]', first=True)
     if older is not None: # if there's an older version, grab the date
-      self.log.record("Previous version detected. Finding date.")
+      self.log.record("Previous version detected. Finding date.", 'debug')
       date_search = re.search('(\w*) (\d*), (\d{4})', older.text)
       if len(date_search.groups()) < 3:
         self.log.record("Could not determine date. Skipping.", "warn")
@@ -437,7 +444,7 @@ class Spider(object):
       self.log.record(f"Determined date: {datestring}", "info")
       return datestring
     elif posted is not None: # if not, just grab the date from the current version
-      self.log.record(f'No older version detected; using date from current page: {posted.attrs["content"]}', "info")
+      self.log.record(f'No older version detected; using date from current page: {posted.attrs["content"]}', "debug")
       return posted.attrs['content']
     else:
       self.log.record(f"Could not determine posted date for article at {url}", "warn")
@@ -525,7 +532,7 @@ class Spider(object):
           pass
     if overwrite:
       # if we marked authors for deletion earlier, it's safe to delete them now.
-      self.log.record("Removing outdated authors.", "info")
+      self.log.record("Removing outdated authors.", "debug")
       with self.connection.db.cursor() as cursor:
         cursor.execute(f'DELETE FROM {config.db["schema"]}.article_authors WHERE article=0;')
 
@@ -596,7 +603,7 @@ class Spider(object):
       for query in queries:
         cursor.execute(query)
     if config.delete_csv == True:
-      self.log.record(f"Deleting {to_delete}")
+      self.log.record(f"Deleting {to_delete}", 'debug')
       try:
         os.remove(to_delete)
       except Exception as e:
@@ -616,7 +623,7 @@ class Spider(object):
     ]
     for task in tasks:
       results = defaultdict(int)
-      self.log.record(f'Calculating download distributions for {task["name"]}')
+      self.log.record(f'Calculating download distributions for {task["name"]}', 'debug')
       with self.connection.db.cursor() as cursor:
         # first, figure out the biggest bucket:
         cursor.execute(f'SELECT MAX(downloads) FROM {task["name"]}_ranks;')

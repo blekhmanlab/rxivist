@@ -11,17 +11,17 @@ import os
 # stats should be before we refresh them. (This string MUST
 # be able to be interpreted by Postgres as a time interval
 # to subtract from the current date.)
-refresh_interval = "30 days"
+refresh_interval = "14 days"
 limit_refresh = True
-refresh_category_cap = 100
+refresh_category_cap = 200
 
 # Which actions to take as part of the crawling session
 crawl = {
-  "fetch_new": True, # Check for new papers
+  "fetch_new": True, # Check for new papers in each collection
   "fetch_collections": True, # Fill in the collection for new articles
   "fetch_abstracts": True, # Check for any Rxivist papers missing an abstract and fill it in (Papers don't have an abstract when first crawled)
-  "fetch_crossref": True, # Update daily Crossref stats
-  "refresh_stats": True, # Look for articles with outdated download info and re-crawl them
+  "fetch_crossref": False, # Update daily Crossref stats
+  "refresh_stats": False, # Look for articles with outdated download info and re-crawl them
 }
 
 perform_ranks = {
@@ -49,11 +49,11 @@ log_level = "debug"
 # Whether to print messages to stdout
 log_to_stdout = True
 # Whether to record messages in a timestamped file
-log_to_file = True
+log_to_file = False
 
 # how the web crawler should identify itself when sending http requests
 # to sites such as bioRxiv and crossref
-user_agent = "rxivist web crawler (your_hostname_here.org)"
+user_agent = "rxivist web crawler (YOUR_URL_HERE.org)"
 
 # whether to add pauses at several places in the crawl
 polite = True
@@ -64,7 +64,7 @@ polite = True
 # collection WHILE you're indexing it, the crawler dies early.
 # (if this is set to False, the crawler will go through every
 # single page of results for a collection, which is probably
-# wasteful and definitely takes a long time.)
+# wasteful.)
 stop_on_recognized = True
 
 # Papers are listed on bioRxiv in (approximately) chronological
@@ -79,7 +79,7 @@ recognized_limit = 31
 # Similarly to the search for new papers, this is how many papers
 # we should recognize a collection's list before we assume we
 # have already seen the rest.
-cat_recognized_limit = 51
+cat_recognized_limit = 29
 
 # The crawler uses temporary files to speed up database writes.
 # Setting this flag to True will delete them after they're processed.
@@ -104,12 +104,12 @@ crossref = {
     "events": "https://api.eventdata.crossref.org/v1/events"
   },
   "parameters": {
-    "email": "your_email_here@gmail.com" # an email address to attach to each Crossref call, per their request
+    "email": "rxivist@YOUR_URL_HERE.edu" # an email address to attach to each Crossref call, per their request
   }
 }
 
 rxivist = {
-  "base_url": "https://web_url_here" # Utility for the website; used for building sitemaps
+  "base_url": "https://YOUR_URL_HERE.org" # used for building sitemaps
 }
 
 # The graphs for the distribution of downloads for articles and authors

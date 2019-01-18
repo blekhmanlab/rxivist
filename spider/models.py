@@ -32,7 +32,7 @@ class Author:
           self.id = a_id[0]
           log.record(f"ORCiD: Author {self.name} exists with ID {self.id}", "debug")
           if self.institution is not None: # institution should always be set to the one we've seen most recently
-            log.record("Updating author institution")
+            log.record("Updating author institution", 'debug')
             cursor.execute("UPDATE authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
 
       if self.id is None:
@@ -51,7 +51,7 @@ class Author:
             log.record(f"Recording ORCiD {self.orcid} for known author", "info")
             cursor.execute("UPDATE authors SET orcid=%s WHERE id=%s;", (self.orcid, self.id))
           if self.institution is not None:
-            log.record("Updating author institution")
+            log.record("Updating author institution", 'debug')
             cursor.execute("UPDATE authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
 
       if self.id is None: # if they're definitely brand new
@@ -119,12 +119,12 @@ class Article:
 
       if response is not None and len(response) > 0:
         if response[0] == self.url:
-          # spider.log.record(f"Found article already: {self.title}", "debug")
+          spider.log.record(f"Found article already: {self.title}", "debug")
           connection.db.commit()
           return False
         else:
           # If it's a revision
-          cursor.execute("UPDATE articles SET url=%s, title=%s, abstract=NULL, title_vector=NULL, abstract_vector=NULL WHERE doi=%s RETURNING id;", (self.url, self.title, self.doi))
+          cursor.execute("UPDATE articles SET url=%s, title=%s, abstract=NULL, title_vector=NULL, abstract_vector=NULL, author_vector=NULL WHERE doi=%s RETURNING id;", (self.url, self.title, self.doi))
           self.id = cursor.fetchone()[0]
           stat_table, authors = spider.get_article_stats(self.url)
           spider._record_authors(self.id, authors, True)
@@ -183,9 +183,9 @@ class Article:
       response = cursor.fetchone()
 
       if response is not None and len(response) > 0 and response[0] is not None:
-        # log.record(f'Article {self.id} already has a category')
+        log.record(f'Article {self.id} already has a category', 'debug')
         return False
       self.category = collection
       cursor.execute("UPDATE articles SET collection=%s WHERE id=%s;", (self.category, self.id))
-      log.record(f"Updated collection for article {self.id}: {self.category}", "info")
+      log.record(f"Updated collection for article {self.id}: {self.category}", "debug")
       return True

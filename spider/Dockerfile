@@ -1,5 +1,5 @@
 FROM postgres:10
-LABEL maintainer="Richard Abdill rabdill@umn.edu"
+LABEL maintainer="Richard Abdill rxivist@umn.edu"
 
 RUN apt-get update
 RUN echo deb http://ftp.de.debian.org/debian testing main >> /etc/apt/sources.list

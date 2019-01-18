@@ -32,7 +32,7 @@ Any conventional method of restoring Postgres backups should work properly for t
 1. On the left side, right-click on "Servers," and select "Create Server." Give this connection a name, then, in the "Connection" tab of the "Create - Server" dialog, enter the properties of the PostgreSQL database you created in step 4. "Host name/address" should be `localhost`; most other values can remain unchanged. For the "Password" field, enter whatever password you specified in the Docker command in step 4 (in the example, it's `asdf`.) Click "Save."
 1. The new server connections should now appear in the "Servers" tree in the left sidebar. Open this, and select the `postgres` database from under the `Databases` category. Right-click on `postgres`, and select the "Restore..." option.
 1. This should open the "Restore" dialog. For "Filename," click on the ellipsis on the right side of the box and find the `rxivist.paper.backup` file that you downloaded in step 1.
-1. Switch to the "Restore options" tab of this dialog box. Most of these values can remain unchanged, but two values need to be changed from "No" to "Yes": "Pre-data," "Data" and "Owner."
+1. Switch to the "Restore options" tab of this dialog box. Most of these values can remain unchanged, but three values need to be changed from "No" to "Yes": "Pre-data," "Data" and "Owner."
 1. Click the blue "Restore" button.
 1. Once this process is complete, your "postgres" database should have two schemas: "prod" and "paper." The "paper" schema contains the data used in this study.
 
