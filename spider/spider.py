@@ -2,7 +2,7 @@
 #     and organizing them in ways that make it easier to find new
 #     or interesting research. Includes a web application for
 #     the display of data.
-#     Copyright (C) 2018 Regents of the University of Minnesota
+#     Copyright (C) 2019 Regents of the University of Minnesota
 
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU Affero General Public License as
@@ -126,14 +126,15 @@ class Spider(object):
         self.log.record("No DOI number found. Skipping.", "warn")
         continue
       doi = doi_search.group(1)
-      tweets[doi].append(event["subj"]["original-tweet-url"])
+      if "subj" in event and "original-tweet-url" in event['subj']:
+        tweets[doi].append(event["subj"]["original-tweet-url"])
 
     sql = f"INSERT INTO {config.db['schema']}.crossref_daily (source_date, doi, count) VALUES (%s, %s, %s);"
     params = [(datestring, doi, len(tweets[doi])) for doi in tweets]
     self.log.record(f"Saving tweet data for {len(tweets.keys())} DOI entries.")
     with self.connection.db.cursor() as cursor:
       cursor.executemany(sql, params)
-    self.log.record("Done with crossref.", "info")
+    self.log.record("Done with crossref.", "debug")
 
   def find_record_new_articles(self):
     # we need to grab the first page to figure out how many pages there are
@@ -746,7 +747,7 @@ class Spider(object):
         month =  12
         year = year - 1
     with self.connection.db.cursor() as cursor:
-      self.log.record(f"Ranking articles based on traffic since {month}/2018")
+      self.log.record(f"Ranking articles based on traffic since {month}/{year}")
       cursor.execute("TRUNCATE month_ranks_working")
       cursor.execute("SELECT article, SUM(pdf) as downloads FROM article_traffic WHERE year = %s AND month >= %s GROUP BY article ORDER BY downloads DESC", (year, month))
       params = [(record[0], rank, record[1]) for rank, record in enumerate(cursor, start=1)]
