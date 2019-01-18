@@ -854,7 +854,29 @@ class Spider(object):
     with self.connection.db.cursor() as cursor:
       cursor.execute(f"UPDATE {config.db['schema']}.articles SET title_vector = to_tsvector(coalesce(title,'')) WHERE title_vector IS NULL;")
       cursor.execute(f"UPDATE {config.db['schema']}.articles SET abstract_vector = to_tsvector(coalesce(abstract,'')) WHERE abstract_vector IS NULL;")
-      self.connection.db.commit()
+      self.fill_in_author_vectors()
+
+  def fill_in_author_vectors(self):
+    self.log.record("Filling in empty author_vector fields.", 'debug')
+    article_ids = []
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("SELECT id FROM articles WHERE author_vector IS NULL;")
+      for record in cursor:
+        if len(record) > 0:
+          article_ids.append(record[0])
+
+    to_do = len(article_ids)
+    self.log.record(f"Obtained {to_do} article IDs.", 'debug')
+    with self.connection.db.cursor() as cursor:
+      for article in article_ids:
+        author_string = ""
+        cursor.execute("SELECT authors.name FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s;", (article,))
+        for record in cursor:
+          author_string += f"{record[0]}, "
+        cursor.execute(f"UPDATE {config.db['schema']}.articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, article))
+        to_do -= 1
+        if to_do % 100 == 0:
+          self.log.record(f"{datetime.now()} - {to_do} left to go.", 'debug')
 
   def build_sitemap(self):
     """Utility function used to pull together a list of all pages on the site.
@@ -958,29 +980,6 @@ def full_run(spider):
     spider.process_rankings()
   else:
     spider.log.record("Skipping all ranking steps: disabled in configuration file.", 'debug')
-
-# helper method to fill in newly added field author_vector
-def fill_in_author_vectors(spider):
-  spider.log.record("\n\n!!!!!!\n\nFilling in empty author_vector fields for all articles.")
-  article_ids = []
-  with spider.connection.db.cursor() as cursor:
-    cursor.execute("SELECT id FROM articles WHERE author_vector IS NULL;")
-    for record in cursor:
-      if len(record) > 0:
-        article_ids.append(record[0])
-
-  to_do = len(article_ids)
-  spider.log.record(f"Obtained {to_do} article IDs.")
-  with spider.connection.db.cursor() as cursor:
-    for article in article_ids:
-      author_string = ""
-      cursor.execute("SELECT authors.name FROM article_authors as aa INNER JOIN authors ON authors.id=aa.author WHERE aa.article=%s;", (article,))
-      for record in cursor:
-        author_string += f"{record[0]}, "
-      cursor.execute(f"UPDATE {config.db['schema']}.articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, article))
-      to_do -= 1
-      if to_do % 100 == 0:
-        spider.log.record(f"{datetime.now()} - {to_do} left to go.")
 
 def find_authors(response):
   # Determine author details:

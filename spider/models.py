@@ -156,12 +156,6 @@ class Article:
       posted = spider.get_article_posted_date(self.url)
       if stat_table is not None:
         spider.save_article_stats(self.id, stat_table, posted)
-
-      # build the long string of author names:
-      author_string = ""
-      for a in authors:
-        author_string += f"{a.name}, "
-      cursor.execute("UPDATE articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, self.id))
       spider.log.record(f"Recorded article {self.title}")
     return True
 
