@@ -45,11 +45,11 @@ db = {
 }
 
 # How much output to send to application logs
-log_level = "debug"
+log_level = "info"
 # Whether to print messages to stdout
-log_to_stdout = True
+log_to_stdout = False
 # Whether to record messages in a timestamped file
-log_to_file = False
+log_to_file = True
 
 # how the web crawler should identify itself when sending http requests
 # to sites such as bioRxiv and crossref
@@ -104,7 +104,7 @@ crossref = {
     "events": "https://api.eventdata.crossref.org/v1/events"
   },
   "parameters": {
-    "email": "rxivist@YOUR_URL_HERE.edu" # an email address to attach to each Crossref call, per their request
+    "email": "rxivist@YOUR_URL_HERE.org" # an email address to attach to each Crossref call, per their request
   }
 }
 
