@@ -551,7 +551,7 @@ class Spider(object):
       with self.connection.db.cursor() as cursor:
         cursor.execute(f'DELETE FROM {config.db["schema"]}.article_authors WHERE article=0;')
 
-  def fetch_categories(self):
+  def fetch_category_list(self):
     categories = []
     with self.connection.db.cursor() as cursor:
       cursor.execute("SELECT DISTINCT collection FROM articles ORDER BY collection;")
@@ -589,7 +589,7 @@ class Spider(object):
       cursor.execute("TRUNCATE author_ranks_category_working")
       cursor.execute("TRUNCATE category_ranks_working")
     self.log.record('Starting categorical ranking process.', 'info')
-    for category in self.fetch_categories():
+    for category in self.fetch_category_list():
       if config.perform_ranks["article_categories"] is not False:
         self._rank_articles_categories(category)
         load_rankings_from_file("category_ranks", self.log)
@@ -881,7 +881,8 @@ class Spider(object):
           article_ids.append(record[0])
 
     to_do = len(article_ids)
-    self.log.record(f"Obtained {to_do} article IDs.", 'debug')
+    if to_do > 0:
+      self.log.record(f"Obtained {to_do} article IDs.", 'debug')
     with self.connection.db.cursor() as cursor:
       for article in article_ids:
         author_string = ""
@@ -890,8 +891,8 @@ class Spider(object):
           author_string += f"{record[0]}, "
         cursor.execute(f"UPDATE {config.db['schema']}.articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, article))
         to_do -= 1
-        if to_do % 100 == 0:
-          self.log.record(f"{datetime.now()} - {to_do} left to go.", 'debug')
+        # if to_do % 100 == 0:
+        #   self.log.record(f"{datetime.now()} - {to_do} left to go.", 'debug')
 
   def build_sitemap(self):
     """Utility function used to pull together a list of all pages on the site.
@@ -972,7 +973,7 @@ def full_run(spider):
   else:
     spider.log.record("Skipping step to fetch unknown abstracts: disabled in configuration file.", 'debug')
 
-  for collection in spider.fetch_categories():
+  for collection in spider.fetch_category_list():
     spider.log.record(f"\n\nBeginning category {collection}", "info")
     if config.crawl["fetch_collections"] is not False:
       spider.determine_collection(collection)

@@ -144,6 +144,7 @@ class Article:
         connection.db.commit()
         return None
     # If it's brand new:
+    # TODO: It's weird this section doesn't include fetching the abstract and category
     with connection.db.cursor() as cursor:
       try:
         cursor.execute("INSERT INTO articles (url, title, doi) VALUES (%s, %s, %s) RETURNING id;", (self.url, self.title, self.doi))
