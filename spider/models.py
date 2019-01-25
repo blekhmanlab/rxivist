@@ -144,7 +144,6 @@ class Article:
         connection.db.commit()
         return None
     # If it's brand new:
-    # TODO: It's weird this section doesn't include fetching the abstract and category
     with connection.db.cursor() as cursor:
       try:
         cursor.execute("INSERT INTO articles (url, title, doi) VALUES (%s, %s, %s) RETURNING id;", (self.url, self.title, self.doi))
@@ -169,3 +168,28 @@ class Article:
         spider.save_article_stats(self.id, stat_table, posted)
       spider.log.record(f"Recorded article {self.title}")
     return True
+
+  def get_id(self, connection):
+    with connection.db.cursor() as cursor:
+      cursor.execute("SELECT id FROM articles WHERE doi=%s", (self.doi,))
+      response = cursor.fetchone()
+      if response is None or len(response) == 0:
+        return False
+      self.id = response[0]
+    return True
+
+  def record_category(self, collection, connection, log):
+    with connection.db.cursor() as cursor:
+      # check to see if we've seen this article before
+      if self.collection is None or self.id is None:
+        log.record(f"Paper {self.id} doesn't have a category, though it should. Exiting; something's wrong.", "fatal")
+      cursor.execute("SELECT collection FROM articles WHERE id=%s", (self.id,))
+      response = cursor.fetchone()
+
+      if response is not None and len(response) > 0 and response[0] is not None:
+        log.record(f'Article {self.id} already has a category', 'debug')
+        return False
+      self.category = collection
+      cursor.execute("UPDATE articles SET collection=%s WHERE id=%s;", (self.category, self.id))
+      log.record(f"Updated collection for article {self.id}: {self.category}", "info")
+      return True
