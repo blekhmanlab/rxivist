@@ -192,89 +192,18 @@ class Spider(object):
           # doesn't reset the counter.
           consecutive_recognized = 0
 
-  def determine_collection(self, collection):
-    # we need to grab the first page to figure out how many pages there are
-    self.log.record(f"Fetching page 0 in {collection}", 'debug')
-    try:
-      r = self.session.get(f'{config.biorxiv["endpoints"]["collection"]}/{collection}')
-    except Exception as e:
-      self.log.record(f"Error requesting first page of results for collection. Retrying: {e}", "error")
-      try:
-        r = self.session.get(f'{config.biorxiv["endpoints"]["collection"]}/{collection}')
-      except Exception as e:
-        self.log.record(f"Error AGAIN requesting first page of results for collection. Bailing: {e}", "error")
-        return
-
-    results = pull_out_articles(r.html, self.log)
-    consecutive_recognized = 0
-
-    # It's fine if we encounter unknown papers at the beginning of the category,
-    # but if an unrecognized paper shows up later in the category, something
-    # funny's going on
-    recognized_any = False
-
-    for article in results: # note: this first loop only for the first page
-      article.collection = collection
-      # make sure we know about the article already:
-      if not article.get_id(self.connection):
-        if recognized_any:
-          self.log.record(f'Encountered unknown paper in category listings: {article.doi}', 'fatal')
-        else:
-          self.log.record(f'New paper at top of category listings: {article.doi}', 'debug')
-          continue
-
-      recognized_any = True
-      if not article.record_category(collection, self.connection, self.log):
-        consecutive_recognized += 1
-        if consecutive_recognized >= config.cat_recognized_limit and config.stop_on_recognized: return
-      else:
-        consecutive_recognized = 0
-
-    for p in range(1, determine_page_count(r.html)): # iterate through each page of results
-      if config.polite:
-        time.sleep(3)
-      self.log.record(f"Fetching page {p} in {collection}", 'debug') # pages are zero-indexed
-      try:
-        r = self.session.get("{}/{}?page={}".format(config.biorxiv["endpoints"]["collection"], collection, p))
-      except Exception as e:
-        log.record(f"Error requesting page of results for collection {collection}. Retrying: {e}", "error")
-        try:
-          r = self.session.get("{}/{}?page={}".format(config.biorxiv["endpoints"]["collection"], collection, p))
-        except Exception as e:
-          log.record(f"Error AGAIN requesting page of results for collection {collection}: {e}", "error")
-          log.record("Crawling of category {} failed in the middle; unrecorded new articles are likely being skipped. Exiting to avoid losing them.", "fatal")
-          return
-
-      results = pull_out_articles(r.html, self.log)
-      for article in results:
-        article.collection = collection
-        if not article.get_id(self.connection):
-          if recognized_any:
-            self.log.record(f'Encountered unknown paper in category listings: {article.doi}', 'fatal')
-          else:
-            self.log.record(f'New paper at top of category listings: {article.doi}', 'debug')
-            continue
-
-        recognized_any = True
-        if not article.record_category(collection, self.connection, self.log):
-          consecutive_recognized += 1
-          if consecutive_recognized >= config.cat_recognized_limit and config.stop_on_recognized:
-            return
-        else:
-          consecutive_recognized = 0
-
-  def fetch_abstracts(self):
+  def fetch_abstracts_and_categories(self):
     with self.connection.db.cursor() as cursor:
-      # find abstracts for any articles without them
-      cursor.execute(f'SELECT id, url FROM {config.db["schema"]}.articles WHERE abstract IS NULL;')
+      # find abstracts and categories for any articles without them
+      cursor.execute(f'SELECT id, url FROM {config.db["schema"]}.articles WHERE abstract IS NULL OR collection IS NULL;')
       for article in cursor:
         url = article[1]
         article_id = article[0]
         try:
-          abstract = self.get_article_abstract(url)
-          self.update_article(article_id, abstract)
+          abstract, category = self.get_article_info(url)
+          self.update_article(article_id, abstract, category)
         except ValueError as e:
-          self.log.record(f"Error retrieving abstract for {article[1]}: {e}", "error")
+          self.log.record(f"Error retrieving info for {article[1]}: {e}", "error")
 
   def refresh_article_stats(self, collection=None, cap=10000, id=None, get_authors=False):
     """Normally, "collection" is specified, and the function will
@@ -389,7 +318,8 @@ class Spider(object):
       cursor.execute(f"INSERT INTO {config.db['schema']}.article_publications (article, doi, publication) VALUES (%s, %s, %s);", (article_id, data[0]["pub_doi"], data[0]["pub_journal"]))
       self.log.record(f'Recorded DOI {data[0]["pub_doi"]} for article {article_id}')
 
-  def get_article_abstract(self, url, retry=True):
+  def get_article_info(self, url, retry=True):
+    # Retrieves a preprint's abstract and category
     if config.polite:
       time.sleep(1)
     try:
@@ -399,14 +329,19 @@ class Spider(object):
       if retry:
         self.log.record("Retrying:")
         time.sleep(10)
-        return self.get_article_abstract(url, False)
+        return self.get_article_info(url, False)
       else:
         self.log.record("Giving up on this one for now.", "error")
         raise ValueError("Encountered exception making HTTP call to fetch paper information.")
     abstract = resp.html.find("#p-2")
     if len(abstract) < 1:
       raise ValueError("Successfully made HTTP call to fetch paper information, but did not find an abstract.")
-    return abstract[0].text
+    abstract = abstract[0].text
+    category = resp.html.find(".highwire-article-collection-term")
+    if len(category) < 1:
+      raise ValueError("Successfully made HTTP call, but did not find a category.")
+    category = category[0].text.lower().replace(' ', '-')
+    return (abstract, category)
 
   def get_article_stats(self, url, retry_count=0):
     try:
@@ -551,7 +486,7 @@ class Spider(object):
       with self.connection.db.cursor() as cursor:
         cursor.execute(f'DELETE FROM {config.db["schema"]}.article_authors WHERE article=0;')
 
-  def fetch_categories(self):
+  def fetch_category_list(self):
     categories = []
     with self.connection.db.cursor() as cursor:
       cursor.execute("SELECT DISTINCT collection FROM articles ORDER BY collection;")
@@ -589,7 +524,7 @@ class Spider(object):
       cursor.execute("TRUNCATE author_ranks_category_working")
       cursor.execute("TRUNCATE category_ranks_working")
     self.log.record('Starting categorical ranking process.', 'info')
-    for category in self.fetch_categories():
+    for category in self.fetch_category_list():
       if config.perform_ranks["article_categories"] is not False:
         self._rank_articles_categories(category)
         load_rankings_from_file("category_ranks", self.log)
@@ -858,11 +793,13 @@ class Spider(object):
     self.log.record("Fetching today's Crossref data.")
     self._pull_crossref_data_date(current.strftime('%Y-%m-%d'))
 
-  def update_article(self, article_id, abstract):
+  def update_article(self, article_id, abstract, category=None):
     with self.connection.db.cursor() as cursor:
-      cursor.execute(f"UPDATE {config.db['schema']}.articles SET abstract = %s WHERE id = %s;", (abstract, article_id))
-      self.connection.db.commit()
-      self.log.record(f"Recorded abstract for ID {article_id}", "debug")
+      if category is not None:
+        cursor.execute(f"UPDATE {config.db['schema']}.articles SET abstract = %s, collection = %s WHERE id = %s;", (abstract, category, article_id))
+      else:
+        cursor.execute(f"UPDATE {config.db['schema']}.articles SET abstract = %s, WHERE id = %s;", (abstract, article_id))
+      self.log.record(f"Recorded info for ID {article_id}", "debug")
 
   def calculate_vectors(self):
     self.log.record("Calculating vectors...")
@@ -881,7 +818,8 @@ class Spider(object):
           article_ids.append(record[0])
 
     to_do = len(article_ids)
-    self.log.record(f"Obtained {to_do} article IDs.", 'debug')
+    if to_do > 0:
+      self.log.record(f"Found {to_do} articles needing an author_vector.", 'debug')
     with self.connection.db.cursor() as cursor:
       for article in article_ids:
         author_string = ""
@@ -890,8 +828,8 @@ class Spider(object):
           author_string += f"{record[0]}, "
         cursor.execute(f"UPDATE {config.db['schema']}.articles SET author_vector=to_tsvector(coalesce(%s,'')) WHERE id=%s;", (author_string, article))
         to_do -= 1
-        if to_do % 100 == 0:
-          self.log.record(f"{datetime.now()} - {to_do} left to go.", 'debug')
+        # if to_do % 100 == 0:
+        #   self.log.record(f"{datetime.now()} - {to_do} left to go.", 'debug')
 
   def build_sitemap(self):
     """Utility function used to pull together a list of all pages on the site.
@@ -968,21 +906,18 @@ def full_run(spider):
   else:
     spider.log.record("Skipping search for new articles: disabled in configuration file.", 'debug')
   if config.crawl["fetch_abstracts"] is not False:
-    spider.fetch_abstracts()
+    spider.fetch_abstracts_and_categories()
   else:
     spider.log.record("Skipping step to fetch unknown abstracts: disabled in configuration file.", 'debug')
 
-  for collection in spider.fetch_categories():
-    spider.log.record(f"\n\nBeginning category {collection}", "info")
-    if config.crawl["fetch_collections"] is not False:
-      spider.determine_collection(collection)
-    else:
-      spider.log.record("Skipping determination of new article collection: disabled in configuration file.", 'debug')
-    if config.crawl["refresh_stats"] is not False:
+  if config.crawl["refresh_stats"] is not False:
+    spider.log.record(f'Beginning download metric refresh process.', 'info')
+    for collection in spider.fetch_category_list():
+      spider.log.record(f"\n\nBeginning category {collection}", "info")
       spider.refresh_article_stats(collection, config.refresh_category_cap)
       spider.refresh_article_stats(get_authors=True)
-    else:
-      spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.", 'debug')
+  else:
+    spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.", 'debug')
 
   if config.crawl["fetch_crossref"] is not False:
     spider.pull_todays_crossref_data()
