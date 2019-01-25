@@ -255,7 +255,7 @@ class Spider(object):
   def fetch_abstracts(self):
     with self.connection.db.cursor() as cursor:
       # find abstracts for any articles without them
-      cursor.execute("SELECT id, url FROM articles WHERE abstract IS NULL;")
+      cursor.execute(f'SELECT id, url FROM {config.db["schema"]}.articles WHERE abstract IS NULL;')
       for article in cursor:
         url = article[1]
         article_id = article[0]
@@ -1132,4 +1132,4 @@ if __name__ == "__main__":
     if len(sys.argv) < 3:
       print("Must submit ID number of article to be refreshed.")
       exit(1)
-    spider.refresh_article_stats(sys.argv[2])
+    spider.refresh_article_stats(id=sys.argv[2])
