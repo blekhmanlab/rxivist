@@ -301,18 +301,21 @@ class Spider(object):
         if config.polite:
           time.sleep(1)
         stat_table, authors = self.get_article_stats(url)
-        try:
-          pub_data = self.check_publication_status(article_id, doi, True)
-        except ValueError:
-          consecutive_errors += 1
-          if consecutive_errors >= 5:
-            self.log.record("Too many errors in a row. Exiting.", "fatal")
-          else:
-            self.log.record("Encountered error. Waiting one minute to continue.", "warn")
-            time.sleep(60)
-            continue
-        if pub_data is not None: # if we found something
-          self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
+
+        if config.crawl["fetch_pubstatus"] is not False:
+          try:
+            pub_data = self.check_publication_status(article_id, doi, True)
+          except ValueError:
+            consecutive_errors += 1
+            if consecutive_errors >= 3:
+              self.log.record("Too many errors in a row. Exiting.", "fatal")
+            else:
+              self.log.record(f"Encountered error ({consecutive_errors} in a row). Waiting five minutes to continue.", "warn")
+              time.sleep(300)
+              continue
+          if pub_data is not None: # if we found something
+            self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
+
         self.save_article_stats(article_id, stat_table)
 
         overwrite = False
