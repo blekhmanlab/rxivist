@@ -152,10 +152,16 @@ class Spider(object):
     results = pull_out_articles(r.html, self.log)
     consecutive_recognized = 0
     for article in results:
-      if not article.record(self.connection, self):
+      recorded = article.record(self.connection, self)
+      if recorded  == False:
+        # if it was a paper that we'd already seen before
         consecutive_recognized += 1
         if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
-      else:
+      elif recorded is not None:
+        # article.record() returns "None" if the paper was a revisions, because
+        # there isn't (for now?) a way to know if it's been previously recorded.
+        # This doesn't count as a "recognized" article in our count, but it also
+        # doesn't reset the counter.
         consecutive_recognized = 0
 
     for p in range(1, determine_page_count(r.html)): # iterate through each page of results
@@ -175,10 +181,15 @@ class Spider(object):
 
       results = pull_out_articles(r.html, self.log)
       for x in results:
-        if not x.record(self.connection, self):
+        recorded = x.record(self.connection, self)
+        if recorded == False:
           consecutive_recognized += 1
           if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
-        else:
+        elif recorded is not None:
+          # article.record() returns "None" if the paper was a revisions, because
+          # there isn't (for now?) a way to know if it's been previously recorded.
+          # This doesn't count as a "recognized" article in our count, but it also
+          # doesn't reset the counter.
           consecutive_recognized = 0
 
   def determine_collection(self, collection):

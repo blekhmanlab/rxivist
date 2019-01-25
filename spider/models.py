@@ -111,28 +111,38 @@ class Article:
 
   def record(self, connection, spider): # TODO: requiring the whole spider here is code smell of the first order
     with connection.db.cursor() as cursor:
-      # check to see if we've seen this article before
       if self.doi == "":
         spider.log.record(f"Won't record a paper without a DOI: {self.url}", "fatal")
       cursor.execute("SELECT url, id FROM articles WHERE doi=%s", (self.doi,))
       response = cursor.fetchone()
 
       if response is not None and len(response) > 0:
-        if response[0] == self.url:
+        # We only get to this point if we already have a record
+        # of the preprint. If we already have a record, but the
+        # URL confirms it's version 1, then we know we've seen this
+        # specific paper already.
+        try:
+          m = re.search('.*v(\d)$', self.url)
+        except:
+          log.record("Error in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
+          return
+        if len(m.groups()) == 0:
+          log.record("Error in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
+          return
+        if m.group(1) == '1':
           spider.log.record(f"Found article already: {self.title}", "debug")
-          connection.db.commit()
           return False
-        else:
-          # If it's a revision
-          cursor.execute("UPDATE articles SET url=%s, title=%s, abstract=NULL, title_vector=NULL, abstract_vector=NULL, author_vector=NULL WHERE doi=%s RETURNING id;", (self.url, self.title, self.doi))
-          self.id = cursor.fetchone()[0]
-          stat_table, authors = spider.get_article_stats(self.url)
-          spider._record_authors(self.id, authors, True)
-          if stat_table is not None:
-            spider.save_article_stats(self.id, stat_table, None)
-          spider.log.record(f"Updated revision for article DOI {self.doi}: {self.title}", "info")
-          connection.db.commit()
-          return True
+
+        # If it's a revision
+        cursor.execute("UPDATE articles SET url=%s, title=%s, abstract=NULL, title_vector=NULL, abstract_vector=NULL, author_vector=NULL WHERE doi=%s RETURNING id;", (self.url, self.title, self.doi))
+        self.id = cursor.fetchone()[0]
+        stat_table, authors = spider.get_article_stats(self.url)
+        spider._record_authors(self.id, authors, True)
+        if stat_table is not None:
+          spider.save_article_stats(self.id, stat_table, None)
+        spider.log.record(f"Updated revision for article DOI {self.doi}: {self.title}", "info")
+        connection.db.commit()
+        return None
     # If it's brand new:
     with connection.db.cursor() as cursor:
       try:
