@@ -100,7 +100,7 @@ class Article:
     except:
       log.record("Error in searching for DOI string for article. Exiting to avoid losing the entry.", "fatal")
       return
-    if len(m.groups()) > 0:
+    if m is None or len(m.groups()) > 0:
       self.doi = m.group(1)
     else:
       log.record("Did not find DOI string for article. Exiting to avoid losing the entry.", "fatal")
@@ -122,12 +122,12 @@ class Article:
         # URL confirms it's version 1, then we know we've seen this
         # specific paper already.
         try:
-          m = re.search('.*v(\d)$', self.url)
+          m = re.search('.*v(\d+)$', self.url)
         except:
-          log.record("Error in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
+          spider.log.record("Error in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
           return
-        if len(m.groups()) == 0:
-          log.record("Error in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
+        if m is None or len(m.groups()) == 0:
+          spider.log.record("Error in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
           return
         if m.group(1) == '1':
           spider.log.record(f"Found article already: {self.title}", "debug")
