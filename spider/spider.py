@@ -1144,7 +1144,15 @@ if __name__ == "__main__":
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   elif sys.argv[1] == "refresh":
-    if len(sys.argv) < 3:
-      print("Must submit ID number of article to be refreshed.")
-      exit(1)
-    spider.refresh_article_stats(id=sys.argv[2])
+    if len(sys.argv) == 3:
+      spider.refresh_article_stats(id=sys.argv[2])
+    else:
+      config.crawl = {
+        "fetch_new": False, # Check for new papers in each collection
+        "fetch_collections": True, # Fill in the collection for new articles
+        "fetch_abstracts": True, # Check for any Rxivist papers missing an abstract and fill it in (Papers don't have an abstract when first crawled)
+        "fetch_crossref": False, # Update daily Crossref stats
+        "refresh_stats": True, # Look for articles with outdated download info and re-crawl them
+        "fetch_pubstatus": False # Check for whether a paper has been published during stat refresh
+      }
+      full_run(spider)
