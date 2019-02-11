@@ -36,10 +36,14 @@ import psycopg2
 from requests_html import HTMLSession
 import requests
 
+import nltk
+import fulltext
+
 import config
 import db
 from log import Logger
 import models
+
 
 def determine_page_count(html):
   # takes a biorxiv results page and
@@ -1140,7 +1144,10 @@ if __name__ == "__main__":
     else:
       spider.pull_todays_crossref_data()
   elif sys.argv[1] == "test":
-    get_publication_dates(spider)
+    # get_publication_dates(spider)
+
+    nltk.download('stopwords')
+    fulltext.get_more_fulltext(spider)
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   elif sys.argv[1] == "refresh":
