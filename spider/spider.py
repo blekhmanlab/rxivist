@@ -986,6 +986,9 @@ def full_run(spider):
       spider.log.record("Skipping determination of new article collection: disabled in configuration file.", 'debug')
     if config.crawl["refresh_stats"] is not False:
       spider.refresh_article_stats(collection, config.refresh_category_cap)
+      # HACK: There are way more neuro papers, so we check twice as many in each run
+      if collection == 'neuroscience':
+        spider.refresh_article_stats(collection, config.refresh_category_cap)
       spider.refresh_article_stats(get_authors=True)
     else:
       spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.", 'debug')
