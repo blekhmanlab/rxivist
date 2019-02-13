@@ -122,7 +122,6 @@ def index():
 # paper details
 @bottle.get('/v1/papers/<id:path>')
 def paper_details(id):
-  print(f"GOT {id}")
   # if the ID passed in isn't an integer, assume it's a DOI
   try:
     article_id = int(id)
@@ -171,13 +170,6 @@ def alltime_author_ranks():
 # author details page
 @bottle.get('/v1/authors/<author_id:int>')
 def display_author_details(author_id):
-  if author_id < 200000: # old author pages indexed by google already
-    new_id = helpers.find_new_id(author_id, connection)
-    if new_id:
-      return bottle.redirect(f"{config.host}/v1/authors/{new_id}", 301)
-    else:
-      bottle.response.status = 404
-      return {"error": f"Could not find author with ID {author_id}"}
   try:
     author = endpoints.author_details(author_id, connection)
   except helpers.NotFoundError as e:
