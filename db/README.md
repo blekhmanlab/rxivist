@@ -31,7 +31,7 @@ If you want to load the snapshot directly, rather than trusting the contents of 
 1. This should open the "Restore" dialog. For "Filename," click on the ellipsis on the right side of the box and find the `rxivist.backup` file that you downloaded in step 1.
 1. Switch to the "Restore options" tab of this dialog box. Most of these values can remain unchanged, but three values need to be changed from "No" to "Yes": "Pre-data," "Data" and "Owner."
 1. Click the blue "Restore" button.
-1. Once this process is complete, your "postgres" database should have two schemas: "prod" and "paper." The "paper" schema contains the data used in this study.
+1. Once this process is complete, your "postgres" database should have two schemas: "public," which doesn't have data in it, and "prod," which contains the data presented on Rxivist.org.
 
 (For those looking to create a snapshot of their own, Snapshots are created using the "Backup" dialog with the "Yes" option selected for "Pre-data," "Data," "Blobs," "Owner," "Privilege," "With OID(s)" and "Verbose messages.")
 
