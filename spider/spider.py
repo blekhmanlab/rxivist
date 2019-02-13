@@ -953,7 +953,12 @@ def full_run(spider):
   if config.crawl["fetch_crossref"] is not False:
     spider.pull_todays_crossref_data()
   else:
-    spider.log.record("Skipping call to fetch Crossref data: disabled in configuration file.", 'debug')
+    spider.log.record("Skipping call to fetch Crossref Twitter data: disabled in configuration file.", 'debug')
+
+  if config.crawl["fetch_pubdates"] is not False:
+    get_publication_dates(spider)
+  else:
+    spider.log.record("Skipping call to fetch Crossref publication data: disabled in configuration file.", 'debug')
 
   spider.calculate_vectors()
 
@@ -1023,7 +1028,7 @@ def get_publication_dates(spider):
           break
         done += 1
         if config.polite:
-          time.sleep(2)
+          time.sleep(3)
         article_id = article[0]
         doi = article[1]
         spider.log.record(f"Checking DOI {doi}", 'debug')
