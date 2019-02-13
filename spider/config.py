@@ -13,7 +13,7 @@ import os
 # to subtract from the current date.)
 refresh_interval = "14 days"
 limit_refresh = True
-refresh_category_cap = 200
+refresh_category_cap = 250
 
 # Which actions to take as part of the crawling session
 crawl = {
@@ -22,7 +22,7 @@ crawl = {
   "fetch_abstracts": True, # Check for any Rxivist papers missing an abstract and fill it in (Papers don't have an abstract when first crawled)
   "fetch_crossref": False, # Update daily Crossref stats
   "refresh_stats": False, # Look for articles with outdated download info and re-crawl them
-  "fetch_pubstatus": False # Check for whether a paper has been published during stat refresh
+  "fetch_pubstatus": True # Check for whether a paper has been published during stat refresh
 }
 
 perform_ranks = {
@@ -107,10 +107,6 @@ crossref = {
   "parameters": {
     "email": "rxivist@YOUR_URL_HERE.org" # an email address to attach to each Crossref call, per their request
   }
-}
-
-rxivist = {
-  "base_url": "https://YOUR_URL_HERE.org" # used for building sitemaps
 }
 
 # The graphs for the distribution of downloads for articles and authors

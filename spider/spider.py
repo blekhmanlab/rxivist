@@ -344,15 +344,15 @@ class Spider(object):
     return updated
 
   def check_publication_status(self, article_id, doi, retry=False):
-    self.log.record(f"Determining publication status for DOI {doi}.", "debug")
     with self.connection.db.cursor() as cursor:
       # we check for which ones are already recorded because
       # the postgres UPSERT feature is bananas
       cursor.execute("SELECT COUNT(article) FROM article_publications WHERE article=%s", (article_id,))
       pub_count = cursor.fetchone()[0]
       if pub_count > 0:
-        self.log.record("Paper already has publication recorded. Skipping.", "debug")
         return
+
+    self.log.record(f"Determining publication status for DOI {doi}.", "debug")
     try:
       resp = self.session.get("{}?doi={}".format(config.biorxiv["endpoints"]["pub_doi"], doi))
     except Exception as e:
@@ -1095,6 +1095,6 @@ if __name__ == "__main__":
         "fetch_abstracts": True, # Check for any Rxivist papers missing an abstract and fill it in (Papers don't have an abstract when first crawled)
         "fetch_crossref": False, # Update daily Crossref stats
         "refresh_stats": True, # Look for articles with outdated download info and re-crawl them
-        "fetch_pubstatus": False # Check for whether a paper has been published during stat refresh
+        "fetch_pubstatus": True # Check for whether a paper has been published during stat refresh
       }
       full_run(spider)
