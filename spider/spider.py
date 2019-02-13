@@ -323,7 +323,8 @@ class Spider(object):
           except ValueError:
             consecutive_errors += 1
             if consecutive_errors >= 3:
-              self.log.record("Too many errors in a row. Exiting.", "fatal")
+              self.log.record("Too many errors in a row. Turning off publication status checks for this run.", "error")
+              config.crawl["fetch_pubstatus"] = False
             else:
               self.log.record(f"Encountered error ({consecutive_errors} in a row). Waiting five minutes to continue.", "warn")
               time.sleep(300)
@@ -360,8 +361,8 @@ class Spider(object):
     except Exception as e:
       self.log.record(f"Error fetching publication data: {e}", "warn")
       if retry:
-        self.log.record("Retrying:", "debug")
-        time.sleep(30)
+        self.log.record("Retrying in 60 seconds:", "debug")
+        time.sleep(60)
         return self.check_publication_status(article_id, doi)
       else:
         self.log.record("Giving up on this one for now.", "error")
