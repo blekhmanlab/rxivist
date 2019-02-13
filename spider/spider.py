@@ -1013,40 +1013,41 @@ def get_publication_dates(spider):
       cursor.execute(f"""
       SELECT p.article, p.doi
       FROM {config.db['schema']}.article_publications p
-      LEFT JOIN paper.publication_dates d ON p.article=d.article
+      LEFT JOIN {config.db['schema']}.publication_dates d ON p.article=d.article
       WHERE d.date IS NULL
       """)
       done = 0
       for article in cursor:
         if done >= 100:
+          # We do this to save results in batches
           break
         done += 1
-        time.sleep(0.5)
+        if config.polite:
+          time.sleep(2)
         article_id = article[0]
         doi = article[1]
-        print(f"Checking DOI {doi}")
+        spider.log.record(f"Checking DOI {doi}", 'debug')
         headers = {'user-agent': config.user_agent}
         r = requests.get(f"https://api.crossref.org/works/{doi}?mailto={config.crossref['parameters']['email']}", headers=headers)
         if r.status_code != 200:
           if r.status_code == 404:
-            print("  Not found.")
-            # HACK: This makes it easy to skip missing papers in the future
+            spider.log.record("  Not found.", 'debug')
+            # HACK: This makes it simpler to skip missing papers in the future
             answers.append((article_id, '1900-01-01'))
             continue
-          print(f"  Got weird status code: {r.status_code}")
-          print(r)
+          spider.log.record(f"  Got weird status code: {r.status_code}", 'warn')
           continue
         resp = r.json()
 
         if "message" not in resp.keys():
-          print("  No message found.")
+          spider.log.record("  No message found.", 'debug')
           continue
         if "published-online" in resp['message']:
           if 'date-parts' in resp['message']['published-online']:
             pieces = resp['message']['published-online']['date-parts'][0]
             answer = pieces_to_date(pieces)
             if answer:
-              print(f"  FOUND DATE (online): {answer}")
+              spider.log.record(f"  FOUND DATE (online): {answer}", 'info')
               answers.append((article_id, answer))
               continue
         if "published-print" in resp['message']:
@@ -1054,7 +1055,7 @@ def get_publication_dates(spider):
             pieces = resp['message']['published-print']['date-parts'][0]
             answer = pieces_to_date(pieces)
             if answer:
-              print(f"  FOUND DATE (print): {answer}")
+              spider.log.record(f"  FOUND DATE (print): {answer}", 'info')
               answers.append((article_id, answer))
               continue
         if "created" in resp['message']:
@@ -1062,12 +1063,12 @@ def get_publication_dates(spider):
             pieces = resp['message']['created']['date-parts'][0]
             answer = pieces_to_date(pieces)
             if answer:
-              print(f"  FOUND DATE (created): {answer}")
+              spider.log.record(f"  FOUND DATE (created): {answer}", 'info')
               answers.append((article_id, answer))
               continue
-    print("\n\n\n\nRECORDING BATCH!\n\n\n\n")
+    spider.log.record("\nRecording batch.", 'debug')
     with spider.connection.db.cursor() as cursor:
-      sql = f"INSERT INTO paper.publication_dates (article, date) VALUES (%s, %s);"
+      sql = f"INSERT INTO {config.db['schema']}.publication_dates (article, date) VALUES (%s, %s);"
       cursor.executemany(sql, answers)
 
 if __name__ == "__main__":
@@ -1079,15 +1080,13 @@ if __name__ == "__main__":
       spider._pull_crossref_data_date(sys.argv[2])
     else:
       spider.pull_todays_crossref_data()
-  elif sys.argv[1] == "test":
-    # get_publication_dates(spider)
-
-    nltk.download('stopwords')
-    fulltext.get_more_fulltext(spider)
-  elif sys.argv[1] == "sitemap":
-    spider.build_sitemap()
+  elif sys.argv[1] == "pubdates":
+    # This task probably doesn't need to be run during EVERY refresh
+    get_publication_dates(spider)
   elif sys.argv[1] == "refresh":
     if len(sys.argv) == 3:
+      # if the ID of a specific article is given,
+      # only update that one
       spider.refresh_article_stats(id=sys.argv[2])
     else:
       config.crawl = {

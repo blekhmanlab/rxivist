@@ -45,6 +45,7 @@ class Connection(object):
     # posted to bioRxiv under two different titles, so they will show up as two different
     # bioRxiv papers that will eventually share a single journal DOI.
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_publications (article integer PRIMARY KEY, doi text, publication text);")
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS publication_dates (article integer PRIMARY KEY, date date);")
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS authors (id SERIAL PRIMARY KEY, name text NOT NULL, institution text, orcid text UNIQUE, noperiodname text);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_emails (id SERIAL PRIMARY KEY, author integer NOT NULL, email text);")
