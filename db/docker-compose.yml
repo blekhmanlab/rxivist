@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  rxdb:
+    image: blekhmanlab/rxivist_data
+    environment:
+    - POSTGRES_PASSWORD=
+    links:
+    - pgadmin
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+    - PGADMIN_DEFAULT_EMAIL=postgres
+    - PGADMIN_DEFAULT_PASSWORD=postgres
+    ports:
+      - "127.0.0.1:8080:80"
