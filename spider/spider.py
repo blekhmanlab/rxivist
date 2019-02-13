@@ -946,7 +946,7 @@ def full_run(spider):
       # HACK: There are way more neuro papers, so we check twice as many in each run
       if collection == 'neuroscience':
         spider.refresh_article_stats(collection, config.refresh_category_cap)
-      spider.refresh_article_stats(get_authors=True)
+      spider.refresh_article_stats(collection, get_authors=True)
     else:
       spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.", 'debug')
 
