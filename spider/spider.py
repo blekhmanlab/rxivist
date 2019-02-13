@@ -36,9 +36,6 @@ import psycopg2
 from requests_html import HTMLSession
 import requests
 
-import nltk
-import fulltext
-
 import config
 import db
 from log import Logger
@@ -899,46 +896,6 @@ class Spider(object):
         # if to_do % 100 == 0:
         #   self.log.record(f"{datetime.now()} - {to_do} left to go.", 'debug')
 
-  def build_sitemap(self):
-    """Utility function used to pull together a list of all pages on the site.
-    Not used for day-to-day operations."""
-    self.log.record("Building sitemap...")
-    filecount = 0
-    f = open('sitemaps/sitemap00.txt', 'w')
-    with self.connection.db.cursor() as cursor:
-      # find abstracts for any articles without them
-      cursor.execute("SELECT id FROM articles ORDER BY id;")
-      self.log.record("Recording papers.")
-      lines = 0
-      for a in cursor:
-        f.write('{}/papers/{}\n'.format(config.rxivist["base_url"], a[0]))
-        lines += 1
-        if lines >= 48000:
-          lines = 0
-          f.close()
-          filecount += 1
-          append = ""
-          if filecount < 10:
-            append = "0"
-          f = open(f"sitemaps/sitemap{append}{filecount}.txt", 'w')
-      self.log.record("Papers complete.")
-      cursor.execute("SELECT id FROM authors ORDER BY id;")
-      self.log.record("Recording authors.")
-      for a in cursor:
-        f.write('{}/authors/{}\n'.format(config.rxivist["base_url"], a[0]))
-        lines += 1
-        if lines >= 48000:
-          lines = 0
-          f.close()
-          filecount += 1
-          append = ""
-          if filecount < 10:
-            append = "0"
-          f = open(f"sitemaps/sitemap{append}{filecount}.txt", 'w')
-      self.log.record("Authors complete.")
-    f.close()
-    self.log.record("Sitemapping complete.")
-
 def load_rankings_from_file(batch, log):
   os.environ["PGPASSWORD"] = config.db["password"]
   to_delete = None
@@ -1035,30 +992,6 @@ def find_authors(response):
 
   return authors
 
-def cachewarmer(spider):
-  api = "https://api.rxivist.org/v1"
-  website = "https://rxivist.org"
-
-  finalpage = requests.get(f"{api}/papers").json()["query"]["final_page"]
-  print(f"About to fetch {finalpage+1} pages")
-  for page in range(finalpage):
-    print(f"PAGE {page}")
-    papersearch = requests.get(f"{api}/papers?page={page}").json()
-    for paper in papersearch["results"]:
-      print(f'  Grabbing paper {paper["id"]}')
-      paperdata = requests.get(f'{api}/papers/{paper["id"]}').json()
-      webpage = requests.get(f'{website}/papers/{paper["id"]}')
-      for author in paperdata["authors"]:
-        print(f='    Grabbing author {author["id"]}')
-        requests.get(f'{api}/authors/{author["id"]}')
-        requests.get(f'{website}/authors/{author["id"]}')
-  print("Done the top papers!")
-  topauthors = requests.get(f"{api}/authors").json()["results"]
-  for author in topauthors:
-    print(f'  Grabbing author {author["id"]}')
-    requests.get(f'{api}/authors/{author["id"]}')
-    requests.get(f'{website}/authors/{author["id"]}')
-
 def month_to_num(month):
   # helper for converting month names (string) to numbers (int)
   if len(month) > 3: # if it's the full name, truncate it
@@ -1071,7 +1004,6 @@ def pieces_to_date(pieces):
   if len(pieces) == 3:
     return f'{pieces[0]}-{pieces[1]}-{pieces[2]}'
   else:
-    print(f"  WEIRD DATE HERE: {pieces}")
     return False
 
 def get_publication_dates(spider):
