@@ -1012,69 +1012,63 @@ def pieces_to_date(pieces):
     return False
 
 def get_publication_dates(spider):
-  for x in range(0,100):
-    answers = []
-    with spider.connection.db.cursor() as cursor:
-      cursor.execute(f"""
-      SELECT p.article, p.doi
-      FROM {config.db['schema']}.article_publications p
-      LEFT JOIN {config.db['schema']}.publication_dates d ON p.article=d.article
-      WHERE d.date IS NULL
-      """)
-      done = 0
-      for article in cursor:
-        if done >= 100:
-          # We do this to save results in batches
-          break
-        done += 1
-        if config.polite:
-          time.sleep(3)
-        article_id = article[0]
-        doi = article[1]
-        spider.log.record(f"Checking DOI {doi}", 'debug')
-        headers = {'user-agent': config.user_agent}
-        r = requests.get(f"https://api.crossref.org/works/{doi}?mailto={config.crossref['parameters']['email']}", headers=headers)
-        if r.status_code != 200:
-          if r.status_code == 404:
-            spider.log.record("  Not found.", 'debug')
-            # HACK: This makes it simpler to skip missing papers in the future
-            answers.append((article_id, '1900-01-01'))
-            continue
-          spider.log.record(f"  Got weird status code: {r.status_code}", 'warn')
-          continue
-        resp = r.json()
+  with spider.connection.db.cursor() as cursor:
+    cursor.execute(f"""
+    SELECT p.article, p.doi
+    FROM {config.db['schema']}.article_publications p
+    LEFT JOIN {config.db['schema']}.publication_dates d ON p.article=d.article
+    WHERE d.date IS NULL
+    """)
+    todo = []
+    for article in cursor:
+      todo.append((article[0], article[1]))
 
-        if "message" not in resp.keys():
-          spider.log.record("  No message found.", 'debug')
-          continue
-        if "published-online" in resp['message']:
-          if 'date-parts' in resp['message']['published-online']:
-            pieces = resp['message']['published-online']['date-parts'][0]
-            answer = pieces_to_date(pieces)
-            if answer:
-              spider.log.record(f"  FOUND DATE (online): {answer}", 'info')
-              answers.append((article_id, answer))
-              continue
-        if "published-print" in resp['message']:
-          if 'date-parts' in resp['message']['published-print']:
-            pieces = resp['message']['published-print']['date-parts'][0]
-            answer = pieces_to_date(pieces)
-            if answer:
-              spider.log.record(f"  FOUND DATE (print): {answer}", 'info')
-              answers.append((article_id, answer))
-              continue
-        if "created" in resp['message']:
-          if 'date-parts' in resp['message']['created']:
-            pieces = resp['message']['created']['date-parts'][0]
-            answer = pieces_to_date(pieces)
-            if answer:
-              spider.log.record(f"  FOUND DATE (created): {answer}", 'info')
-              answers.append((article_id, answer))
-              continue
-    spider.log.record("\nRecording batch.", 'debug')
-    with spider.connection.db.cursor() as cursor:
-      sql = f"INSERT INTO {config.db['schema']}.publication_dates (article, date) VALUES (%s, %s);"
-      cursor.executemany(sql, answers)
+  for article in todo:
+    answer = None
+    if config.polite:
+      time.sleep(3)
+    article_id = article[0]
+    doi = article[1]
+    spider.log.record(f"Checking DOI {doi}", 'debug')
+    headers = {'user-agent': config.user_agent}
+    r = requests.get(f"https://api.crossref.org/works/{doi}?mailto={config.crossref['parameters']['email']}", headers=headers)
+    if r.status_code != 200:
+      if r.status_code == 404:
+        spider.log.record("  Not found.", 'debug')
+        # HACK: This makes it simpler to skip missing papers in the future
+        answer = (article_id, '1900-01-01')
+      spider.log.record(f"  Got weird status code: {r.status_code}", 'warn')
+    else:
+      resp = r.json()
+      if "message" not in resp.keys():
+        spider.log.record("  No message found.", 'debug')
+        continue
+      if "published-online" in resp['message']:
+        if 'date-parts' in resp['message']['published-online']:
+          pieces = resp['message']['published-online']['date-parts'][0]
+          dateparts = pieces_to_date(pieces)
+          if dateparts:
+            spider.log.record(f"  FOUND DATE (online): {dateparts}", 'info')
+            answer = (article_id, dateparts)
+      if "published-print" in resp['message'] and answer is None:
+        if 'date-parts' in resp['message']['published-print']:
+          pieces = resp['message']['published-print']['date-parts'][0]
+          dateparts = pieces_to_date(pieces)
+          if dateparts:
+            spider.log.record(f"  FOUND DATE (print): {dateparts}", 'info')
+            answer = (article_id, dateparts)
+      if "created" in resp['message'] and answer is None:
+        if 'date-parts' in resp['message']['created']:
+          pieces = resp['message']['created']['date-parts'][0]
+          dateparts = pieces_to_date(pieces)
+          if dateparts:
+            spider.log.record(f"  FOUND DATE (created): {dateparts}", 'info')
+            answer = (article_id, dateparts)
+    if answer is not None:
+      with spider.connection.db.cursor() as cursor:
+        sql = f"INSERT INTO {config.db['schema']}.publication_dates (article, date) VALUES (%s, %s);"
+        cursor.execute(sql, answer)
+        spider.log.record("  Recorded.", 'debug')
 
 if __name__ == "__main__":
   spider = Spider()
