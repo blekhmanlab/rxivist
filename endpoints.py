@@ -262,8 +262,58 @@ def top_year(year, connection):
   results = [models.SearchResultArticle(a, connection) for a in resp]
   return results
 
+def summary_stats(connection, category=None):
+  """Returns time-series data reflecting how many submissions and downloads
+  were recorded in each month.
+
+  Arguments:
+    - connection: a database Connection object.
+    - category: *tk NOOP whether to restrict the query to only a single collection.
+  Returns:
+    - A dictionary containing collections, each of which stores either the submission
+        or download numbers for a single month.
+
+  """
+  results = {
+    'submissions': [],
+    'downloads': []
+  }
+
+  # Submissions:
+  data = connection.read("""
+    SELECT EXTRACT(MONTH FROM posted)::int AS month,
+      EXTRACT(YEAR FROM posted)::int AS year, COUNT(id) AS submissions
+    FROM prod.articles
+    WHERE posted IS NOT NULL
+    GROUP BY year, month
+    ORDER BY year, month;
+  """)
+  for entry in data:
+    results['submissions'].append({
+      'month': entry[0],
+      'year': entry[1],
+      'count': entry[2],
+    })
+
+  # Downloads:
+  data = connection.read("""
+    SELECT month, year, sum(pdf) AS downloads
+    FROM prod.article_traffic
+    GROUP BY year, month
+    ORDER BY year, month
+  """)
+  for entry in data:
+    results['downloads'].append({
+      'month': entry[0],
+      'year': entry[1],
+      'count': entry[2]
+    })
+
+  return results
+
 def site_stats(connection):
-  """Returns a (very) brief summary of the information indexed by Rxivist
+  """Returns a (very) brief summary of the information indexed by Rxivist. More of
+  a data hygiene report than anything.
 
   Arguments:
     - connection: a database Connection object.

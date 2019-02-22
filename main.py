@@ -224,8 +224,22 @@ def get_distros(entity, metric):
   }
 
 @bottle.get('/v1/data/stats')
+# @bottle.get('/v2/data/hygiene')
 def get_counts():
   return endpoints.site_stats(connection)
+
+# site summary stats
+@bottle.get('/v1/data/summary')
+def summary_stats():
+  try:
+    details = endpoints.summary_stats(connection)
+  except helpers.NotFoundError as e:
+    bottle.response.status = 404
+    return {"error": e.message}
+  except ValueError as e:
+    bottle.response.status = 500
+    return {"error": f"Server error – {e}"}
+  return details
 
 # ---- Errors
 @bottle.error(404)
