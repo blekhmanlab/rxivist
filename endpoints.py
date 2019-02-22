@@ -276,7 +276,8 @@ def summary_stats(connection, category=None):
   """
   results = {
     'submissions': [],
-    'downloads': []
+    'downloads': [],
+    'submissions_categorical': []
   }
 
   # Submissions:
@@ -293,6 +294,50 @@ def summary_stats(connection, category=None):
       'month': entry[0],
       'year': entry[1],
       'count': entry[2],
+    })
+  print("\n\n\n\nHERE WE GO \n\n\n\n")
+  # the reason this is so complicated is because not every category has submissions
+  # in every month, and we want an entry for each month.
+  catlist = get_categories(connection)
+  # figure out the most recent month, so we know when to stop:
+  data = connection.read("SELECT MAX(year) FROM article_traffic")
+  maxyear = data[0][0]
+  data = connection.read("SELECT MAX(month) FROM article_traffic WHERE year = %s", (maxyear,))
+  maxmonth = data[0][0]
+
+  for cat in catlist:
+    catdata = {}
+    for year in range(2013, maxyear + 1):
+      catdata[year] = {}
+      for month in range(1,13):
+        if year == 2013 and month < 11:
+          continue # nothing before nov 2013
+        if year == maxyear and month > maxmonth:
+          break
+        catdata[year][month] = 0
+    data = connection.read("""
+      SELECT EXTRACT(MONTH FROM posted)::int AS month,
+        EXTRACT(YEAR FROM posted)::int AS year, COUNT(id) AS submissions
+      FROM prod.articles
+      WHERE posted IS NOT NULL
+      AND collection=%s
+      GROUP BY year, month
+      ORDER BY year, month;
+    """,(cat,))
+    for entry in data:
+      catdata[entry[1]][entry[0]] = entry[2]
+
+    monthdata = []
+    for year, yeardata in catdata.items():
+      for month, count in yeardata.items():
+        monthdata.append({
+          'month': month,
+          'year': year,
+          'count': count,
+        })
+    results['submissions_categorical'].append({
+      'label': cat,
+      'data': monthdata
     })
 
   # Downloads:
