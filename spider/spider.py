@@ -299,6 +299,8 @@ class Spider(object):
               WHERE authors=0;
           """
           cursor.execute(sql)
+        elif collection is None:
+          cursor.execute("SELECT id, url, doi FROM articles WHERE collection IS NULL AND last_crawled < now() - interval %s;", (config.refresh_interval,))
         else:
           cursor.execute("SELECT id, url, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
       else:
@@ -946,9 +948,14 @@ def full_run(spider):
       # HACK: There are way more neuro papers, so we check twice as many in each run
       if collection == 'neuroscience':
         spider.refresh_article_stats(collection, config.refresh_category_cap)
-      spider.refresh_article_stats(collection, get_authors=True)
     else:
       spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.", 'debug')
+
+  if config.crawl["refresh_stats"] is not False:
+    # Refresh the articles without a collection:
+    spider.refresh_article_stats()
+    # Grab authors for any articles that don't currently have any:
+    spider.refresh_article_stats(get_authors=True)
 
   if config.crawl["fetch_crossref"] is not False:
     spider.pull_todays_crossref_data()
