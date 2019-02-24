@@ -1,6 +1,7 @@
 """Functions linked directly to functionality called from API endpoints.
 
 """
+from datetime import datetime
 
 import bottle
 
@@ -295,7 +296,7 @@ def summary_stats(connection, category=None):
       'year': entry[1],
       'count': entry[2],
     })
-  print("\n\n\n\nHERE WE GO \n\n\n\n")
+
   # the reason this is so complicated is because not every category has submissions
   # in every month, and we want an entry for each month.
   catlist = get_categories(connection)
@@ -341,6 +342,20 @@ def summary_stats(connection, category=None):
     })
 
   # Downloads:
+
+  # Don't show the previous month's download numbers until X days after the
+  # month ends, since those numbers won't be updated for every paper until
+  # after the month ends
+  x = 14
+  current = datetime.now().day
+  adjust = 1 if current > x else 2
+
+  if maxmonth > adjust:
+    maxmonth -= adjust
+  else:
+    maxmonth += 12 - adjust
+    maxyear -= 1
+
   data = connection.read("""
     SELECT month, year, sum(pdf) AS downloads
     FROM prod.article_traffic
@@ -353,6 +368,8 @@ def summary_stats(connection, category=None):
       'year': entry[1],
       'count': entry[2]
     })
+    if entry[1] == maxyear and entry[0] == maxmonth:
+      break
 
   return results
 
