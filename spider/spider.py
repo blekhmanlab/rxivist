@@ -306,7 +306,6 @@ class Spider(object):
       else:
         cursor.execute("SELECT id, url, doi FROM articles WHERE id=%s;", (id,))
       updated = 0
-      consecutive_errors = 0
       for article in cursor:
         article_id = article[0]
         url = article[1]
@@ -320,14 +319,8 @@ class Spider(object):
           try:
             pub_data = self.check_publication_status(article_id, doi, True)
           except ValueError:
-            consecutive_errors += 1
-            if consecutive_errors >= 3:
-              self.log.record("Too many errors in a row. Turning off publication status checks for this run.", "error")
-              config.crawl["fetch_pubstatus"] = False
-            else:
-              self.log.record(f"Encountered error ({consecutive_errors} in a row). Waiting five minutes to continue.", "warn")
-              time.sleep(300)
-              continue
+            self.log.record("Too many errors in a row. Turning off publication status checks for this run.", "error")
+            config.crawl["fetch_pubstatus"] = False
           if pub_data is not None: # if we found something
             self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
 
