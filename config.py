@@ -10,6 +10,13 @@ cache = {
   "simple": 7200
 }
 
+# For the "summary statistics" endpoint, the download metrics
+# for a given month are hidden until X days after the month has
+# ended, because those numbers could lag weeks behind the calendar
+# date. This setting indicates how many days should elapse before
+# a month's download numbers should be included.
+summary_download_age = 14
+
 # Information about how to connect to a postgres database will
 # all the Rxivist data
 db = {
