@@ -346,9 +346,8 @@ def summary_stats(connection, category=None):
   # Don't show the previous month's download numbers until X days after the
   # month ends, since those numbers won't be updated for every paper until
   # after the month ends
-  x = 14
   current = datetime.now().day
-  adjust = 1 if current > x else 2
+  adjust = 1 if current > config.summary_download_age else 2
 
   if maxmonth > adjust:
     maxmonth -= adjust
