@@ -301,10 +301,10 @@ def summary_stats(connection, category=None):
   # in every month, and we want an entry for each month.
   catlist = get_categories(connection)
   # figure out the most recent month, so we know when to stop:
-  data = connection.read("SELECT MAX(year) FROM article_traffic")
-  maxyear = data[0][0]
-  data = connection.read("SELECT MAX(month) FROM article_traffic WHERE year = %s", (maxyear,))
-  maxmonth = data[0][0]
+  data = connection.read(f"SELECT MAX(EXTRACT(YEAR FROM posted)) FROM {config.db['schema']}.articles")
+  maxyear = int(data[0][0])
+  data = connection.read(f"SELECT MAX(EXTRACT(MONTH FROM posted)) FROM {config.db['schema']}.articles WHERE EXTRACT(YEAR FROM posted) = %s", (maxyear,))
+  maxmonth = int(data[0][0])
 
   for cat in catlist:
     catdata = {}
