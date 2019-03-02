@@ -239,6 +239,7 @@ def summary_stats():
   except ValueError as e:
     bottle.response.status = 500
     return {"error": f"Server error – {e}"}
+  bottle.response.set_header("Cache-Control", f'max-age=1200, stale-while-revalidate=172800')
   return details
 
 # ---- Errors
