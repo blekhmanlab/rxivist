@@ -508,7 +508,7 @@ class Spider(object):
   def _record_authors(self, article_id, authors, overwrite=False):
     if overwrite:
       with self.connection.db.cursor() as cursor:
-        self.log.record("Marking currently recorded authors for deletion.", "debug")
+        self.log.record("Deleting previously recorded author links.", "debug")
         cursor.execute(f'DELETE FROM {config.db["schema"]}.article_authors WHERE article=%s;',(article_id,))
     else:
       with self.connection.db.cursor() as cursor:
@@ -1086,6 +1086,7 @@ if __name__ == "__main__":
         "fetch_abstracts": True, # Check for any Rxivist papers missing an abstract and fill it in (Papers don't have an abstract when first crawled)
         "fetch_crossref": False, # Update daily Crossref stats
         "refresh_stats": True, # Look for articles with outdated download info and re-crawl them
-        "fetch_pubstatus": True # Check for whether a paper has been published during stat refresh
+        "fetch_pubstatus": True, # Check for whether a paper has been published during stat refresh
+        "fetch_pubdates": True # Check for publication dates for any papers that have been published
       }
       full_run(spider)
