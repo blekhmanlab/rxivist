@@ -509,10 +509,7 @@ class Spider(object):
     if overwrite:
       with self.connection.db.cursor() as cursor:
         self.log.record("Marking currently recorded authors for deletion.", "debug")
-        # we set the article ID to 0 before deleting them so if the spider dies in
-        # between removing the old authors and updating the new ones, we can go in
-        # and fix it manually.
-        cursor.execute(f'UPDATE {config.db["schema"]}.article_authors SET article=0 WHERE article=%s;', (article_id,))
+        cursor.execute(f'DELETE FROM {config.db["schema"]}.article_authors WHERE article=%s;',(article_id,))
     else:
       with self.connection.db.cursor() as cursor:
         cursor.execute(f'SELECT COUNT(article) FROM {config.db["schema"]}.article_authors WHERE article=%s;', (article_id,))
@@ -542,11 +539,6 @@ class Spider(object):
         except Exception as e:
           self.log.record(f"Another problem associating author {x} to article {article_id}. Moving on.", "error")
           pass
-    if overwrite:
-      # if we marked authors for deletion earlier, it's safe to delete them now.
-      self.log.record("Removing outdated authors.", "debug")
-      with self.connection.db.cursor() as cursor:
-        cursor.execute(f'DELETE FROM {config.db["schema"]}.article_authors WHERE article=0;')
 
   def fetch_category_list(self):
     categories = []
