@@ -2,23 +2,6 @@
 
 Below is the code used to generate all figures in the manuscript.
 
-* [Figure 1](#figure-1-papers): Papers
-* [Figure 2](#figure-2-downloads): Downloads
-* [Figure 3](#figure-3-publications): Publications
-* [Figure 4](#figure-4-time-to-publication): Time to publication
-* [Figure 5](#figure-5-preprint-publications-per-journal): Preprint publications per journal
-* [Figure 6](#figure-6-median-biorxiv-downloads-per-journal): Median bioRxiv downloads per journal
-* [Table 1](#table-1-authors-per-year): Authors per journal
-* [Table 2](#table-2-downloads-of-published-and-unpublished-papers): Downloads of published and unpublished papers
-* [Table S1](#table-s1-articles-per-journal-september-2018): Articles per journal, September 2018
-* [Table S2](#table-s2-papers-per-author): Papers per author
-* [Table S3](#table-s3-authors-and-papers-by-institution): Authors and papers by institution
-* [Figure S1](#figure-s1-downloads-over-time-relative-to-posting): Downloads over time relative to posting
-* [Figure S2](#figure-s2-proportion-of-downloads-per-month-on-biorxiv): Proportion of downloads per month on bioRxiv
-* [Figure S3](#figure-s3-downloads-by-year-posted): Downloads by year posted
-* [Figure S4](#figure-s4-median-downloads-per-year): Median downloads per year posted
-* [In-text analysis](#analysis)
-
 ## PostgreSQL snapshot restoration
 
 Any conventional method of restoring Postgres backups should work properly for these snapshots, but a straightforward method using a conventional workstation is described below.
@@ -48,6 +31,7 @@ library(plyr)
 require(dplyr)
 require(scales)
 library(ggrepel)
+library(ggridges)
 
 themepurple = "#d0c1ff"
 themeorange = "#ffab03"
@@ -1399,7 +1383,7 @@ plot_grid(histbox, hist, by_journal,
  ```
 
 
-## Figure S1: Downloads over time relative to posting
+## Figure 2, figure supplement 1: Downloads over time relative to posting
 
 Query written to `downloads_by_months.csv`:
 
@@ -1600,7 +1584,7 @@ ggplot(data=firstframe, aes(
   geom_hline(yintercept=21, col=themedarkgrey, linetype="dashed", size=1)
 ```
 
-## Figure S2: Proportion of downloads per month on bioRxiv
+## Figure 2, figure supplement 2: Proportion of downloads per month on bioRxiv
 
 ```r
 pre2018 <- filter(firstframe, posted < 2018)
@@ -1625,9 +1609,9 @@ ggplot(data=combined, aes(
   )
 ```
 
-## Figure S3: Downloads by year posted
+## Figure 2, figure supplement 3: Downloads by year posted
 
-### Figure S3a: Downloads in first month on bioRxiv
+### Figure 2, figure supplement 3(a): Downloads in first month on bioRxiv
 
 Query written to `downloads_by_first_month.csv`:
 
@@ -1679,7 +1663,7 @@ firstplot <- ggplot(data=firstframe, aes(
   )
 ```
 
-### Figure S3b: Best month of downloads
+### Figure 2, figure supplement 3(b): Best month of downloads
 
 Query written to `downloads_max_by_year_posted.csv`:
 
@@ -1716,7 +1700,7 @@ theme(
 )
 ```
 
-### Figure S3(c): 2018 downloads, by year posted
+### Figure 2, figure supplement 3(c): 2018 downloads, by year posted
 
 Query written to `2018_downloads_by_year_posted.csv`:
 
@@ -1758,7 +1742,7 @@ latestplot <- ggplot(data=latestframe, aes(
   )
 ```
 
-### Figure S3 combined
+### Figure 2, figure supplement 3 combined
 
 ```r
 plot_grid(firstplot, maxplot, latestplot,
@@ -1769,7 +1753,7 @@ plot_grid(firstplot, maxplot, latestplot,
 )
 ```
 
-## Figure S4: Median downloads per year
+## Figure 2, figure supplement 4: Median downloads per year
 
 Query written to `downloads_per_year.csv`:
 
@@ -1812,7 +1796,37 @@ ggplot(data=aframe, aes(
   )
 ```
 
-## Table S1: Articles per journal, September 2018
+
+### Figure 3, figure supplement 1: Estimated publication rates
+
+```r
+df <- data.frame(
+  year = seq(2014,2017,1),
+  old = c(0.685, 0.687, 0.666, 0.640),
+  newfloor = c(0.786, 0.798, 0.706, 0.640),
+  newceiling = c(0.899, 0.910, 0.826, 0.764)
+)
+
+ggplot(df, aes(x=year, y=old)) +
+  geom_point() +
+  geom_errorbar(
+    aes(
+      x=year,
+      ymin=newfloor,
+      ymax=newceiling
+    ), width = 0.2
+  ) +
+  labs(x='Year', y='Publication rate') +
+  theme_bw() +
+  theme(
+    axis.text = element_text(size=big_fontsize, color = themedarktext),
+    # axis.title.x = element_text(size=big_fontsize, hjust=0.45, vjust=-1.2),
+    axis.title = element_text(size=big_fontsize),
+    # plot.margin = unit(c(0.5, 0.5, 0.5, 1), "cm")
+  )
+```
+
+## Figure 1, figure supplement 1: Articles per journal, September 2018
 
 Tables of contents:
 
@@ -1822,7 +1836,7 @@ Tables of contents:
 * [*The Journal of Biochemistry* 164(3)](https://academic.oup.com/jb/issue/164/3), September 2018
 * [*PLOS Biology* 16(9)](https://journals.plos.org/plosbiology/issue?id=10.1371/issue.pbio.v16.i09), September 2018
 
-## Table S2: Papers per author
+## Table 1, table supplement 1: Papers per author
 
 Query written to `papers_per_author.csv`:
 
@@ -1839,7 +1853,7 @@ ORDER BY 3 DESC
 
 (Top values inserted into table.)
 
-## Table S3: Authors and papers by institution
+## Table 1, table supplement 2: Authors and papers by institution
 
 Query written to `authors_per_institution.csv`:
 
@@ -1881,7 +1895,7 @@ ddply(paperframe, .(isneuro), summarise, med = median(downloads))
 wilcox.test(downloads~isneuro, data=paperframe)
 ```
 
-Info from Figure S1:
+Info from Figure 2, figure supplement 1:
 ```r
 firstframe = read.csv('downloads_by_months.csv')
 median(filter(firstframe, monthnum==1)$downloads)
@@ -1998,4 +2012,58 @@ SELECT COUNT(a.id)
 FROM paper.articles a
 INNER JOIN paper.article_publications p ON a.id=p.article
 WHERE a.posted < '1 Jan 2016'
+```
+
+Additional correlation analysis of impact factor and preprint downloads:
+```r
+journalframe = read.csv('data/to_upload/downloads_journal.csv')
+journalframe = filter(journalframe, journal!='(unpublished)')
+
+journalframe <- journalframe %>%
+  inner_join(capitalized_journals, by=c("journal"="old"))
+
+journalframe$journal <- journalframe$new
+journalframe$new <- NULL
+
+journalframe <- journalframe %>%  select(article, downloads, journal)
+impactframe = read.csv('data/to_upload/impact_scores.csv')
+
+details <- journalframe %>% left_join(impactframe)
+
+details = transform(details, round=round(impact))
+cor.test(details$downloads, details$rank, method="kendall")
+
+# Find the regression results for the plot:
+summary(lm(downloads~impact, data=details))
+
+newdetails <- rbind(details, c(0,0,0,0,0,0,11))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,14))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,15))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,16))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,17))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,18))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,19))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,20))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,21))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,22))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,23))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,24))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,25))
+newdetails <- rbind(newdetails, c(0,0,0,0,0,0,26))
+
+ggplot(data=details, aes(
+    x=rank,
+    y=downloads,
+    color=journal
+  )) +
+  geom_point(position="jitter", size=.5) +
+  theme_bw() +
+  coord_cartesian(ylim=c(0,10000), xlim=c(0,30)) +
+  theme(
+    panel.border = element_rect(linetype = "solid", color="black", size=1, fill = NA),
+    axis.text = element_text(size=big_fontsize, color = themedarktext),
+    axis.title = element_text(size=big_fontsize),
+    legend.position = 'none'
+  ) +
+  labs(x="Journal impact score, 2017", y="Downloads")
 ```
