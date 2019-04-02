@@ -1383,6 +1383,58 @@ plot_grid(histbox, hist, by_journal,
  ```
 
 
+
+## Figure 1, figure supplement 1: Articles per journal, September 2018
+
+Tables of contents:
+
+* [*Cell* 174(6)](https://www.sciencedirect.com/journal/cell/vol/174/issue/6), 6 Sep 2018
+* [*Cell* 175(1)](https://www.sciencedirect.com/journal/cell/vol/175/issue/1), 20 Sep 2018
+* [*Genetics* 210(1)](http://www.genetics.org/content/210/1), September 2018
+* [*The Journal of Biochemistry* 164(3)](https://academic.oup.com/jb/issue/164/3), September 2018
+* [*PLOS Biology* 16(9)](https://journals.plos.org/plosbiology/issue?id=10.1371/issue.pbio.v16.i09), September 2018
+
+## Table 1, table supplement 1: Papers per author
+
+Query written to `papers_per_author.csv`:
+
+```sql
+SELECT a.id, REPLACE(a.name, ',', ' ') AS name, COUNT(DISTINCT p.article) AS papers, COUNT(DISTINCT e.email) AS emails
+FROM paper.authors a
+INNER JOIN paper.article_authors p
+  ON a.id=p.author
+LEFT JOIN paper.author_emails e
+  ON a.id=e.author
+GROUP BY 1
+ORDER BY 3 DESC
+```
+
+(Top values inserted into table.)
+
+## Table 1, table supplement 2: Authors and papers by institution
+
+Query written to `authors_per_institution.csv`:
+
+```sql
+SELECT authors.institution, authors.authors, p.papers
+FROM (
+  SELECT REPLACE(a.institution, ',', '') AS institution, COUNT(a.id) AS authors
+  FROM paper.authors a
+  WHERE institution NOT IN ('', '-')
+  GROUP BY 1
+) AS authors
+LEFT JOIN (
+  SELECT REPLACE(a.institution, ',', '') AS institution, COUNT(DISTINCT p.article) AS papers
+  FROM paper.authors a
+  INNER JOIN paper.article_authors p
+    ON a.id=p.author
+  GROUP BY 1
+) AS p ON authors.institution=p.institution
+ORDER BY 3 DESC, 2 DESC, 1
+```
+
+(Top values added to table.)
+
 ## Figure 2, figure supplement 1: Downloads over time relative to posting
 
 Query written to `downloads_by_months.csv`:
@@ -1796,8 +1848,7 @@ ggplot(data=aframe, aes(
   )
 ```
 
-
-### Figure 3, figure supplement 1: Estimated publication rates
+## Figure 3, figure supplement 1: Estimated publication rates
 
 ```r
 df <- data.frame(
@@ -1825,57 +1876,6 @@ ggplot(df, aes(x=year, y=old)) +
     # plot.margin = unit(c(0.5, 0.5, 0.5, 1), "cm")
   )
 ```
-
-## Figure 1, figure supplement 1: Articles per journal, September 2018
-
-Tables of contents:
-
-* [*Cell* 174(6)](https://www.sciencedirect.com/journal/cell/vol/174/issue/6), 6 Sep 2018
-* [*Cell* 175(1)](https://www.sciencedirect.com/journal/cell/vol/175/issue/1), 20 Sep 2018
-* [*Genetics* 210(1)](http://www.genetics.org/content/210/1), September 2018
-* [*The Journal of Biochemistry* 164(3)](https://academic.oup.com/jb/issue/164/3), September 2018
-* [*PLOS Biology* 16(9)](https://journals.plos.org/plosbiology/issue?id=10.1371/issue.pbio.v16.i09), September 2018
-
-## Table 1, table supplement 1: Papers per author
-
-Query written to `papers_per_author.csv`:
-
-```sql
-SELECT a.id, REPLACE(a.name, ',', ' ') AS name, COUNT(DISTINCT p.article) AS papers, COUNT(DISTINCT e.email) AS emails
-FROM paper.authors a
-INNER JOIN paper.article_authors p
-  ON a.id=p.author
-LEFT JOIN paper.author_emails e
-  ON a.id=e.author
-GROUP BY 1
-ORDER BY 3 DESC
-```
-
-(Top values inserted into table.)
-
-## Table 1, table supplement 2: Authors and papers by institution
-
-Query written to `authors_per_institution.csv`:
-
-```sql
-SELECT authors.institution, authors.authors, p.papers
-FROM (
-  SELECT REPLACE(a.institution, ',', '') AS institution, COUNT(a.id) AS authors
-  FROM paper.authors a
-  WHERE institution NOT IN ('', '-')
-  GROUP BY 1
-) AS authors
-LEFT JOIN (
-  SELECT REPLACE(a.institution, ',', '') AS institution, COUNT(DISTINCT p.article) AS papers
-  FROM paper.authors a
-  INNER JOIN paper.article_authors p
-    ON a.id=p.author
-  GROUP BY 1
-) AS p ON authors.institution=p.institution
-ORDER BY 3 DESC, 2 DESC, 1
-```
-
-(Top values added to table.)
 
 ## Analysis
 
