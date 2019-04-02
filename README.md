@@ -2,6 +2,8 @@
 
 This application requires Python 3.6 or above. For information about running the web crawler, see [the README in the `spider` directory](https://github.com/blekhmanlab/rxivist/blob/master/spider/README.md).
 
+If you're looking for the Rxivist web application, that's in [a separate repository](https://github.com/blekhmanlab/rxivist_web).
+
 ## Deployment
 The Rxivist API is designed to be run in a Docker container (though it doesn't have to be). Once Docker is installed on whatever server you plan to use, there are only a few commands to run:
 
