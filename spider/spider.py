@@ -83,19 +83,20 @@ class Spider(object):
     self.session.headers['User-Agent'] = config.user_agent
     self.log = Logger()
 
-  def _pull_crossref_data_date(self, datestring):
+  def _pull_crossref_data_date(self, datestring, retry=True):
     # Datestring should be format YYYY-MM-DD
     self.log.record(f"Beginning retrieval of Crossref data for {datestring}", "info")
-    # (If we have multiple results for the same 24-hour period, the
-    # query that displays the most popular displays the same articles
-    # multiple times, and the aggregation function to clean that up
-    # would be too complicated to bother with right now.)
-    with self.connection.db.cursor() as cursor:
-      self.log.record("Removing earlier data from same day")
-      cursor.execute("DELETE FROM crossref_daily WHERE source_date=%s;", (datestring,))
+
 
     headers = {'user-agent': config.user_agent}
-    r = requests.get("{0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), headers=headers)
+    print("{0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]))
+    try:
+      r = requests.get("{0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), headers=headers)
+    except Exception as e:
+      self.log.record(f'Problem sending request to Crossref: {e}.', 'error')
+      if retry: # only retry once
+        return self._pull_crossref_data_date(datestring, retry=False)
+
     if r.status_code != 200:
       self.log.record(f"Got weird status code: {r.status_code}. {r.text()}", "error")
       return
@@ -129,6 +130,15 @@ class Spider(object):
       doi = doi_search.group(1)
       if "subj" in event and "original-tweet-url" in event['subj']:
         tweets[doi].append(event["subj"]["original-tweet-url"])
+
+    # (If we have multiple results for the same 24-hour period, the
+    # query that displays the most popular displays the same articles
+    # multiple times, and the aggregation function to clean that up
+    # would be too complicated to bother with right now.)
+    if len(tweets) > 0:
+      with self.connection.db.cursor() as cursor:
+        self.log.record("Removing earlier data from same day")
+        cursor.execute("DELETE FROM crossref_daily WHERE source_date=%s;", (datestring,))
 
     sql = f"INSERT INTO {config.db['schema']}.crossref_daily (source_date, doi, count) VALUES (%s, %s, %s);"
     params = [(datestring, doi, len(tweets[doi])) for doi in tweets]
@@ -514,7 +524,7 @@ class Spider(object):
       with self.connection.db.cursor() as cursor:
         cursor.execute(f'SELECT COUNT(article) FROM {config.db["schema"]}.article_authors WHERE article=%s;', (article_id,))
         count = cursor.fetchone()[0]
-        if count > 0:
+        if count > 0: # If the paper already has authors, we're done
           return
 
     author_ids = []
