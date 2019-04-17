@@ -158,10 +158,10 @@ class Article:
         stat_table, authors = spider.get_article_stats(self.url)
       except Exception as e:
         spider.log.record(f"Error fetching stats: {e}. Trying one more time...", "warn")
-      try:
-        stat_table, authors = spider.get_article_stats(self.url)
-      except Exception as e:
-        spider.log.record("Error fetching stats again. Giving up on this one.", "error")
+        try:
+          stat_table, authors = spider.get_article_stats(self.url)
+        except Exception as e:
+          spider.log.record("Error fetching stats again. Giving up on this one.", "error")
 
       spider._record_authors(self.id, authors)
       posted = spider.get_article_posted_date(self.url)
