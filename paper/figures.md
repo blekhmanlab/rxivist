@@ -1138,9 +1138,7 @@ totals <- totals %>%
   mutate(journal = new) %>%
   select(journal, Papers)
 
-medians <- journalonlyframe %>%
-  group_by(journal) %>%
-  summarize(median = median(downloads))
+medians <- ddply(journalonlyframe, .(journal), summarise, median = median(downloads))
 
 all <- medians %>% left_join(impactframe)
 all <- all %>% left_join(totals)
@@ -1166,7 +1164,7 @@ inset <- ggplot(data=all, aes(
     axis.title = element_text(size=big_fontsize),
     legend.position = c(0.85, 0.2)
   ) +
-  labs(x="Median downloads per preprint", y="Journal impact score, 2017") +
+  labs(x="Median downloads per preprint", y="Journal impact factor, 2017") +
   geom_text_repel(
     data=subset(all, journal %in% c(
       'Nature Genetics',
@@ -1384,7 +1382,7 @@ plot_grid(histbox, hist, by_journal,
 
 
 
-## Figure 1, figure supplement 1: Articles per journal, September 2018
+## Figure 1, source data 4: Articles per journal, September 2018
 
 Tables of contents:
 
@@ -1394,7 +1392,7 @@ Tables of contents:
 * [*The Journal of Biochemistry* 164(3)](https://academic.oup.com/jb/issue/164/3), September 2018
 * [*PLOS Biology* 16(9)](https://journals.plos.org/plosbiology/issue?id=10.1371/issue.pbio.v16.i09), September 2018
 
-## Table 1, table supplement 1: Papers per author
+## Figure 1, source data 6: Papers per author
 
 Query written to `papers_per_author.csv`:
 
@@ -1411,7 +1409,7 @@ ORDER BY 3 DESC
 
 (Top values inserted into table.)
 
-## Table 1, table supplement 2: Authors and papers by institution
+## Figure 1, source data 8: Authors and papers by institution
 
 Query written to `authors_per_institution.csv`:
 
@@ -1871,9 +1869,7 @@ ggplot(df, aes(x=year, y=old)) +
   theme_bw() +
   theme(
     axis.text = element_text(size=big_fontsize, color = themedarktext),
-    # axis.title.x = element_text(size=big_fontsize, hjust=0.45, vjust=-1.2),
     axis.title = element_text(size=big_fontsize),
-    # plot.margin = unit(c(0.5, 0.5, 0.5, 1), "cm")
   )
 ```
 
