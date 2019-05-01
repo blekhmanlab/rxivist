@@ -89,12 +89,12 @@ class Spider(object):
 
 
     headers = {'user-agent': config.user_agent}
-    print("{0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]))
     try:
       r = requests.get("{0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), headers=headers)
     except Exception as e:
       self.log.record(f'Problem sending request to Crossref: {e}.', 'error')
       if retry: # only retry once
+        self.log.record("Retrying request: {0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), 'info')
         return self._pull_crossref_data_date(datestring, retry=False)
 
     if r.status_code != 200:
@@ -410,7 +410,7 @@ class Spider(object):
       else:
         self.log.record("Giving up on this one for now.", "error")
         raise ValueError("Encountered exception making HTTP call to fetch paper information.")
-    abstract = resp.html.find("#p-2")
+    abstract = resp.html.find('meta[name="DC.Description"]')
     if len(abstract) < 1:
       raise ValueError("Successfully made HTTP call to fetch paper information, but did not find an abstract.")
     return abstract[0].text
@@ -427,6 +427,15 @@ class Spider(object):
         return (None, None)
     authors = find_authors(resp)
 
+    # The download metrics table is shaped differently if there's
+    # a column for "Full-text downloads" (which appears in the HTML as only
+    # "Full"), so we check here to see whether it's there:
+    headers = iter(resp.html.find("th"))
+    full_available = False
+    for header in headers:
+      if header.text == 'Full':
+        full_available = True
+    # Then iterate through the table:
     entries = iter(resp.html.find("td"))
     stats = []
     for entry in entries:
@@ -434,6 +443,8 @@ class Spider(object):
       month = month_to_num(date[0])
       year = int(date[1])
       abstract = int(next(entries).text)
+      if full_available:
+        full = int(next(entries).text) # TODO: this doesn't get recorded now
       pdf = int(next(entries).text)
       stats.append((month, year, abstract, pdf))
     return stats, authors
