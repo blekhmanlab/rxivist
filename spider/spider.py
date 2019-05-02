@@ -312,7 +312,7 @@ class Spider(object):
         elif collection is None:
           cursor.execute("SELECT id, url, doi FROM articles WHERE collection IS NULL AND last_crawled < now() - interval %s;", (config.refresh_interval,))
         else:
-          cursor.execute("SELECT id, url, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s;", (collection, config.refresh_interval))
+          cursor.execute("SELECT id, url, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s ORDER BY last_crawled ASC;", (collection, config.refresh_interval))
       else:
         cursor.execute("SELECT id, url, doi FROM articles WHERE id=%s;", (id,))
       updated = 0
