@@ -1044,7 +1044,12 @@ def get_publication_dates(spider):
     doi = article[1]
     spider.log.record(f"Checking DOI {doi}", 'debug')
     headers = {'user-agent': config.user_agent}
-    r = requests.get(f"https://api.crossref.org/works/{doi}?mailto={config.crossref['parameters']['email']}", headers=headers)
+    try:
+      r = requests.get(f"https://api.crossref.org/works/{doi}?mailto={config.crossref['parameters']['email']}", headers=headers)
+    except Exception as e:
+      spider.log.record(f"  Error calling crossref API for publication data: {e}", 'error')
+      continue
+
     if r.status_code != 200:
       if r.status_code == 404:
         spider.log.record("  Not found.", 'debug')
