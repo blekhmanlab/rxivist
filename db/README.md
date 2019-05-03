@@ -6,7 +6,7 @@ The backup file in this repository is a copy of the production database powering
 
 ### Using the pre-built Docker container
 
-Beginning with the 2019-02-13 snapshot, all database dumps here should have a corresponding container image hosted on [Docker Hub](https://cloud.docker.com/u/blekhmanlab/repository/docker/blekhmanlab/rxivist_data). If you are unfamiliar with SQL databases, using the most recent image there is likely simpler than loading the data manually from this repository.
+Beginning with the 2019-02-13 snapshot, all database dumps here should have a corresponding container image hosted on [Docker Hub](https://hub.docker.com/r/blekhmanlab/rxivist_data). If you are unfamiliar with SQL databases, using the most recent image there is likely simpler than loading the data manually from this repository.
 
 1. Download the `docker-compose.yml` file from this repository. You don't need the snapshot itself if you are using the pre-built Docker container; the data is already baked in.
 1. Install [Docker](https://www.docker.com/products/docker-desktop), a free containerization platform. Containers are used for all the Rxivist components to limit external dependencies and side-effects from installation of tools such as PostgreSQL.
