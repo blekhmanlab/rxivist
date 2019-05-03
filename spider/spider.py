@@ -410,10 +410,16 @@ class Spider(object):
       else:
         self.log.record("Giving up on this one for now.", "error")
         raise ValueError("Encountered exception making HTTP call to fetch paper information.")
-    abstract = resp.html.find('meta[name="DC.Description"]')
-    if len(abstract) < 1:
-      raise ValueError("Successfully made HTTP call to fetch paper information, but did not find an abstract.")
-    return abstract[0].text
+    abstract = resp.html.find('meta[name="DC.Description"]', first=True)
+    if abstract is not None and abstract.attrs['content'] != '':
+      abstract = abstract.attrs['content']
+    else:
+      self.log.record('Primary source of abstract missing. Trying secondary option.','debug')
+      abstract = resp.html.find("#p-2")
+      if len(abstract) < 1 or abstract[0].text == '':
+        raise ValueError("Successfully made HTTP call to fetch paper information, but did not find an abstract.")
+      abstract = abstract[0].text
+    return abstract
 
   def get_article_stats(self, url, retry_count=0):
     try:
