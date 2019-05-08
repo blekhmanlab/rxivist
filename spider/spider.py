@@ -277,7 +277,7 @@ class Spider(object):
   def fetch_abstracts(self):
     with self.connection.db.cursor() as cursor:
       # find abstracts for any articles without them
-      cursor.execute(f'SELECT id, url FROM {config.db["schema"]}.articles WHERE abstract IS NULL;')
+      cursor.execute(f'SELECT id, url FROM {config.db["schema"]}.articles WHERE abstract IS NULL OR abstract='';')
       for article in cursor:
         url = article[1]
         article_id = article[0]
@@ -329,8 +329,11 @@ class Spider(object):
           try:
             pub_data = self.check_publication_status(article_id, doi, True)
           except ValueError:
-            self.log.record("Too many errors in a row. Turning off publication status checks for this run.", "error")
-            config.crawl["fetch_pubstatus"] = False
+            if config.reset_pubstatus is not False:
+              self.log.record("Too many errors in a row. Turning off publication status checks for this run.", "error")
+              config.crawl["fetch_pubstatus"] = False
+            else:
+              self.log.record("Too many errors checking publication status. Exiting.", "fatal")
           if pub_data is not None: # if we found something
             self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
 

@@ -60,6 +60,15 @@ user_agent = "rxivist web crawler (YOUR_URL_HERE.org)"
 # whether to add pauses at several places in the crawl
 polite = True
 
+# Occasionally, the bioRxiv endpoint we use to check the publication status
+# of a preprint will stop responding. Pausing for a minute generally fixes this,
+# but sometimes it doesn't. If reset_pubstatus is set to True, consecutive errors
+# from the publication status endpoint will trigger a change that simply stops
+# calling that endpoint for the current web crawling session. Set this to False
+# if you would rather the spider exit completely instead of just not checking
+# the status.
+reset_pubstatus = False
+
 # whether to stop crawling once we've encountered a set
 # number of papers that we've already recorded. setting this
 # to 0 would make sense, except if papers are added to a
