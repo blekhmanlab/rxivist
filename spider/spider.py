@@ -96,9 +96,12 @@ class Spider(object):
       if retry: # only retry once
         self.log.record("Retrying request: {0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), 'info')
         return self._pull_crossref_data_date(datestring, retry=False)
+      else:
+        self.log.record('No more retries. Exiting.', 'fatal')
+        return
 
     if r.status_code != 200:
-      self.log.record(f"Got weird status code: {r.status_code}. {r.text()}", "error")
+      self.log.record(f"Got weird status code: {r.status_code}", "error")
       return
     results = r.json()
 
