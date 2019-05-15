@@ -1,3 +1,4 @@
+import config
 import re
 
 import psycopg2
@@ -32,8 +33,11 @@ class Author:
           self.id = a_id[0]
           log.record(f"ORCiD: Author {self.name} exists with ID {self.id}", "debug")
           if self.institution is not None: # institution should always be set to the one we've seen most recently
-            log.record("Updating author institution", 'debug')
-            cursor.execute("UPDATE authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
+            # BUT don't update stats if we're overwriting the author links to papers when they get refreshed, then
+            # it's not the most recent one we're looking at:
+            if config.record_authors_on_refresh is not True:
+              log.record("Updating author institution", 'debug')
+              cursor.execute("UPDATE authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
 
       if self.id is None:
         # if they don't have an ORCiD, check for duplicates based on name.
@@ -50,7 +54,7 @@ class Author:
           if self.orcid is not None:
             log.record(f"Recording ORCiD {self.orcid} for known author", "info")
             cursor.execute("UPDATE authors SET orcid=%s WHERE id=%s;", (self.orcid, self.id))
-          if self.institution is not None:
+          if self.institution is not None and config.record_authors_on_refresh is not True:
             log.record("Updating author institution", 'debug')
             cursor.execute("UPDATE authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
 
