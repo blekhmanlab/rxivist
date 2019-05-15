@@ -5,7 +5,7 @@ import psycopg2
 class Author:
   def __init__(self, name, institution, email, orcid=None):
     if institution == "":
-      self.institution = None
+      institution = None
     if email == "":
       email = None
     if orcid == "":
