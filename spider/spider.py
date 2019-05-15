@@ -550,25 +550,25 @@ class Spider(object):
         if count > 0: # If the paper already has authors, we're done
           return
 
-    author_ids = []
+    to_write = []
     for a in authors:
       a.record(self.connection, self.log)
-      author_ids.append(a.id)
+      to_write.append((article_id, a.id, a.institution))
 
     try:
       with self.connection.db.cursor() as cursor:
-        sql = f'INSERT INTO {config.db["schema"]}.article_authors (article, author) VALUES (%s, %s);'
-        cursor.executemany(sql, [(article_id, x) for x in author_ids])
+        sql = f'INSERT INTO {config.db["schema"]}.article_authors (article, author, institution) VALUES (%s, %s, %s);'
+        cursor.executemany(sql, to_write)
     except Exception as e:
       # If there's an error associating all the authors with their paper all at once,
       # send separate queries for each one
       # (This came up last time because an author was listed twice on the same paper.)
       self.log.record(f"Error associating authors to paper: {e}", "warn")
       self.log.record("Recording article associations one at a time.", "info")
-      for x in author_ids:
+      for x in to_write:
         try:
           with self.connection.db.cursor() as cursor:
-            cursor.execute(f'INSERT INTO {config.db["schema"]}.article_authors (article, author) VALUES (%s, %s);', (article_id, x))
+            cursor.execute(f'INSERT INTO {config.db["schema"]}.article_authors (article, author) VALUES (%s, %s);', x)
         except Exception as e:
           self.log.record(f"Another problem associating author {x} to article {article_id}. Moving on.", "error")
           pass
