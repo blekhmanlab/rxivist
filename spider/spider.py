@@ -555,6 +555,26 @@ class Spider(object):
       a.record(self.connection, self.log)
       author_ids.append(a.id)
 
+    # check if this is the first preprints for the first or last author
+    if False:
+      first_preprint = False
+      if len(author_ids) > 0:
+        with self.connection.db.cursor() as cursor:
+          cursor.execute(f'SELECT COUNT(article) FROM {config.db["schema"]}.article_authors WHERE author=%s;', (author_ids[0],))
+          count = cursor.fetchone()[0]
+          if count == 0:
+            first_preprint = True
+          else:
+            cursor.execute(f'SELECT COUNT(article) FROM {config.db["schema"]}.article_authors WHERE author=%s;', (author_ids[-1],))
+            count = cursor.fetchone()[0]
+            if count == 0:
+              first_preprint = True
+      if first_preprint:
+        with self.connection.db.cursor() as cursor:
+          self.log.record("!!!! ADDING FIRST PREPRINT FLAG!!!!", "debug")
+          cursor.execute(f'INSERT INTO {config.db["schema"]}.article_flags (article, flag) VALUES (%s, "first");', (article_id,))
+
+    # record the authors
     try:
       with self.connection.db.cursor() as cursor:
         sql = f'INSERT INTO {config.db["schema"]}.article_authors (article, author) VALUES (%s, %s);'

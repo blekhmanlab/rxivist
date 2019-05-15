@@ -52,6 +52,7 @@ class Connection(object):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_authors (id SERIAL PRIMARY KEY, article integer NOT NULL, author integer NOT NULL, UNIQUE (article, author));")
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_traffic (id SERIAL PRIMARY KEY, article integer NOT NULL, month integer, year integer NOT NULL, abstract integer, pdf integer, UNIQUE (article, month, year));")
+    # self.cursor.execute("CREATE TABLE IF NOT EXISTS article_flags (id SERIAL PRIMARY KEY, article integer NOT NULL, flag text, UNIQUE (article, flag));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS crossref_daily (id SERIAL PRIMARY KEY, source_date DATE, doi text NOT NULL, count integer, crawled DATE NOT NULL DEFAULT CURRENT_DATE, UNIQUE(doi, source_date));")
 
     self.cursor.execute("CREATE TABLE IF NOT EXISTS alltime_ranks          (article integer PRIMARY KEY, rank integer NOT NULL, downloads integer NOT NULL);")
