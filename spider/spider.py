@@ -280,7 +280,7 @@ class Spider(object):
   def fetch_abstracts(self):
     with self.connection.db.cursor() as cursor:
       # find abstracts for any articles without them
-      cursor.execute(f'SELECT id, url FROM {config.db["schema"]}.articles WHERE abstract IS NULL OR abstract='';')
+      cursor.execute(f"SELECT id, url FROM {config.db['schema']}.articles WHERE abstract IS NULL OR abstract='';")
       for article in cursor:
         url = article[1]
         article_id = article[0]
