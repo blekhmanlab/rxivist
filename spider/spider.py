@@ -83,6 +83,27 @@ class Spider(object):
     self.session.headers['User-Agent'] = config.user_agent
     self.log = Logger()
 
+  def get_urls(self):
+    # fills in URLs for papers that are for some reason missing them. Determines URLs
+    # by resolving the DOI.
+    to_save = []
+    with self.connection.db.cursor() as cursor:
+      cursor.execute(f"SELECT id, doi FROM {config.db['schema']}.articles WHERE url IS NULL OR url='';")
+      for x in cursor:
+        print(f'{x[0]}: {x[1]}')
+        try:
+          r = requests.get(f"https://doi.org/{x[1]}")
+        except Exception as e:
+          self.log.record(f'Problem resolving DOI: {e}', 'error')
+          continue
+        if r.status_code != 200:
+          self.log.record(f"Got weird status code resolving DOI: {r.status_code}", "error")
+          continue
+        to_save.append((r.url, x[0]))
+    with self.connection.db.cursor() as cursor:
+      cursor.executemany(f"UPDATE {config.db['schema']}.articles SET url=%s WHERE id=%s;", to_save)
+
+
   def _pull_crossref_data_date(self, datestring, retry=True):
     # Datestring should be format YYYY-MM-DD
     self.log.record(f"Beginning retrieval of Crossref data for {datestring}", "info")
@@ -315,7 +336,7 @@ class Spider(object):
         elif collection is None:
           cursor.execute("SELECT id, url, doi FROM articles WHERE collection IS NULL AND last_crawled < now() - interval %s;", (config.refresh_interval,))
         else:
-          cursor.execute("SELECT id, url, doi FROM articles WHERE collection=%s AND last_crawled < now() - interval %s ORDER BY last_crawled ASC;", (collection, config.refresh_interval))
+          cursor.execute(f"SELECT id, url, doi FROM {config.db['schema']}.articles WHERE collection=%s AND last_crawled < now() - interval %s ORDER BY last_crawled ASC;", (collection, config.refresh_interval))
       else:
         cursor.execute("SELECT id, url, doi FROM articles WHERE id=%s;", (id,))
       updated = 0
@@ -324,6 +345,9 @@ class Spider(object):
         url = article[1]
         doi = article[2]
         self.log.record(f"\nRefreshing article {article_id}", "debug")
+        if url is None:
+          self.log.record(f'No URL for article {article_id}. Skipping.', 'warn')
+          continue
         if config.polite:
           time.sleep(1)
         stat_table, authors = self.get_article_stats(url)
@@ -437,6 +461,12 @@ class Spider(object):
       else:
         self.log.record(f"Error AGAIN requesting article metrics. Bailing: {e}", "error")
         return (None, None)
+    if resp.status_code != 200:
+      spider.log.record(f"  Got weird status code: {resp.status_code}", 'warn')
+      if retry_count < 3:
+        return self.get_article_stats(url, retry_count+1)
+      else:
+        self.log.record('Something unusual going on. Not retrying.', 'fatal')
     authors = find_authors(resp)
 
     # The download metrics table is shaped differently if there's
@@ -1019,7 +1049,6 @@ def find_authors(response):
   # author we were looking at when the author list ended:
   if current_name != "": # if we somehow didn't find a single author
     authors.append(models.Author(current_name, current_institution, current_email, current_orcid))
-
   return authors
 
 def month_to_num(month):
