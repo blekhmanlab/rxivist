@@ -463,6 +463,12 @@ class Spider(object):
       else:
         self.log.record(f"Error AGAIN requesting article metrics. Bailing: {e}", "error")
         return (None, None)
+    if resp.status_code != 200:
+      spider.log.record(f"  Got weird status code: {resp.status_code}", 'warn')
+      if retry_count < 3:
+        return self.get_article_stats(url, retry_count+1)
+      else:
+        self.log.record('Something unusual going on. Not retrying.', 'fatal')
     authors = find_authors(resp)
 
     # The download metrics table is shaped differently if there's
@@ -1045,7 +1051,6 @@ def find_authors(response):
   # author we were looking at when the author list ended:
   if current_name != "": # if we somehow didn't find a single author
     authors.append(models.Author(current_name, current_institution, current_email, current_orcid))
-
   return authors
 
 def month_to_num(month):
