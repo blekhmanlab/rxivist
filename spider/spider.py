@@ -88,7 +88,6 @@ class Spider(object):
     # by resolving the DOI.
     to_save = []
     with self.connection.db.cursor() as cursor:
-      # find abstracts for any articles without them
       cursor.execute(f"SELECT id, doi FROM {config.db['schema']}.articles WHERE url IS NULL OR url='';")
       for x in cursor:
         print(f'{x[0]}: {x[1]}')
@@ -102,7 +101,6 @@ class Spider(object):
           continue
         to_save.append((r.url, x[0]))
     with self.connection.db.cursor() as cursor:
-      # find abstracts for any articles without them
       cursor.executemany(f"UPDATE {config.db['schema']}.articles SET url=%s WHERE id=%s;", to_save)
 
 
