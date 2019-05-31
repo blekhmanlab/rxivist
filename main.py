@@ -53,6 +53,8 @@ def index():
   page_size = bottle.request.query.page_size
   error = ""
 
+  default_front = (metric == '' and timeframe == '')
+
   if metric not in ["downloads", "twitter"]:
     metric = "twitter"
   if metric == "twitter":
@@ -101,6 +103,25 @@ def index():
   totalcount = 0 # how many results there are in total
 
   if error == "": # if nothing's gone wrong yet, fetch results:
+    try:
+      results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, connection)
+    except Exception as e:
+      error = f"There was a problem with the submitted query: {e}"
+      bottle.response.status = 500
+      return {"error": error}
+  # If daily twitter stats aren't available go weekly:
+  if default_front and totalcount == 0:
+    timeframe = 'week'
+    try:
+      results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, connection)
+    except Exception as e:
+      error = f"There was a problem with the submitted query: {e}"
+      bottle.response.status = 500
+      return {"error": error}
+  # If there is an unreasonably low number of weekly results, just roll over to downloads instead
+  if default_front and totalcount < 150:
+    metric = 'downloads'
+    timeframe = 'lastmonth'
     try:
       results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, connection)
     except Exception as e:
