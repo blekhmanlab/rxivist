@@ -351,6 +351,9 @@ class Spider(object):
         if config.polite:
           time.sleep(1)
         stat_table, authors = self.get_article_stats(url)
+        if stat_table is None:
+          self.log.record('No results returned. Moving on to next article.', 'warn')
+          continue
 
         if config.crawl["fetch_pubstatus"] is not False:
           try:
@@ -463,10 +466,12 @@ class Spider(object):
         return (None, None)
     if resp.status_code != 200:
       spider.log.record(f"  Got weird status code: {resp.status_code}", 'warn')
-      if retry_count < 3:
+      if retry_count < 2:
         return self.get_article_stats(url, retry_count+1)
       else:
-        self.log.record('Something unusual going on. Not retrying.', 'fatal')
+        # 403s here appear to be mostly caused by papers being "processed"
+        return (None, None)
+        #self.log.record('Something unusual going on. Not retrying.', 'fatal')
     authors = find_authors(resp)
 
     # The download metrics table is shaped differently if there's
@@ -1149,7 +1154,7 @@ if __name__ == "__main__":
     else:
       config.crawl = {
         "fetch_new": False, # Check for new papers in each collection
-        "fetch_collections": True, # Fill in the collection for new articles
+        "fetch_collections": False, # Fill in the collection for new articles
         "fetch_abstracts": True, # Check for any Rxivist papers missing an abstract and fill it in (Papers don't have an abstract when first crawled)
         "fetch_crossref": False, # Update daily Crossref stats
         "refresh_stats": True, # Look for articles with outdated download info and re-crawl them
