@@ -84,23 +84,25 @@ class Spider(object):
     self.log = Logger()
 
   def get_urls(self):
+    self.log.record('Fetching URLs for papers without them', 'info')
     # fills in URLs for papers that are for some reason missing them. Determines URLs
     # by resolving the DOI.
     to_save = []
     with self.connection.db.cursor() as cursor:
       cursor.execute(f"SELECT id, doi FROM {config.db['schema']}.articles WHERE url IS NULL OR url='';")
       for x in cursor:
-        print(f'{x[0]}: {x[1]}')
         try:
           r = requests.get(f"https://doi.org/{x[1]}")
         except Exception as e:
           self.log.record(f'Problem resolving DOI: {e}', 'error')
           continue
         if r.status_code != 200:
-          self.log.record(f"Got weird status code resolving DOI: {r.status_code}", "error")
+          self.log.record(f"Got weird status code resolving DOI {x[1]}: {r.status_code}", "error")
           continue
         to_save.append((r.url, x[0]))
+        self.log.record(f'Found URL for {x[0]}: {r.url}', 'debug')
     with self.connection.db.cursor() as cursor:
+      self.log.record(f'Saving {len(to_save)} URLS.', 'info')
       cursor.executemany(f"UPDATE {config.db['schema']}.articles SET url=%s WHERE id=%s;", to_save)
 
 
@@ -430,6 +432,9 @@ class Spider(object):
       self.log.record(f'Recorded DOI {data[0]["pub_doi"]} for article {article_id}')
 
   def get_article_abstract(self, url, retry=True):
+    if url is None:
+      self.log.record('No URL supplied. Skipping.', 'warn')
+      return
     if config.polite:
       time.sleep(1)
     try:
@@ -570,7 +575,6 @@ class Spider(object):
       if posted is not None:
         self.log.record(f"Determined 'posted on' date: {posted}", "debug")
         cursor.execute(f"UPDATE {config.db['schema']}.articles SET posted = %s WHERE id=%s", (posted, article_id))
-
       self.log.record(f"Recorded {len(to_record)} stats for ID {article_id}", "debug")
 
   def _record_authors(self, article_id, authors, overwrite=False):
@@ -981,6 +985,8 @@ def load_rankings_from_file(batch, log):
     os.remove(to_delete)
 
 def full_run(spider):
+  if config.crawl["fetch_urls"] is not False:
+    spider.get_urls()
   if config.crawl["fetch_new"] is not False:
     spider.find_record_new_articles()
   else:

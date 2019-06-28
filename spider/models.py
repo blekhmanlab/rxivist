@@ -77,6 +77,7 @@ class Article:
   # a problem that is probably most easily remedied by folding the whole
   # thing into the spider rather than trying to pry them apart, unfortunately
   def __init__(self):
+    self.url = None
     pass
 
   def process_results_entry(self, html, log):
@@ -111,7 +112,16 @@ class Article:
       return
 
   def _find_url(self, html):
-    self.url = html.absolute_links.pop() # absolute_links is a set
+    # multiple links show up in each entry now; find the one with a version:
+    for link in html.absolute_links:
+      try:
+        m = re.search('.*v(\d+)$', link)
+      except:
+        spider.log.record("Exception in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
+        return
+      if m is None or len(m.groups()) == 0:
+        continue
+      self.url = link
 
   def record(self, connection, spider): # TODO: requiring the whole spider here is code smell of the first order
     with connection.db.cursor() as cursor:
@@ -128,12 +138,12 @@ class Article:
         try:
           m = re.search('.*v(\d+)$', self.url)
         except:
-          spider.log.record("Error in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
+          spider.log.record("Exception in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
           return
         if m is None or len(m.groups()) == 0:
           spider.log.record("Error in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
           return
-        if m.group(1) == '1':
+        if m.group(1) == '1': # TODO: we might have recorded a revision too?
           spider.log.record(f"Found article already: {self.title}", "debug")
           return False
 
