@@ -153,7 +153,7 @@ class Article:
         stat_table, authors = spider.get_article_stats(self.url)
         spider._record_authors(self.id, authors, True)
         if stat_table is not None:
-          spider.save_article_stats(self.id, stat_table, None)
+          spider.save_article_stats(self.id, stat_table)
         spider.log.record(f"Updated revision for article DOI {self.doi}: {self.title}", "info")
         connection.db.commit()
         return None
@@ -178,9 +178,9 @@ class Article:
           spider.log.record("Error fetching stats again. Giving up on this one.", "error")
 
       spider._record_authors(self.id, authors)
-      posted = spider.get_article_posted_date(self.url)
+      spider.record_article_posted_date(self.url)
       if stat_table is not None:
-        spider.save_article_stats(self.id, stat_table, posted)
+        spider.save_article_stats(self.id, stat_table)
       spider.log.record(f"Recorded article {self.title}")
     return True
 

@@ -84,9 +84,9 @@ class Spider(object):
     self.log = Logger()
 
   def get_urls(self):
-    self.log.record('Fetching URLs for papers without them', 'info')
     # fills in URLs for papers that are for some reason missing them. Determines URLs
     # by resolving the DOI.
+    self.log.record('Fetching URLs for papers without them', 'info')
     to_save = []
     with self.connection.db.cursor() as cursor:
       cursor.execute(f"SELECT id, doi FROM {config.db['schema']}.articles WHERE url IS NULL OR url='';")
@@ -105,6 +105,17 @@ class Spider(object):
       self.log.record(f'Saving {len(to_save)} URLS.', 'info')
       cursor.executemany(f"UPDATE {config.db['schema']}.articles SET url=%s WHERE id=%s;", to_save)
 
+  def get_posted_dates(self):
+    # fills in URLs for papers that are for some reason missing them. Determines URLs
+    # by resolving the DOI.
+    self.log.record('Fetching dates for papers without them', 'info')
+    to_save = []
+    with self.connection.db.cursor() as cursor:
+      cursor.execute(f"SELECT id, url FROM {config.db['schema']}.articles WHERE posted IS NULL;")
+      for x in cursor:
+        if x[1] is not None:
+          self.log.record(f'Fetching date for {x[0]}.')
+          self.record_article_posted_date(x[0], x[1])
 
   def _pull_crossref_data_date(self, datestring, retry=True):
     # Datestring should be format YYYY-MM-DD
@@ -501,14 +512,13 @@ class Spider(object):
       stats.append((month, year, abstract, pdf))
     return stats, authors
 
-  def get_article_posted_date(self, url, retry_count=0):
-    self.log.record("Determining posting date.", 'debug')
+  def record_article_posted_date(self, article_id, url, retry_count=0):
     try:
       resp = self.session.get(f"{url}.article-info")
     except Exception as e:
       if retry_count < 3:
         self.log.record(f"Error requesting article posted-on date. Retrying: {e}", "error")
-        self.get_article_posted_date(url, retry_count+1)
+        return self.record_article_posted_date(article_id, url, retry_count+1)
       else:
         self.log.record(f"Error AGAIN requesting article posted-on date. Bailing: {e}", "error")
         return None
@@ -529,14 +539,15 @@ class Spider(object):
       self.log.record(f"Determined date: {datestring}", "info")
       return datestring
     elif posted is not None: # if not, just grab the date from the current version
-      self.log.record(f'No older version detected; using date from current page: {posted.attrs["content"]}', "debug")
-      return posted.attrs['content']
+      with self.connection.db.cursor() as cursor:
+        self.log.record(f'No older version detected; using date from current page: {posted.attrs["content"]}', "debug")
+        cursor.execute(f"UPDATE {config.db['schema']}.articles SET posted = %s WHERE id=%s", (posted.attrs["content"], article_id))
     else:
       self.log.record(f"Could not determine posted date for article at {url}", "warn")
 
     return None
 
-  def save_article_stats(self, article_id, stats, posted=None):
+  def save_article_stats(self, article_id, stats):
     # First, delete the most recently fetched month, because it was probably recorded before
     # that month was complete:
     with self.connection.db.cursor() as cursor:
@@ -572,9 +583,6 @@ class Spider(object):
 
       cursor.execute(f"UPDATE {config.db['schema']}.articles SET last_crawled = CURRENT_DATE WHERE id=%s", (article_id,))
 
-      if posted is not None:
-        self.log.record(f"Determined 'posted on' date: {posted}", "debug")
-        cursor.execute(f"UPDATE {config.db['schema']}.articles SET posted = %s WHERE id=%s", (posted, article_id))
       self.log.record(f"Recorded {len(to_record)} stats for ID {article_id}", "debug")
 
   def _record_authors(self, article_id, authors, overwrite=False):
@@ -985,8 +993,9 @@ def load_rankings_from_file(batch, log):
     os.remove(to_delete)
 
 def full_run(spider):
-  if config.crawl["fetch_urls"] is not False:
+  if config.crawl["fetch_missing_fields"] is not False:
     spider.get_urls()
+    spider.get_posted_dates()
   if config.crawl["fetch_new"] is not False:
     spider.find_record_new_articles()
   else:
