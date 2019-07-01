@@ -92,7 +92,7 @@ class Spider(object):
       cursor.execute(f"SELECT id, doi FROM {config.db['schema']}.articles WHERE url IS NULL OR url='';")
       for x in cursor:
         try:
-          r = requests.get(f"https://doi.org/{x[1]}")
+          r = requests.get(f"https://doi.org/{x[1]}", timeout=10)
         except Exception as e:
           self.log.record(f'Problem resolving DOI: {e}', 'error')
           continue
@@ -124,7 +124,7 @@ class Spider(object):
 
     headers = {'user-agent': config.user_agent}
     try:
-      r = requests.get("{0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), headers=headers)
+      r = requests.get("{0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), headers=headers, timeout=10)
     except Exception as e:
       self.log.record(f'Problem sending request to Crossref: {e}.', 'error')
       if retry: # only retry once
