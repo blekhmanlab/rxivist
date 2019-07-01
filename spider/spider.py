@@ -137,6 +137,7 @@ class Spider(object):
     if r.status_code != 200:
       self.log.record(f"Got weird status code: {r.status_code}", "error")
       if retry:
+        self.log.record("Retrying request: {0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), 'info')
         return self._pull_crossref_data_date(datestring, retry=False)
       return
     results = r.json()
@@ -144,11 +145,13 @@ class Spider(object):
     if results["status"] != "ok":
       self.log.record(f'Crossref responded, but with unexpected status: {results["status"]}', "error")
       if retry:
+        self.log.record("Retrying request: {0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), 'info')
         return self._pull_crossref_data_date(datestring, retry=False)
       return
     if "message" not in results.keys() or "events" not in results["message"].keys() or len(results["message"]["events"]) == 0:
       self.log.record("Events not found in response.", "error")
       if retry:
+        self.log.record("Retrying request: {0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), 'info')
         return self._pull_crossref_data_date(datestring, retry=False)
       return
 
