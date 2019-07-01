@@ -1005,6 +1005,7 @@ def full_run(spider):
   if config.crawl["fetch_missing_fields"] is not False:
     spider.get_urls()
     spider.get_posted_dates()
+    spider.refresh_article_stats(get_authors=True) # Fix authorless papers
   if config.crawl["fetch_new"] is not False:
     spider.find_record_new_articles()
   else:
@@ -1031,8 +1032,6 @@ def full_run(spider):
   if config.crawl["refresh_stats"] is not False:
     # Refresh the articles without a collection:
     spider.refresh_article_stats()
-    # Grab authors for any articles that don't currently have any:
-    spider.refresh_article_stats(get_authors=True)
 
   if config.crawl["fetch_crossref"] is not False:
     spider.pull_todays_crossref_data()
