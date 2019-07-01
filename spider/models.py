@@ -178,7 +178,7 @@ class Article:
           spider.log.record("Error fetching stats again. Giving up on this one.", "error")
 
       spider._record_authors(self.id, authors)
-      spider.record_article_posted_date(self.url)
+      spider.record_article_posted_date(self.id, self.url)
       if stat_table is not None:
         spider.save_article_stats(self.id, stat_table)
       spider.log.record(f"Recorded article {self.title}")
