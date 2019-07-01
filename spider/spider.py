@@ -118,9 +118,9 @@ class Spider(object):
           self.record_article_posted_date(x[0], x[1])
 
   def _pull_crossref_data_date(self, datestring, retry=True):
+    time.sleep(6)
     # Datestring should be format YYYY-MM-DD
     self.log.record(f"Beginning retrieval of Crossref data for {datestring}", "info")
-
 
     headers = {'user-agent': config.user_agent}
     try:
@@ -136,14 +136,20 @@ class Spider(object):
 
     if r.status_code != 200:
       self.log.record(f"Got weird status code: {r.status_code}", "error")
+      if retry:
+        return self._pull_crossref_data_date(datestring, retry=False)
       return
     results = r.json()
 
     if results["status"] != "ok":
       self.log.record(f'Crossref responded, but with unexpected status: {results["status"]}', "error")
+      if retry:
+        return self._pull_crossref_data_date(datestring, retry=False)
       return
     if "message" not in results.keys() or "events" not in results["message"].keys() or len(results["message"]["events"]) == 0:
       self.log.record("Events not found in response.", "error")
+      if retry:
+        return self._pull_crossref_data_date(datestring, retry=False)
       return
 
     tweets = defaultdict(list)
