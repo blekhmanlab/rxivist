@@ -1182,6 +1182,7 @@ if __name__ == "__main__":
         "fetch_crossref": False, # Update daily Crossref stats
         "refresh_stats": True, # Look for articles with outdated download info and re-crawl them
         "fetch_pubstatus": True, # Check for whether a paper has been published during stat refresh
-        "fetch_pubdates": True # Check for publication dates for any papers that have been published
+        "fetch_pubdates": True, # Check for publication dates for any papers that have been published
+        "fetch_missing_fields": False
       }
       full_run(spider)
