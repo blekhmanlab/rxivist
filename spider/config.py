@@ -24,7 +24,7 @@ crawl = {
   "refresh_stats": False, # Look for articles with outdated download info and re-crawl them
   "fetch_pubstatus": True, # Check for whether a paper has been published during stat refresh
   "fetch_pubdates": True, # Check for publication dates for any papers that have been published
-  "fetch_urls": True # Get URLs for papers that are missing them
+  "fetch_missing_fields": True # Get URLs and dates for papers that are missing them
 }
 
 perform_ranks = {
