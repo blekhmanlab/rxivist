@@ -26,7 +26,6 @@ class Author:
     recorded = False
     with connection.db.cursor() as cursor:
       if self.orcid is not None:
-        log.record("Author has ORCiD; determining whether they exist in DB.", "debug")
         cursor.execute("SELECT id FROM authors WHERE orcid = %s;", (self.orcid,))
         a_id = cursor.fetchone()
         if a_id is not None:

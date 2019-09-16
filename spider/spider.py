@@ -492,6 +492,7 @@ class Spider(object):
     if resp.status_code != 200:
       spider.log.record(f"  Got weird status code: {resp.status_code}", 'warn')
       if retry_count < 2:
+        time.sleep(5)
         return self.get_article_stats(url, retry_count+1)
       else:
         # 403s here appear to be mostly caused by papers being "processed"
@@ -613,6 +614,7 @@ class Spider(object):
 
     try:
       with self.connection.db.cursor() as cursor:
+        self.log.record("Saving NEW author links.", "debug")
         sql = f'INSERT INTO {config.db["schema"]}.article_authors (article, author, institution) VALUES (%s, %s, %s);'
         cursor.executemany(sql, to_write)
     except Exception as e:
@@ -624,7 +626,7 @@ class Spider(object):
       for x in to_write:
         try:
           with self.connection.db.cursor() as cursor:
-            cursor.execute(f'INSERT INTO {config.db["schema"]}.article_authors (article, author) VALUES (%s, %s);', x)
+            cursor.execute(f'INSERT INTO {config.db["schema"]}.article_authors (article, author, institution) VALUES (%s, %s, %s);', x)
         except Exception as e:
           self.log.record(f"Another problem associating author {x} to article {article_id}. Moving on.", "error")
           pass
