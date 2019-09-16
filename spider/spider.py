@@ -974,6 +974,66 @@ class Spider(object):
         # if to_do % 100 == 0:
         #   self.log.record(f"{datetime.now()} - {to_do} left to go.", 'debug')
 
+  def remove_orphan_authors(self):
+    # Removes authors who are no longer associated with any papers.
+    with self.connection.db.cursor() as cursor:
+      cursor.execute("""
+        SELECT COUNT(id)
+        FROM (
+          SELECT a.id, COUNT(z.article) AS num
+          FROM prod.authors a
+          LEFT JOIN prod.article_authors z ON a.id=z.author
+          GROUP BY 1
+          ORDER BY 2 DESC
+        ) AS asdf
+        WHERE num = 0
+        """)
+      authorcount = cursor.fetchone()[0]
+      self.log.record(f'Removing {authorcount} authors with no papers.', 'info')
+      time.sleep(10)
+      # Remove the author email addresses:
+      self.log.record('Removing author emails.', 'debug')
+      cursor.execute(f"""
+        DELETE FROM {config.db["schema"]}.author_emails
+        WHERE author IN (SELECT id
+          FROM (
+            SELECT a.id, COUNT(z.article) AS num
+            FROM prod.authors a
+            LEFT JOIN prod.article_authors z ON a.id=z.author
+            GROUP BY 1
+            ORDER BY 2 DESC
+          ) AS asdf
+          WHERE num = 0)
+        """)
+      # then from the rank tables:
+      for table in ['author_ranks','author_ranks_working','author_ranks_category','author_ranks_category_working']:
+        self.log.record(f'Removing author ranks from table {table}.', 'debug')
+        cursor.execute(f"""
+          DELETE FROM {config.db["schema"]}.{table}
+          WHERE author IN (SELECT id
+            FROM (
+              SELECT a.id, COUNT(z.article) AS num
+              FROM prod.authors a
+              LEFT JOIN prod.article_authors z ON a.id=z.author
+              GROUP BY 1
+              ORDER BY 2 DESC
+            ) AS asdf
+            WHERE num = 0)
+          """)
+      self.log.record('Removing author entries.', 'debug')
+      cursor.execute(f"""
+        DELETE FROM {config.db["schema"]}.authors
+        WHERE id IN (SELECT id
+          FROM (
+            SELECT a.id, COUNT(z.article) AS num
+            FROM prod.authors a
+            LEFT JOIN prod.article_authors z ON a.id=z.author
+            GROUP BY 1
+            ORDER BY 2 DESC
+          ) AS asdf
+          WHERE num = 0)
+        """)
+
 def load_rankings_from_file(batch, log):
   os.environ["PGPASSWORD"] = config.db["password"]
   to_delete = None
@@ -1008,6 +1068,7 @@ def full_run(spider):
     spider.get_urls()
     spider.get_posted_dates()
     spider.refresh_article_stats(get_authors=True) # Fix authorless papers
+    spider.remove_orphan_authors()
   if config.crawl["fetch_new"] is not False:
     spider.find_record_new_articles()
   else:

@@ -439,6 +439,21 @@ def site_stats(connection):
   else:
     no_authors = resp[0][0]
 
+  resp = connection.read(f"""
+  SELECT COUNT(id)
+  FROM (
+    SELECT a.id, COUNT(z.article) AS num
+    FROM prod.authors a
+    LEFT JOIN prod.article_authors z ON a.id=z.author
+    GROUP BY 1
+    ORDER BY 2 DESC
+  ) AS asdf
+  WHERE num = 0
+  """)
+  if len(resp) != 1 or len(resp[0]) != 1:
+    no_papers = 0
+  else:
+    no_papers = resp[0][0]
 
   return {
     "papers_indexed": paper_count,
@@ -447,5 +462,6 @@ def site_stats(connection):
     "missing_date": no_posted,
     "outdated_count": outdated,
     "missing_authors": no_authors,
-    "missing_category": no_category
+    "missing_category": no_category,
+    "authors_no_papers": no_papers
   }
