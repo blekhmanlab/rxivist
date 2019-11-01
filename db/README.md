@@ -33,7 +33,7 @@ If you want to load the snapshot directly, rather than trusting the contents of 
 1. Click the blue "Restore" button.
 1. Once this process is complete, your "postgres" database should have two schemas: "public," which doesn't have data in it, and "prod," which contains the data presented on Rxivist.org.
 
-(For those looking to create a snapshot of their own, Snapshots are created using the "Backup" dialog with the "Yes" option selected for "Pre-data," "Data," "Blobs," "Owner," "Privilege," "With OID(s)" and "Verbose messages.")
+For those looking to create a snapshot of their own, Snapshots are created using the "Backup" dialog with the "Yes" option selected for "Pre-data," "Data," "Blobs," "Owner," "Privilege," "With OID(s)" and "Verbose messages." If you are using PostgreSQL 12 (included with pgAdmin 4.0 and up), do not include the "With OID(s)" flag; it was removed and will throw an error if checked.
 
 ## Example queries
 
