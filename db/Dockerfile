@@ -1,4 +1,4 @@
-FROM postgres:10-alpine
+FROM postgres:12-alpine
 LABEL maintainer="Richard Abdill rxivist@umn.edu"
 
 WORKDIR /app
