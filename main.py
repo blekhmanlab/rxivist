@@ -55,14 +55,23 @@ def index():
 
   default_front = (metric == '' and timeframe == '')
 
+  # Don't accept bad values for fields that we cache on
   if metric not in ["downloads", "twitter"]:
     metric = "twitter"
   if metric == "twitter":
-    if timeframe not in ["alltime", "day", "week", "month", "year"]:
+    if timeframe == "":
       timeframe = "day"
+    if timeframe not in ["alltime", "day", "week", "month", "year"]:
+      error = f"There was a problem with the submitted query: {timeframe} is not a recognized timeframe for tweets."
+      bottle.response.status = 400
+      return {"error": error}
   elif metric == "downloads":
-    if timeframe not in ["alltime", "ytd", "lastmonth"]:
+    if timeframe == "":
       timeframe = "alltime"
+    if timeframe not in ["alltime", "ytd", "lastmonth"]:
+      error = f"There was a problem with the submitted query: {timeframe} is not a recognized timeframe for downloads."
+      bottle.response.status = 400
+      return {"error": error}
 
   category_list = endpoints.get_categories(connection) # list of all article categories
 
@@ -74,7 +83,7 @@ def index():
     for cat in category_filter:
       if cat not in category_list:
         error = f"There was a problem with the submitted query: {cat} is not a recognized category."
-        bottle.response.status = 500
+        bottle.response.status = 400
         return {"error": error}
 
   if page == "" or page == None:
@@ -85,7 +94,9 @@ def index():
     except Exception as e:
       error = f"Problem recognizing specified page number: {e}"
   if page < 0:
-    page = 0
+    error = f"There was a problem with the submitted query: {page} is not a valid page number."
+    bottle.response.status = 400
+    return {"error": error}
 
   if page_size == "":
     page_size = config.default_page_size
@@ -97,7 +108,9 @@ def index():
       page_size = 0
 
   if page_size > config.max_page_size:
-    page_size = config.max_page_size # cap the page size users can ask for
+    error = f"There was a problem with the submitted query: Max page size is {config.max_page_size}."
+    bottle.response.status = 400
+    return {"error": error}
 
   results = {} # a list of articles for the current page
   totalcount = 0 # how many results there are in total
