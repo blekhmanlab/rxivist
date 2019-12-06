@@ -24,6 +24,6 @@ RUN apt install -y curl
 ADD . /app
 WORKDIR /app
 
-HEALTHCHECK --start-period=10s --interval=10s --timeout=10s CMD curl --fail http://localhost/v1/papers?page_size=3 || exit 1
+HEALTHCHECK --start-period=30s --interval=120s --timeout=15s CMD curl --fail http://localhost/v1/papers?page_size=3 || exit 1
 
 CMD ["python", "main.py"]

@@ -7,7 +7,9 @@ import os
 
 cache = {
   "front_page": 600,
-  "simple": 7200
+  "simple": 7200,
+  "paper": 604800, # 1 week
+  "author": 604800 # 1 week
 }
 
 # For the "summary statistics" endpoint, the download metrics

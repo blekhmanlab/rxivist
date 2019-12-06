@@ -164,6 +164,7 @@ def paper_details(id):
   except ValueError as e:
     bottle.response.status = 500
     return {"error": f"Server error – {e}"}
+  bottle.response.set_header("Cache-Control", f'max-age={config.cache["paper"]}, stale-while-revalidate=172800')
   return paper.json()
 
 # paper download stats
@@ -199,6 +200,8 @@ def display_author_details(author_id):
   except ValueError as e:
     bottle.response.status = 500
     return {"error": f"Server error – {e}"}
+
+  bottle.response.set_header("Cache-Control", f'max-age={config.cache["author"]}, stale-while-revalidate=172800')
   return author.json()
 
 @bottle.get('/v1/top/<year:int>')

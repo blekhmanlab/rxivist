@@ -1,4 +1,4 @@
-FROM postgres:10
+FROM postgres:12
 LABEL maintainer="Richard Abdill rxivist@umn.edu"
 
 RUN apt-get update
