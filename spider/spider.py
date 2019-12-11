@@ -31,6 +31,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib.parse
 
 import psycopg2
 from requests_html import HTMLSession
@@ -118,10 +119,8 @@ class Spider(object):
           self.record_article_posted_date(x[0], x[1])
 
   def _pull_crossref_data_date(self, datestring, retry=True):
-    time.sleep(6)
     # Datestring should be format YYYY-MM-DD
     self.log.record(f"Beginning retrieval of Crossref data for {datestring}", "info")
-
     headers = {'user-agent': config.user_agent}
     try:
       r = requests.get("{0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), headers=headers, timeout=10)
@@ -129,6 +128,7 @@ class Spider(object):
       self.log.record(f'Problem sending request to Crossref: {e}.', 'error')
       if retry: # only retry once
         self.log.record("Retrying request: {0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), 'info')
+        time.sleep(6)
         return self._pull_crossref_data_date(datestring, retry=False)
       else:
         self.log.record('No more retries. Exiting.', 'fatal')
@@ -138,6 +138,7 @@ class Spider(object):
       self.log.record(f"Got weird status code: {r.status_code}", "error")
       if retry:
         self.log.record("Retrying request: {0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), 'info')
+        time.sleep(6)
         return self._pull_crossref_data_date(datestring, retry=False)
       return
     results = r.json()
@@ -146,12 +147,14 @@ class Spider(object):
       self.log.record(f'Crossref responded, but with unexpected status: {results["status"]}', "error")
       if retry:
         self.log.record("Retrying request: {0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), 'info')
+        time.sleep(6)
         return self._pull_crossref_data_date(datestring, retry=False)
       return
     if "message" not in results.keys() or "events" not in results["message"].keys() or len(results["message"]["events"]) == 0:
       self.log.record("Events not found in response.", "error")
       if retry:
         self.log.record("Retrying request: {0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), 'info')
+        time.sleep(6)
         return self._pull_crossref_data_date(datestring, retry=False)
       return
 
@@ -342,6 +345,7 @@ class Spider(object):
     with self.connection.db.cursor() as cursor:
       if id is None:
         if get_authors: # if we're just trying to update papers without authors
+          self.log.record(f'Refreshing stats for papers without authors.', 'debug')
           sql = f"""
             SELECT id, url, doi
               FROM (
@@ -546,7 +550,9 @@ class Spider(object):
       day = date_search.group(2)
       year = date_search.group(3)
       datestring = f"{year}-{month_to_num(month)}-{day}"
-      self.log.record(f"Determined date: {datestring}", "info")
+      self.log.record(f"Determined date: {datestring}. Recording", "info")
+      with self.connection.db.cursor() as cursor:
+        cursor.execute(f"UPDATE {config.db['schema']}.articles SET posted = %s WHERE id=%s", (datestring, article_id))
       return datestring
     elif posted is not None: # if not, just grab the date from the current version
       with self.connection.db.cursor() as cursor:
