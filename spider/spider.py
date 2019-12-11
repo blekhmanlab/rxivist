@@ -1076,6 +1076,118 @@ def load_rankings_from_file(batch, log):
   if to_delete is not None:
     os.remove(to_delete)
 
+def record_canonical_name(spider, to_record, affiliation):
+  """Helper function for canonical_names function below.
+
+  """
+  spider.log.record(f"Recording {to_record} for {affiliation}", 'info')
+  with spider.connection.db.cursor() as cursor:
+    cursor.execute(f"""
+      INSERT INTO {config.db['schema']}.affiliation_institutions (affiliation, institution)
+      VALUES (%s, %s);
+    """, (affiliation, to_record))
+
+def canonical_names(spider, max_calls=100):
+  """Interacts with a local deployment of the ROR database to determine institution names
+
+  """
+  todo = []
+  with spider.connection.db.cursor() as cursor:
+    spider.log.record('Querying for unlinked institutions', 'info')
+    # current affiliations, sorted by how many authors are in them:
+    # cursor.execute(f"""
+    # SELECT institution FROM (
+    #   SELECT institution, COUNT(id)
+    #   FROM prod.authors
+    #   WHERE institution IN (
+    #     SELECT a.institution
+    #     FROM prod.authors a
+    #     LEFT JOIN prod.affiliation_institutions i ON a.institution=i.affiliation
+    #     WHERE i.institution IS NULL
+    #   )
+    #   GROUP BY 1
+    #   ORDER BY 2 DESC
+    # ) AS asdf
+    # LIMIT %s
+    # """, (max_calls,))
+
+    # institutions listed on any preprint:
+    cursor.execute(f"""
+      SELECT DISTINCT(institution)
+      FROM(
+        SELECT a.institution, i.institution AS canonical
+        FROM prod.article_authors a
+        LEFT JOIN prod.affiliation_institutions i ON a.institution=i.affiliation
+        WHERE i.institution IS NULL
+      ) AS asdf
+      LIMIT %s
+    """, (max_calls,))
+
+    for record in cursor:
+      if len(record) > 0:
+        todo.append(record[0])
+  spider.log.record(f'Linking {len(todo)} institutions.', 'debug')
+  with spider.connection.db.cursor() as cursor:
+    for affiliation in todo:
+      if affiliation is None: continue
+      spider.log.record(f'Translating |{affiliation}|')
+      url_affiliation = urllib.parse.quote(affiliation) # avoiding weird symbols
+      to_record = None
+      try:
+        r = requests.get(f"http://rorapiweb/organizations?affiliation={url_affiliation}")
+      except Exception as e:
+        spider.log.record(f"Error calling ROR API: {e}", 'error')
+        continue
+
+      if r.status_code != 200:
+        # If the API returns an error, record "unknown" for that institution and move on
+        spider.log.record(f"Got weird status code: {r.status_code}", 'error')
+        # TODO: Should we really not re-visit errored entries?
+        record_canonical_name(spider, 0, affiliation)
+        continue
+
+      resp = r.json()
+
+      if 'items' not in resp.keys() or len(resp['items']) == 0:
+        spider.log.record(f"No results found for {affiliation}", 'info')
+        record_canonical_name(spider, 0, affiliation)
+        continue
+
+      for item in resp['items']:
+        if item['chosen']: # if it passes the ROR criteria for being the "right" answer
+          answer = {
+            'name': item['organization']['name'],
+            'ror': item['organization']['id'],
+            'grid': item['organization']['external_ids']['GRID']['preferred'],
+            'country': item['organization']['country']['country_code']
+          }
+          break
+      else:
+        spider.log.record(f"No confident results found for {affiliation}", 'info')
+        record_canonical_name(spider, 0, affiliation)
+        continue
+
+      cursor.execute(f"""
+        SELECT id
+        FROM {config.db['schema']}.institutions
+        WHERE name=%s;
+      """, (answer['name'],))
+      exists_id = cursor.fetchone()
+      if exists_id is not None:
+        spider.log.record(f"Found entry for {affiliation}! {exists_id}", 'debug')
+        record_canonical_name(spider, exists_id[0], affiliation)
+        continue
+
+      spider.log.record(f"Adding new institution: {answer['name']}!", 'info')
+      cursor.execute(f"""
+        INSERT INTO {config.db['schema']}.institutions (name, ror, grid, country)
+        VALUES (%s, %s, %s, %s)
+        RETURNING id;
+      """, (answer['name'], answer['ror'], answer['grid'], answer['country']))
+      to_record = cursor.fetchone()[0]
+      # once the new institution is recorded, link it to this record:
+      record_canonical_name(spider, to_record, affiliation)
+
 def full_run(spider):
   if config.crawl["fetch_missing_fields"] is not False:
     spider.get_urls()
