@@ -31,25 +31,45 @@ class Author:
         if a_id is not None:
           self.id = a_id[0]
           log.record(f"ORCiD: Author {self.name} exists with ID {self.id}", "debug")
-          if self.institution is not None: # institution should always be set to the one we've seen most recently
-            # BUT don't update stats if we're overwriting the author links to papers when they get refreshed, then
-            # it's not the most recent one we're looking at:
+
+          # HACK: This name update should probably be temporary, but bioRxiv went back and changed all
+          # the author names on old papers to reflect the PDF rather than what was input by the users,
+          # so we may be able to consolidate some records by updating the names associated with ORCIDs.
+          log.record("Updating author name", 'debug')
+          cursor.execute("UPDATE authors SET name=%s, noperiodname=%s WHERE id=%s;", (self.name, self.name.replace(".", ""), self.id))
+
+          if self.institution is not None: # institution should always be set to the one we've seen most recently,
+            # BUT if record_authors_on_refresh is set, then we might actually be looking at the author's OLDEST
+            # paper right now, so don't update those things
             if config.record_authors_on_refresh is not True:
               log.record("Updating author institution", 'debug')
-              cursor.execute("UPDATE authors SET institution=%s WHERE id=%s;", (self.institution, self.id))
+              cursor.execute("UPDATE authors SET name=%s, noperiodname=%s, institution=%s WHERE id=%s;", (self.name, self.name.replace(".", ""), self.institution, self.id))
 
       if self.id is None:
         # if they don't have an ORCiD, check for duplicates based on name.
         # NOTE: We don't use email as a signifier of uniqueness because some authors who hate
         # me record the same email address for multiple people.
-        cursor.execute("SELECT id FROM authors WHERE noperiodname = %s;", (self.name.replace(".", ""),))
-        a_id = cursor.fetchone()
-        if a_id is not None:
-          self.id = a_id[0]
-          log.record(f"Name: Author {self.name} exists with ID {self.id}", "debug")
-          recorded = True
+        cursor.execute("SELECT id, orcid FROM authors WHERE noperiodname = %s;", (self.name.replace(".", ""),))
+        entries = []
+        for entry in cursor:
+          entries.append(entry)
 
-          # if they have an orcid but we didn't know about it before:
+        for entry in entries:
+          if entry is not None and entry[1] is not None:
+            # It's possible that one name ends up with two entries, one associated with an ORCID
+            # and one not associated with one. If an author's name has multiple entries in the DB,
+            # this step makes sure they're matched with the one that has the ORCID already.
+            self.id = entry[0]
+            log.record(f"Name: Author {self.name} exists with ID {self.id}; preference given to entry with ORCID", "debug")
+            break
+        else:
+          if len(entries) > 0 and entries[0] is not None:
+            self.id = entries[0][0]
+            log.record(f"Name: Author {self.name} exists with ID {self.id}", "debug")
+
+        if self.id is not None:
+          recorded = True
+          # if they report an orcid on this paper but we didn't know about it before:
           if self.orcid is not None:
             log.record(f"Recording ORCiD {self.orcid} for known author", "info")
             cursor.execute("UPDATE authors SET orcid=%s WHERE id=%s;", (self.orcid, self.id))
