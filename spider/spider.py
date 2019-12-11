@@ -602,40 +602,47 @@ class Spider(object):
       self.log.record(f"Recorded {len(to_record)} stats for ID {article_id}", "debug")
 
   def _record_authors(self, article_id, authors, overwrite=False):
-    if overwrite:
-      with self.connection.db.cursor() as cursor:
-        self.log.record("Deleting previously recorded author links.", "debug")
-        cursor.execute(f'DELETE FROM {config.db["schema"]}.article_authors WHERE article=%s;',(article_id,))
-    else:
-      with self.connection.db.cursor() as cursor:
-        cursor.execute(f'SELECT COUNT(article) FROM {config.db["schema"]}.article_authors WHERE article=%s;', (article_id,))
-        count = cursor.fetchone()[0]
-        if count > 0: # If the paper already has authors, we're done
-          return
+    with self.connection.db.cursor() as cursor:
+      cursor.execute(f'SELECT COUNT(article) FROM {config.db["schema"]}.article_authors WHERE article=%s;', (article_id,))
+      count = cursor.fetchone()[0]
+      if count > 0 and not overwrite: # If the paper already has authors, we're done
+        return
 
     to_write = []
     for a in authors:
       a.record(self.connection, self.log)
       to_write.append((article_id, a.id, a.institution))
 
-    try:
-      with self.connection.db.cursor() as cursor:
-        self.log.record("Saving NEW author links.", "debug")
-        sql = f'INSERT INTO {config.db["schema"]}.article_authors (article, author, institution) VALUES (%s, %s, %s);'
-        cursor.executemany(sql, to_write)
-    except Exception as e:
-      # If there's an error associating all the authors with their paper all at once,
-      # send separate queries for each one
-      # (This came up last time because an author was listed twice on the same paper.)
-      self.log.record(f"Error associating authors to paper: {e}", "warn")
-      self.log.record("Recording article associations one at a time.", "info")
-      for x in to_write:
-        try:
-          with self.connection.db.cursor() as cursor:
-            cursor.execute(f'INSERT INTO {config.db["schema"]}.article_authors (article, author, institution) VALUES (%s, %s, %s);', x)
-        except Exception as e:
-          self.log.record(f"Another problem associating author {x} to article {article_id}. Moving on.", "error")
-          pass
+    if overwrite:
+      if len(to_write) > 0:
+        # "overwrite" means re-link all the authors to the paper, but only do it
+        # if there are NEW authors to actually link. Otherwise don't mess with it,
+        # len(to_write) is only 0 if bioRxiv is listing zero authors for a paper
+        # and that's not right.
+        with self.connection.db.cursor() as cursor:
+          self.log.record("Deleting previously recorded author links.", "debug")
+          cursor.execute(f'DELETE FROM {config.db["schema"]}.article_authors WHERE article=%s;',(article_id,))
+      else:
+        self.log.record("Not removing previous author links because there aren't any new authors to replace them with.", "warn")
+    if len(to_write) > 0:
+      try:
+        with self.connection.db.cursor() as cursor:
+          self.log.record("Saving NEW author links.", "debug")
+          sql = f'INSERT INTO {config.db["schema"]}.article_authors (article, author, institution) VALUES (%s, %s, %s);'
+          cursor.executemany(sql, to_write)
+      except Exception as e:
+        # If there's an error associating all the authors with their paper all at once,
+        # send separate queries for each one
+        # (This came up last time because an author was listed twice on the same paper.)
+        self.log.record(f"Error associating authors to paper: {e}", "warn")
+        self.log.record("Recording article associations one at a time.", "info")
+        for x in to_write:
+          try:
+            with self.connection.db.cursor() as cursor:
+              cursor.execute(f'INSERT INTO {config.db["schema"]}.article_authors (article, author, institution) VALUES (%s, %s, %s);', x)
+          except Exception as e:
+            self.log.record(f"Another problem associating author {x} to article {article_id}. Moving on.", "error")
+            pass
 
   def fetch_category_list(self):
     categories = []
