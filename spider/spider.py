@@ -437,13 +437,9 @@ class Spider(object):
       return
 
     data = parsed.get("pub", [])
-    if len(data) == 0:
+    if len(data) == 0 or data[0].get("pub_type") != "published":
       self.log.record("No data found", "debug")
       return
-
-    if data[0].get("pub_type") != "published":
-      self.log.record(f'Publication found, but not in "published" state: {data[0]["pub_type"]}. Skipping.', 'info')
-      return # Don't know what this could mean
     if "pub_doi" not in data[0] or "pub_journal" not in data[0]:
       self.log.record("Publication data found, but missing important field(s). Skipping.")
       return
@@ -1312,7 +1308,7 @@ def get_publication_dates(spider):
         spider.log.record("  Not found.", 'debug')
         # HACK: This makes it simpler to skip missing papers in the future
         answer = (article_id, '1900-01-01')
-      spider.log.record(f"  Got weird status code: {r.status_code}", 'warn')
+
     else:
       resp = r.json()
       if "message" not in resp.keys():

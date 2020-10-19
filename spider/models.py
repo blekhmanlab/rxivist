@@ -200,7 +200,7 @@ class Article:
       spider.record_article_posted_date(self.id, self.url)
       if stat_table is not None:
         spider.save_article_stats(self.id, stat_table)
-      spider.log.record(f"Recorded article {self.title}")
+      spider.log.record(f"Recorded article {self.title}", 'info')
     return True
 
   def get_id(self, connection):
