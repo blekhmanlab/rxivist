@@ -57,3 +57,13 @@ outdated_limit = "4 weeks"
 
 # When displaying a leaderboard of author rankings, how many names should appear
 author_ranks_limit = 200
+
+# When a user requests daily twitter metrics, this is the
+# minimum number of papers we need results for before it's
+# automatically rolled over to "weekly"
+min_daily_twitter = 10
+
+# When a user requests WEEKLY twitter metrics, this is the
+# minimum number of papers we need results for before it's
+# rolled over to downloads instead
+min_weekly_twitter = 250
