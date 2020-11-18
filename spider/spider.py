@@ -123,7 +123,7 @@ class Spider(object):
     self.log.record(f"Beginning retrieval of Crossref data for {datestring}", "info")
     headers = {'user-agent': config.user_agent}
     try:
-      r = requests.get("{0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), headers=headers, timeout=10)
+      r = requests.get("{0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), headers=headers, timeout=30)
     except Exception as e:
       self.log.record(f'Problem sending request to Crossref: {e}.', 'error')
       if retry: # only retry once
@@ -366,7 +366,10 @@ class Spider(object):
       else:
         cursor.execute("SELECT id, url, doi FROM articles WHERE id=%s;", (id,))
       updated = 0
+      consec_errors = 0
       for article in cursor:
+        if consec_errors > 15:
+          self.log.record('Too many errors in a row. Exiting.', 'fatal')
         article_id = article[0]
         url = article[1]
         doi = article[2]
@@ -379,7 +382,10 @@ class Spider(object):
         stat_table, authors = self.get_article_stats(url)
         if stat_table is None:
           self.log.record('No results returned. Moving on to next article.', 'warn')
+          consec_errors += 1
           continue
+        else:
+          consec_errors = 0
 
         if config.crawl["fetch_pubstatus"] is not False:
           try:
