@@ -336,11 +336,14 @@ class Spider(object):
         except ValueError as e:
           self.log.record(f"Error retrieving abstract for {article[1]}: {e}", "error")
 
-  def fetch_published(self, cursorid=0):
+  def fetch_published(self, cursorid=0, current=None):
     if config.polite:
       time.sleep(3)
 
-    current = datetime.now()
+    if current is None:
+      # we pass the date in as a parameter in case the computer's date
+      # changes in the middle of us scanning through pages
+      current = datetime.now()
     start = (current - timedelta(days=3)).strftime('%Y-%m-%d')
     end = current.strftime('%Y-%m-%d')
     self.log.record(f"Fetching publication data from within 3 days of {start} (cursor: {cursorid})", 'debug')
@@ -392,20 +395,13 @@ class Spider(object):
             count = x[0]
         # if we don't have it already, record it:
         if count == 0:
-          # find the preprint's article ID
-          cursor.execute(f"SELECT id FROM {config.db['schema']}.articles WHERE doi=%s",(entry[0],))
-          article_id = None
-          for x in cursor:
-            if len(x) > 0:
-              article_id = x[0]
-          if article_id is not None:
-            self.log.record(f'recording {entry[0]} - article {article_id}!','debug')
-            cursor.execute(f"INSERT INTO {config.db['schema']}.article_publications (article, doi) VALUES (%s, %s);", (article_id, entry[1]))
+          self.log.record(f'recording {entry[0]} - article {article_id}!','debug')
+          cursor.execute(f"INSERT INTO {config.db['schema']}.article_publications (article, doi) VALUES (%s, %s);", (article_id, entry[1]))
+
     # if there are more pages to go, make another call
     # (the 'cursor' field becomes a string if it's greater than 0?)
     if meta['count'] + int(meta['cursor']) < meta['total']:
-      spider.log.record(f"Requesting next page of publications, offset {cursorid+meta['count']}",'debug')
-      self.fetch_published(cursorid+meta['count'])
+      self.fetch_published(cursorid+meta['count'], current)
 
   def refresh_article_stats(self, collection=None, cap=10000, id=None, get_authors=False):
     """Normally, "collection" is specified, and the function will
@@ -1353,6 +1349,7 @@ def get_publication_dates(spider):
         spider.log.record("  Recorded.", 'debug')
 
 def get_journal_names(spider):
+  # TODO: combine this with the publication dates call
   spider.log.record('Fetching journal names for published preprints', 'info')
   with spider.connection.db.cursor() as cursor:
     cursor.execute(f"""
@@ -1370,7 +1367,7 @@ def get_journal_names(spider):
       time.sleep(3)
     article_id = article[0]
     doi = article[1]
-    spider.log.record(f"Checking DOI {doi}", 'debug')
+    spider.log.record(f"Checking journal for DOI {doi}", 'debug')
     headers = {'user-agent': config.user_agent}
     try:
       r = requests.get(f"https://api.crossref.org/works/{doi}?mailto={config.crossref['parameters']['email']}", headers=headers)
