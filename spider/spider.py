@@ -336,16 +336,14 @@ class Spider(object):
         except ValueError as e:
           self.log.record(f"Error retrieving abstract for {article[1]}: {e}", "error")
 
-  def fetch_pubdata(self, cursorid=0):
+  def fetch_published(self, cursorid=0):
     if config.polite:
       time.sleep(3)
 
-    self.log.record(f"Fetching publication data", 'debug')
-
     current = datetime.now()
-    start = (current - timedelta(days=16)).strftime('%Y-%m-%d')
+    start = (current - timedelta(days=3)).strftime('%Y-%m-%d')
     end = current.strftime('%Y-%m-%d')
-    print(f'{config.biorxiv["endpoints"]["api"]}/pub/{start}/{end}/{cursorid}')
+    self.log.record(f"Fetching publication data from within 3 days of {start} (cursor: {cursorid})", 'debug')
     try:
       r = requests.get(f'{config.biorxiv["endpoints"]["api"]}/pub/{start}/{end}/{cursorid}')
     except Exception as e:
@@ -373,7 +371,6 @@ class Spider(object):
 
     # turn results into a list
     towrite = [(x['biorxiv_doi'], x['published_doi']) for x in resp['collection']]
-    print(towrite)
 
     for entry in towrite:
       with self.connection.db.cursor() as cursor:
@@ -402,13 +399,13 @@ class Spider(object):
             if len(x) > 0:
               article_id = x[0]
           if article_id is not None:
-            print(f'recording {entry[0]} - article {article_id}!')
+            self.log.record(f'recording {entry[0]} - article {article_id}!','debug')
             cursor.execute(f"INSERT INTO {config.db['schema']}.article_publications (article, doi) VALUES (%s, %s);", (article_id, entry[1]))
     # if there are more pages to go, make another call
     # (the 'cursor' field becomes a string if it's greater than 0?)
     if meta['count'] + int(meta['cursor']) < meta['total']:
       spider.log.record(f"Requesting next page of publications, offset {cursorid+meta['count']}",'debug')
-      self.fetch_pubdata(cursorid+meta['count'])
+      self.fetch_published(cursorid+meta['count'])
 
   def refresh_article_stats(self, collection=None, cap=10000, id=None, get_authors=False):
     """Normally, "collection" is specified, and the function will
@@ -1198,14 +1195,20 @@ def full_run(spider):
     spider.get_posted_dates()
     spider.refresh_article_stats(get_authors=True) # Fix authorless papers
     spider.remove_orphan_authors()
+
   if config.crawl["fetch_new"] is not False:
     spider.find_record_new_articles()
   else:
     spider.log.record("Skipping search for new articles: disabled in configuration file.", 'debug')
+
   if config.crawl["fetch_abstracts"] is not False:
     spider.fetch_abstracts()
   else:
     spider.log.record("Skipping step to fetch unknown abstracts: disabled in configuration file.", 'debug')
+
+  if config.crawl["fetch_pubstatus"] is not False:
+    spider.fetch_published()
+    get_journal_names(spider)
 
   for collection in spider.fetch_category_list():
     spider.log.record(f"\n\nBeginning category {collection}", "info")
@@ -1347,6 +1350,52 @@ def get_publication_dates(spider):
       with spider.connection.db.cursor() as cursor:
         sql = f"INSERT INTO {config.db['schema']}.publication_dates (article, date) VALUES (%s, %s);"
         cursor.execute(sql, answer)
+        spider.log.record("  Recorded.", 'debug')
+
+def get_journal_names(spider):
+  spider.log.record('Fetching journal names for published preprints', 'info')
+  with spider.connection.db.cursor() as cursor:
+    cursor.execute(f"""
+    SELECT article, doi
+    FROM {config.db['schema']}.article_publications
+    WHERE publication IS NULL
+    """)
+    todo = []
+    for article in cursor:
+      todo.append((article[0], article[1]))
+
+  for article in todo:
+    answer = None
+    if config.polite:
+      time.sleep(3)
+    article_id = article[0]
+    doi = article[1]
+    spider.log.record(f"Checking DOI {doi}", 'debug')
+    headers = {'user-agent': config.user_agent}
+    try:
+      r = requests.get(f"https://api.crossref.org/works/{doi}?mailto={config.crossref['parameters']['email']}", headers=headers)
+    except Exception as e:
+      spider.log.record(f"  Error calling crossref API for publication data: {e}", 'error')
+      continue
+
+    if r.status_code != 200:
+      if r.status_code == 404:
+        spider.log.record("  Not found.", 'debug')
+        # HACK: This makes it simpler to skip missing papers in the future
+        answer = 'unknown?'
+
+    else:
+      resp = r.json()
+      if "message" not in resp.keys():
+        spider.log.record("  No message found.", 'debug')
+        continue
+      if "container-title" in resp['message'] and len(resp['message']['container-title']) > 0:
+        answer = resp['message']['container-title'][0]
+      elif "short-container-title" in resp['message'] and len(resp['message']['short-container-title']) > 0:
+        answer = resp['message']['short-container-title'][0]
+    if answer is not None:
+      with spider.connection.db.cursor() as cursor:
+        cursor.execute(f"UPDATE {config.db['schema']}.article_publications SET publication=%s WHERE article=%s;", (answer, article_id))
         spider.log.record("  Recorded.", 'debug')
 
 if __name__ == "__main__":
