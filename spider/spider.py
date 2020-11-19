@@ -336,6 +336,80 @@ class Spider(object):
         except ValueError as e:
           self.log.record(f"Error retrieving abstract for {article[1]}: {e}", "error")
 
+  def fetch_pubdata(self, cursorid=0):
+    if config.polite:
+      time.sleep(3)
+
+    self.log.record(f"Fetching publication data", 'debug')
+
+    current = datetime.now()
+    start = (current - timedelta(days=16)).strftime('%Y-%m-%d')
+    end = current.strftime('%Y-%m-%d')
+    print(f'{config.biorxiv["endpoints"]["api"]}/pub/{start}/{end}/{cursorid}')
+    try:
+      r = requests.get(f'{config.biorxiv["endpoints"]["api"]}/pub/{start}/{end}/{cursorid}')
+    except Exception as e:
+      self.log.record(f"Error requesting first page of results from publications endpoint. Retrying: {e}", "error")
+      try:
+        r = requests.get(f'{config.biorxiv["endpoints"]["api"]}/pub/{start}/{end}')
+      except Exception as e:
+        self.log.record(f"Error AGAIN requesting publications. Bailing: {e}", "error")
+        return
+
+    resp = r.json()
+    if 'messages' not in resp.keys() or len(resp['messages']) == 0:
+      spider.log.record(f"Couldn't validate response from pub endpoint.", 'error')
+      return
+
+    meta = resp['messages'][0]
+
+    if meta.get('status') != 'ok':
+      spider.log.record(f"Pub endpoint responded with non-ok status", 'error')
+      return
+
+    if 'collection' not in resp.keys() or len(resp['collection']) == 0:
+      spider.log.record(f"No results in response from pub endpoint.", 'error')
+      return
+
+    # turn results into a list
+    towrite = [(x['biorxiv_doi'], x['published_doi']) for x in resp['collection']]
+    print(towrite)
+
+    for entry in towrite:
+      with self.connection.db.cursor() as cursor:
+        # first search in the table of publications to make sure we don't
+        # know about this one already:
+        cursor.execute(f"SELECT id FROM {config.db['schema']}.articles WHERE doi=%s",(entry[0],))
+        article_id = None
+        for x in cursor:
+          if len(x) > 0:
+            article_id = x[0]
+        if article_id is None:
+          # if we don't have an article with that DOI, move on
+          continue
+
+        # if the article exists, check whether we already know it's published
+        cursor.execute(f"SELECT COUNT(article) FROM {config.db['schema']}.article_publications WHERE article=%s",(article_id,))
+        for x in cursor:
+          if len(x) > 0:
+            count = x[0]
+        # if we don't have it already, record it:
+        if count == 0:
+          # find the preprint's article ID
+          cursor.execute(f"SELECT id FROM {config.db['schema']}.articles WHERE doi=%s",(entry[0],))
+          article_id = None
+          for x in cursor:
+            if len(x) > 0:
+              article_id = x[0]
+          if article_id is not None:
+            print(f'recording {entry[0]} - article {article_id}!')
+            cursor.execute(f"INSERT INTO {config.db['schema']}.article_publications (article, doi) VALUES (%s, %s);", (article_id, entry[1]))
+    # if there are more pages to go, make another call
+    # (the 'cursor' field becomes a string if it's greater than 0?)
+    if meta['count'] + int(meta['cursor']) < meta['total']:
+      spider.log.record(f"Requesting next page of publications, offset {cursorid+meta['count']}",'debug')
+      self.fetch_pubdata(cursorid+meta['count'])
+
   def refresh_article_stats(self, collection=None, cap=10000, id=None, get_authors=False):
     """Normally, "collection" is specified, and the function will
     iterate through outdated articles in the given collection. However,
@@ -368,7 +442,7 @@ class Spider(object):
       updated = 0
       consec_errors = 0
       for article in cursor:
-        if consec_errors > 15:
+        if consec_errors > 10:
           self.log.record('Too many errors in a row. Exiting.', 'fatal')
         article_id = article[0]
         url = article[1]
@@ -387,18 +461,6 @@ class Spider(object):
         else:
           consec_errors = 0
 
-        if config.crawl["fetch_pubstatus"] is not False:
-          try:
-            pub_data = self.check_publication_status(article_id, doi, True)
-          except ValueError:
-            if config.reset_pubstatus is not False:
-              self.log.record("Too many errors in a row. Turning off publication status checks for this run.", "error")
-              config.crawl["fetch_pubstatus"] = False
-            else:
-              self.log.record("Too many errors checking publication status. Exiting.", "fatal")
-          if pub_data is not None: # if we found something
-            self.record_publication_status(article_id, pub_data["doi"], pub_data["publication"])
-
         self.save_article_stats(article_id, stat_table)
 
         overwrite = False
@@ -412,50 +474,6 @@ class Spider(object):
           break
     self.log.record(f"{updated} articles refreshed in {collection}.")
     return updated
-
-  def check_publication_status(self, article_id, doi, retry=False):
-    with self.connection.db.cursor() as cursor:
-      # we check for which ones are already recorded because
-      # the postgres UPSERT feature is bananas
-      cursor.execute("SELECT COUNT(article) FROM article_publications WHERE article=%s", (article_id,))
-      pub_count = cursor.fetchone()[0]
-      if pub_count > 0:
-        return
-
-    self.log.record(f"Determining publication status for DOI {doi}.", "debug")
-    try:
-      resp = self.session.get("{}?doi={}".format(config.biorxiv["endpoints"]["pub_doi"], doi))
-    except Exception as e:
-      self.log.record(f"Error fetching publication data: {e}", "warn")
-      if retry:
-        self.log.record("Retrying in 60 seconds:", "debug")
-        time.sleep(60)
-        return self.check_publication_status(article_id, doi)
-      else:
-        self.log.record("Giving up on this one for now.", "error")
-        raise ValueError("Encountered exception making HTTP call to fetch publication information.")
-
-    try:
-      # response is wrapped in parentheses and lots of trailing white space
-      parsed = json.loads(re.sub(r'\)\s*$', '', resp.text[1:]))
-    except json.decoder.JSONDecodeError as e:
-      self.log.record(f"Error encountered decoding JSON: {e}. Bailing.", "error")
-      return
-
-    data = parsed.get("pub", [])
-    if len(data) == 0 or data[0].get("pub_type") != "published":
-      self.log.record("No data found", "debug")
-      return
-    if "pub_doi" not in data[0] or "pub_journal" not in data[0]:
-      self.log.record("Publication data found, but missing important field(s). Skipping.")
-      return
-
-    self.log.record(f'Publication found: {data[0]["pub_journal"]}', 'debug')
-
-    with self.connection.db.cursor() as cursor:
-      self.log.record("Saving publication info.", "debug")
-      cursor.execute(f"INSERT INTO {config.db['schema']}.article_publications (article, doi, publication) VALUES (%s, %s, %s);", (article_id, data[0]["pub_doi"], data[0]["pub_journal"]))
-      self.log.record(f'Recorded DOI {data[0]["pub_doi"]} for article {article_id}')
 
   def get_article_abstract(self, url, retry=True):
     if url is None:
@@ -1096,22 +1114,6 @@ def canonical_names(spider, max_calls=100):
   todo = []
   with spider.connection.db.cursor() as cursor:
     spider.log.record('Querying for unlinked institutions', 'info')
-    # current affiliations, sorted by how many authors are in them:
-    # cursor.execute(f"""
-    # SELECT institution FROM (
-    #   SELECT institution, COUNT(id)
-    #   FROM prod.authors
-    #   WHERE institution IN (
-    #     SELECT a.institution
-    #     FROM prod.authors a
-    #     LEFT JOIN prod.affiliation_institutions i ON a.institution=i.affiliation
-    #     WHERE i.institution IS NULL
-    #   )
-    #   GROUP BY 1
-    #   ORDER BY 2 DESC
-    # ) AS asdf
-    # LIMIT %s
-    # """, (max_calls,))
 
     # institutions listed on any preprint:
     cursor.execute(f"""
