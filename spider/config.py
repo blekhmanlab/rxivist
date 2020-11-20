@@ -18,8 +18,6 @@ refresh_category_cap = 250
 # Which actions to take as part of the crawling session
 crawl = {
   "fetch_new": True, # Check for new papers in each collection
-  "fetch_collections": True, # Fill in the collection for new articles
-  "fetch_abstracts": True, # Check for any Rxivist papers missing an abstract and fill it in (Papers don't have an abstract when first crawled)
   "fetch_crossref": False, # Update daily Crossref stats
   "refresh_stats": False, # Look for articles with outdated download info and re-crawl them
   "fetch_pubstatus": True, # Check for whether a paper has been published during stat refresh
@@ -79,20 +77,6 @@ reset_pubstatus = False
 # wasteful.)
 stop_on_recognized = True
 
-# Papers are listed on bioRxiv in (approximately) chronological
-# order. if stop_on_recognized is True, how many papers we have
-# to recognize *in a row* before we assume that we've indexed
-# all the papers at that point in the chronology.
-recognized_limit = 31
-
-# Papers are initially recorded without a collection, because
-# the only way to determine a paper's collection is by observing
-# it in the chronological list of papers available for each collection.
-# Similarly to the search for new papers, this is how many papers
-# we should recognize a collection's list before we assume we
-# have already seen the rest.
-cat_recognized_limit = 29
-
 # The crawler uses temporary files to speed up database writes.
 # Setting this flag to True will delete them after they're processed.
 delete_csv = True
@@ -107,7 +91,7 @@ biorxiv = {
   "endpoints": {
     "collection": "https://www.biorxiv.org/collection",
     "recent": "https://www.biorxiv.org/content/early/recent",
-    "pub_doi": "https://connect.biorxiv.org/bx_pub_doi_get.php"
+    "api": "https://api.biorxiv.org"
   }
 }
 

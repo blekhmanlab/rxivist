@@ -2,6 +2,7 @@ import config
 import re
 
 import psycopg2
+import requests
 
 class Author:
   def __init__(self, name, institution, email, orcid=None):
@@ -95,58 +96,21 @@ class Article:
   # This class is disconcertingly intermingled with the Spider class,
   # a problem that is probably most easily remedied by folding the whole
   # thing into the spider rather than trying to pry them apart, unfortunately
-  def __init__(self):
-    self.url = None
-    pass
-
-  def process_results_entry(self, html, log):
-    self._find_title(html)
-    self._find_url(html)
-    self._find_doi(html, log)
+  def __init__(self, entry):
+    self.title = entry.get('title')
+    self.doi = entry.get('doi')
+    self.collection = entry.get('category')
     self.collection = None
-    # NOTE: We don't get abstracts from search result pages
-    # because they're loaded asynchronously and it would be
-    # annoying to load every one separately.
-
-  def _find_title(self, html):
-    x = html.find(".highwire-cite-title")
-    # this looks weird because the title is wrapped
-    # in 2 <span> tags with identical classes:
-    self.title = x[0].text
-
-  def _find_doi(self, html, log):
-    x = html.find(".highwire-cite-metadata-doi")
-    if len(x) == 0:
-      log.record("Did not find DOI HTML element for article. Exiting to avoid losing the entry.", "fatal")
-      return
-    try:
-      m = re.search('https://doi.org/(.*)', x[0].text)
-    except:
-      log.record("Error in searching for DOI string for article. Exiting to avoid losing the entry.", "fatal")
-      return
-    if m is None or len(m.groups()) > 0:
-      self.doi = m.group(1)
-    else:
-      log.record("Did not find DOI string for article. Exiting to avoid losing the entry.", "fatal")
-      return
-
-  def _find_url(self, html):
-    # multiple links show up in each entry now; find the one with a version:
-    for link in html.absolute_links:
-      try:
-        m = re.search('.*v(\d+)$', link)
-      except:
-        spider.log.record("Exception in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
-        return
-      if m is None or len(m.groups()) == 0:
-        continue
-      self.url = link
+    self.abstract = entry.get('abstract')
+    self.version = entry.get('version')
+    self.posted = entry.get('date')
+    self.url = f"https://biorxiv.org/content/{self.doi}v{self.version}"
 
   def record(self, connection, spider): # TODO: requiring the whole spider here is code smell of the first order
     with connection.db.cursor() as cursor:
-      if self.doi == "":
+      if self.doi in ["", None]:
         spider.log.record(f"Won't record a paper without a DOI: {self.url}", "fatal")
-      cursor.execute("SELECT url, id FROM articles WHERE doi=%s", (self.doi,))
+      cursor.execute("SELECT id FROM articles WHERE doi=%s", (self.doi,))
       response = cursor.fetchone()
 
       if response is not None and len(response) > 0:
@@ -154,20 +118,12 @@ class Article:
         # of the preprint. If we already have a record, but the
         # URL confirms it's version 1, then we know we've seen this
         # specific paper already.
-        try:
-          m = re.search('.*v(\d+)$', self.url)
-        except:
-          spider.log.record("Exception in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
-          return
-        if m is None or len(m.groups()) == 0:
-          spider.log.record("Error in searching for DOI string. Exiting to avoid losing the entry.", "fatal")
-          return
-        if m.group(1) == '1': # TODO: we might have recorded a revision too?
+        if self.version == '1': # TODO: we might have recorded a revision too?
           spider.log.record(f"Found article already: {self.title}", "debug")
           return False
 
         # If it's a revision
-        cursor.execute("UPDATE articles SET url=%s, title=%s, abstract=NULL, title_vector=NULL, abstract_vector=NULL, author_vector=NULL WHERE doi=%s RETURNING id;", (self.url, self.title, self.doi))
+        cursor.execute("UPDATE articles SET title=%s, abstract=%s, title_vector=NULL, abstract_vector=NULL, author_vector=NULL WHERE doi=%s RETURNING id;", (self.title, self.abstract, self.doi))
         self.id = cursor.fetchone()[0]
         stat_table, authors = spider.get_article_stats(self.url)
         spider._record_authors(self.id, authors, True)
@@ -177,10 +133,9 @@ class Article:
         connection.db.commit()
         return None
     # If it's brand new:
-    # TODO: It's weird this section doesn't include fetching the abstract and category
     with connection.db.cursor() as cursor:
       try:
-        cursor.execute("INSERT INTO articles (url, title, doi) VALUES (%s, %s, %s) RETURNING id;", (self.url, self.title, self.doi))
+        cursor.execute("INSERT INTO articles (title, doi, url, collection, abstract) VALUES (%s, %s, %s, %s, %s) RETURNING id;", (self.title, self.doi, self.url, self.collection, self.abstract))
       except Exception as e:
         spider.log.record(f"Couldn't record article '{self.title}': {e}", "error")
       self.id = cursor.fetchone()[0]
@@ -197,11 +152,22 @@ class Article:
           spider.log.record("Error fetching stats again. Giving up on this one.", "error")
 
       spider._record_authors(self.id, authors)
-      spider.record_article_posted_date(self.id, self.url)
+      self._record_posted_date(spider)
       if stat_table is not None:
         spider.save_article_stats(self.id, stat_table)
-      spider.log.record(f"Recorded article {self.title}", 'info')
+      spider.log.record(f"\n\n\n!!!!\n\nRecorded article {self.title}", 'info')
     return True
+
+  def _record_posted_date(self, spider):
+    date = None
+    if self.version == 1:
+      spider.log.record('First version posted; recording article date.')
+      date = self.posted
+    else:
+      spider.log.record('Revision posted; fetching original article date.')
+      # if the first time we see an article ISN'T the first version, we should
+      # check to get the date from V1.
+      spider.record_article_posted_date(self.id, self.doi)
 
   def get_id(self, connection):
     with connection.db.cursor() as cursor:
@@ -211,19 +177,3 @@ class Article:
         return False
       self.id = response[0]
     return True
-
-  def record_category(self, collection, connection, log):
-    with connection.db.cursor() as cursor:
-      # check to see if we've seen this article before
-      if self.collection is None or self.id is None:
-        log.record(f"Paper {self.id} doesn't have a category, though it should. Exiting; something's wrong.", "fatal")
-      cursor.execute("SELECT collection FROM articles WHERE id=%s", (self.id,))
-      response = cursor.fetchone()
-
-      if response is not None and len(response) > 0 and response[0] is not None:
-        log.record(f'Article {self.id} already has a category', 'debug')
-        return False
-      self.category = collection
-      cursor.execute("UPDATE articles SET collection=%s WHERE id=%s;", (self.category, self.id))
-      log.record(f"Updated collection for article {self.id}: {self.category}", "info")
-      return True

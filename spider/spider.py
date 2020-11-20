@@ -112,7 +112,7 @@ class Spider(object):
     self.log.record('Fetching dates for papers without them', 'info')
     to_save = []
     with self.connection.db.cursor() as cursor:
-      cursor.execute(f"SELECT id, url FROM {config.db['schema']}.articles WHERE posted IS NULL;")
+      cursor.execute(f"SELECT id, doi FROM {config.db['schema']}.articles WHERE posted IS NULL;")
       for x in cursor:
         if x[1] is not None:
           self.log.record(f'Fetching date for {x[0]}.')
@@ -196,145 +196,52 @@ class Spider(object):
       cursor.executemany(sql, params)
     self.log.record("Done with crossref.", "debug")
 
-  def find_record_new_articles(self):
-    # we need to grab the first page to figure out how many pages there are
-    self.log.record(f"Fetching page 0")
+  def find_record_new_articles(self, cursorid=0, current=None):
+    if config.polite:
+      time.sleep(3)
+
+    if current is None:
+      # we pass the date in as a parameter in case the computer's date
+      # changes in the middle of us scanning through pages
+      current = datetime.now()
+    start = (current - timedelta(days=1)).strftime('%Y-%m-%d')
+    end = current.strftime('%Y-%m-%d')
+    self.log.record(f"Fetching new preprints data from within 1 day of {start} (cursor: {cursorid})", 'debug')
+    url = f'{config.biorxiv["endpoints"]["api"]}/details/biorxiv/{start}/{end}/{cursorid}'
     try:
-      r = self.session.get(config.biorxiv["endpoints"]["recent"])
+      r = requests.get(url)
     except Exception as e:
-      self.log.record(f"Error requesting first page of recent results. Retrying: {e}", "error")
+      self.log.record(f"Error requesting results from new preprints endpoint. Retrying: {e}", "error")
       try:
-        r = self.session.get(config.biorxiv["endpoints"]["recent"])
+        r = requests.get(url)
       except Exception as e:
-        self.log.record(f"Error AGAIN requesting first page of results. Bailing: {e}", "error")
+        self.log.record(f"Error AGAIN requesting new preprints. Bailing: {e}", "error")
         return
 
-    results = pull_out_articles(r.html, self.log)
-    consecutive_recognized = 0
-    for article in results:
+    resp = r.json()
+    if 'messages' not in resp.keys() or len(resp['messages']) == 0:
+      spider.log.record(f"Couldn't validate response from preprints endpoint.", 'error')
+      return
+
+    meta = resp['messages'][0]
+
+    if meta.get('status') != 'ok':
+      spider.log.record(f"Preprints endpoint responded with non-ok status", 'error')
+      return
+
+    if 'collection' not in resp.keys() or len(resp['collection']) == 0:
+      spider.log.record(f"No results in response from preprints endpoint.", 'error')
+      return
+
+    # turn results into a list
+    spider.log.record(f"Retrieved {len(resp['collection'])} entries on page.")
+
+    for entry in resp['collection']:
+      if config.polite:
+        time.sleep(3)
+      article = models.Article(entry)
+      spider.log.record(f'Evaluating article {article.doi}','debug')
       recorded = article.record(self.connection, self)
-      if recorded  == False:
-        # if it was a paper that we'd already seen before
-        consecutive_recognized += 1
-        if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
-      elif recorded is not None:
-        # article.record() returns "None" if the paper was a revisions, because
-        # there isn't (for now?) a way to know if it's been previously recorded.
-        # This doesn't count as a "recognized" article in our count, but it also
-        # doesn't reset the counter.
-        consecutive_recognized = 0
-
-    for p in range(1, determine_page_count(r.html)): # iterate through each page of results
-      if config.polite:
-        time.sleep(3)
-      self.log.record(f"\n\nFetching page {p}") # pages are zero-indexed
-      try:
-        r = self.session.get("{}?page={}".format(config.biorxiv["endpoints"]["recent"], p))
-      except Exception as e:
-        self.log.record(f"Error requesting page {p} of results. Retrying: {e}", "error")
-        try:
-          r = self.session.get("{}?page={}".format(config.biorxiv["endpoints"]["recent"], p))
-        except Exception as e:
-          self.log.record(f"Error AGAIN requesting page of results: {e}", "error")
-          self.log.record("Crawling recent papers failed in the middle; unrecorded new articles are likely being skipped. Exiting to avoid losing them.", "fatal")
-          return
-
-      results = pull_out_articles(r.html, self.log)
-      for x in results:
-        recorded = x.record(self.connection, self)
-        if recorded == False:
-          consecutive_recognized += 1
-          if consecutive_recognized >= config.recognized_limit and config.stop_on_recognized: return
-        elif recorded is not None:
-          # article.record() returns "None" if the paper was a revisions, because
-          # there isn't (for now?) a way to know if it's been previously recorded.
-          # This doesn't count as a "recognized" article in our count, but it also
-          # doesn't reset the counter.
-          consecutive_recognized = 0
-
-  def determine_collection(self, collection):
-    # we need to grab the first page to figure out how many pages there are
-    self.log.record(f"Fetching page 0 in {collection}", 'debug')
-    try:
-      r = self.session.get(f'{config.biorxiv["endpoints"]["collection"]}/{collection}')
-    except Exception as e:
-      self.log.record(f"Error requesting first page of results for collection. Retrying: {e}", "error")
-      try:
-        r = self.session.get(f'{config.biorxiv["endpoints"]["collection"]}/{collection}')
-      except Exception as e:
-        self.log.record(f"Error AGAIN requesting first page of results for collection. Bailing: {e}", "error")
-        return
-
-    results = pull_out_articles(r.html, self.log)
-    consecutive_recognized = 0
-
-    # It's fine if we encounter unknown papers at the beginning of the category,
-    # but if an unrecognized paper shows up later in the category, something
-    # funny's going on
-    recognized_any = False
-
-    for article in results: # note: this first loop only for the first page
-      article.collection = collection
-      # make sure we know about the article already:
-      if not article.get_id(self.connection):
-        if recognized_any:
-          self.log.record(f'Encountered unknown paper in category listings: {article.doi}', 'fatal')
-        else:
-          self.log.record(f'New paper at top of category listings: {article.doi}', 'debug')
-          continue
-
-      recognized_any = True
-      if not article.record_category(collection, self.connection, self.log):
-        consecutive_recognized += 1
-        if consecutive_recognized >= config.cat_recognized_limit and config.stop_on_recognized: return
-      else:
-        consecutive_recognized = 0
-
-    for p in range(1, determine_page_count(r.html)): # iterate through each page of results
-      if config.polite:
-        time.sleep(3)
-      self.log.record(f"Fetching page {p} in {collection}", 'debug') # pages are zero-indexed
-      try:
-        r = self.session.get("{}/{}?page={}".format(config.biorxiv["endpoints"]["collection"], collection, p))
-      except Exception as e:
-        log.record(f"Error requesting page of results for collection {collection}. Retrying: {e}", "error")
-        try:
-          r = self.session.get("{}/{}?page={}".format(config.biorxiv["endpoints"]["collection"], collection, p))
-        except Exception as e:
-          log.record(f"Error AGAIN requesting page of results for collection {collection}: {e}", "error")
-          log.record("Crawling of category {} failed in the middle; unrecorded new articles are likely being skipped. Exiting to avoid losing them.", "fatal")
-          return
-
-      results = pull_out_articles(r.html, self.log)
-      for article in results:
-        article.collection = collection
-        if not article.get_id(self.connection):
-          if recognized_any:
-            self.log.record(f'Encountered unknown paper in category listings: {article.doi}', 'fatal')
-          else:
-            self.log.record(f'New paper at top of category listings: {article.doi}', 'debug')
-            continue
-
-        recognized_any = True
-        if not article.record_category(collection, self.connection, self.log):
-          consecutive_recognized += 1
-          if consecutive_recognized >= config.cat_recognized_limit and config.stop_on_recognized:
-            return
-        else:
-          consecutive_recognized = 0
-
-  def fetch_abstracts(self):
-    with self.connection.db.cursor() as cursor:
-      # find abstracts for any articles without them
-      cursor.execute(f"SELECT id, url FROM {config.db['schema']}.articles WHERE abstract IS NULL OR abstract='';")
-      for article in cursor:
-        url = article[1]
-        article_id = article[0]
-        try:
-          abstract = self.get_article_abstract(url)
-          self.update_article(article_id, abstract)
-        except ValueError as e:
-          self.log.record(f"Error retrieving abstract for {article[1]}: {e}", "error")
 
   def fetch_published(self, cursorid=0, current=None):
     if config.polite:
@@ -380,10 +287,10 @@ class Spider(object):
         # first search in the table of publications to make sure we don't
         # know about this one already:
         cursor.execute(f"SELECT id FROM {config.db['schema']}.articles WHERE doi=%s",(entry[0],))
+        x = cursor.fetchone()
         article_id = None
-        for x in cursor:
-          if len(x) > 0:
-            article_id = x[0]
+        if x is not None and len(x) > 0:
+          article_id = x[0]
         if article_id is None:
           # if we don't have an article with that DOI, move on
           continue
@@ -539,42 +446,41 @@ class Spider(object):
       stats.append((month, year, abstract, pdf))
     return stats, authors
 
-  def record_article_posted_date(self, article_id, url, retry_count=0):
-    try:
-      resp = self.session.get(f"{url}.article-info")
-    except Exception as e:
-      if retry_count < 3:
-        self.log.record(f"Error requesting article posted-on date. Retrying: {e}", "error")
-        return self.record_article_posted_date(article_id, url, retry_count+1)
-      else:
-        self.log.record(f"Error AGAIN requesting article posted-on date. Bailing: {e}", "error")
-        return None
-    # This assumes that revisions continue to be listed with oldest version first:
-    older = resp.html.find('.hw-version-previous-link', first=True)
-    # Also grab the "Posted on" date on this page:
-    posted = resp.html.find('meta[name="article:published_time"]', first=True)
-    if older is not None: # if there's an older version, grab the date
-      self.log.record("Previous version detected. Finding date.", 'debug')
-      date_search = re.search('(\w*) (\d*), (\d{4})', older.text)
-      if len(date_search.groups()) < 3:
-        self.log.record("Could not determine date. Skipping.", "warn")
-        return None
-      month = date_search.group(1)
-      day = date_search.group(2)
-      year = date_search.group(3)
-      datestring = f"{year}-{month_to_num(month)}-{day}"
-      self.log.record(f"Determined date: {datestring}. Recording", "info")
-      with self.connection.db.cursor() as cursor:
-        cursor.execute(f"UPDATE {config.db['schema']}.articles SET posted = %s WHERE id=%s", (datestring, article_id))
-      return datestring
-    elif posted is not None: # if not, just grab the date from the current version
-      with self.connection.db.cursor() as cursor:
-        self.log.record(f'No older version detected; using date from current page: {posted.attrs["content"]}', "debug")
-        cursor.execute(f"UPDATE {config.db['schema']}.articles SET posted = %s WHERE id=%s", (posted.attrs["content"], article_id))
-    else:
-      self.log.record(f"Could not determine posted date for article at {url}", "warn")
+  def record_article_posted_date(self, article_id, doi, retry_count=0):
+    self.log.record(f'Filling in date for article {article_id}.','debug')
 
-    return None
+    url = f'{config.biorxiv["endpoints"]["api"]}/details/biorxiv/{doi}'
+    try:
+      r = requests.get(url)
+    except Exception as e:
+      self.log.record(f"Error requesting preprint details. Retrying: {e}", "error")
+      try:
+        r = requests.get(url)
+      except Exception as e:
+        self.log.record(f"Error AGAIN requesting preprint details. Bailing: {e}", "error")
+        return
+    resp = r.json()
+    if 'messages' not in resp.keys() or len(resp['messages']) == 0:
+      spider.log.record(f"Couldn't validate response from details endpoint.", 'error')
+      return
+
+    meta = resp['messages'][0]
+
+    if meta.get('status') != 'ok':
+      spider.log.record(f"Details endpoint responded with non-ok status", 'error')
+      return
+
+    if 'collection' not in resp.keys() or len(resp['collection']) == 0:
+      spider.log.record(f"No results in response from details endpoint.", 'error')
+      return
+    for entry in resp['collection']:
+      if entry.get('version') == '1':
+        date = entry.get('date')
+        break
+    if date is not None:
+      with self.connection.db.cursor() as cursor:
+        spider.log.record(f'Setting posted date {date} for article {article_id}')
+        cursor.execute("UPDATE articles SET posted=%s WHERE id=%s;", (date, article_id))
 
   def save_article_stats(self, article_id, stats):
     # First, delete the most recently fetched month, because it was probably recorded before
@@ -1089,102 +995,6 @@ def load_rankings_from_file(batch, log):
   if to_delete is not None:
     os.remove(to_delete)
 
-def record_canonical_name(spider, to_record, affiliation):
-  """Helper function for canonical_names function below.
-
-  """
-  spider.log.record(f"Recording {to_record} for {affiliation}", 'info')
-  with spider.connection.db.cursor() as cursor:
-    cursor.execute(f"""
-      INSERT INTO {config.db['schema']}.affiliation_institutions (affiliation, institution)
-      VALUES (%s, %s);
-    """, (affiliation, to_record))
-
-def canonical_names(spider, max_calls=100):
-  """Interacts with a local deployment of the ROR database to determine institution names
-
-  """
-  todo = []
-  with spider.connection.db.cursor() as cursor:
-    spider.log.record('Querying for unlinked institutions', 'info')
-
-    # institutions listed on any preprint:
-    cursor.execute(f"""
-      SELECT DISTINCT(institution)
-      FROM(
-        SELECT a.institution, i.institution AS canonical
-        FROM prod.article_authors a
-        LEFT JOIN prod.affiliation_institutions i ON a.institution=i.affiliation
-        WHERE i.institution IS NULL
-      ) AS asdf
-      LIMIT %s
-    """, (max_calls,))
-
-    for record in cursor:
-      if len(record) > 0:
-        todo.append(record[0])
-  spider.log.record(f'Linking {len(todo)} institutions.', 'debug')
-  with spider.connection.db.cursor() as cursor:
-    for affiliation in todo:
-      if affiliation is None: continue
-      spider.log.record(f'Translating |{affiliation}|')
-      url_affiliation = urllib.parse.quote(affiliation) # avoiding weird symbols
-      to_record = None
-      try:
-        r = requests.get(f"http://rorapiweb/organizations?affiliation={url_affiliation}")
-      except Exception as e:
-        spider.log.record(f"Error calling ROR API: {e}", 'error')
-        continue
-
-      if r.status_code != 200:
-        # If the API returns an error, record "unknown" for that institution and move on
-        spider.log.record(f"Got weird status code: {r.status_code}", 'error')
-        # TODO: Should we really not re-visit errored entries?
-        record_canonical_name(spider, 0, affiliation)
-        continue
-
-      resp = r.json()
-
-      if 'items' not in resp.keys() or len(resp['items']) == 0:
-        spider.log.record(f"No results found for {affiliation}", 'info')
-        record_canonical_name(spider, 0, affiliation)
-        continue
-
-      for item in resp['items']:
-        if item['chosen']: # if it passes the ROR criteria for being the "right" answer
-          answer = {
-            'name': item['organization']['name'],
-            'ror': item['organization']['id'],
-            'grid': item['organization']['external_ids']['GRID']['preferred'],
-            'country': item['organization']['country']['country_code']
-          }
-          break
-      else:
-        spider.log.record(f"No confident results found for {affiliation}", 'info')
-        record_canonical_name(spider, 0, affiliation)
-        continue
-
-      cursor.execute(f"""
-        SELECT id
-        FROM {config.db['schema']}.institutions
-        WHERE name=%s;
-      """, (answer['name'],))
-      exists_id = cursor.fetchone()
-      if exists_id is not None:
-        spider.log.record(f"Found entry for {affiliation}! {exists_id}", 'debug')
-        record_canonical_name(spider, exists_id[0], affiliation)
-        continue
-
-      spider.log.record(f"Adding new institution: {answer['name']}!", 'info')
-      cursor.execute(f"""
-        INSERT INTO {config.db['schema']}.institutions (name, ror, grid, country)
-        VALUES (%s, %s, %s, %s)
-        RETURNING id;
-      """, (answer['name'], answer['ror'], answer['grid'], answer['country']))
-      to_record = cursor.fetchone()[0]
-      # once the new institution is recorded, link it to this record:
-      record_canonical_name(spider, to_record, affiliation)
-
 def full_run(spider):
   if config.crawl["fetch_missing_fields"] is not False:
     spider.get_urls()
@@ -1197,21 +1007,11 @@ def full_run(spider):
   else:
     spider.log.record("Skipping search for new articles: disabled in configuration file.", 'debug')
 
-  if config.crawl["fetch_abstracts"] is not False:
-    spider.fetch_abstracts()
-  else:
-    spider.log.record("Skipping step to fetch unknown abstracts: disabled in configuration file.", 'debug')
-
   if config.crawl["fetch_pubstatus"] is not False:
     spider.fetch_published()
     get_journal_names(spider)
 
   for collection in spider.fetch_category_list():
-    spider.log.record(f"\n\nBeginning category {collection}", "info")
-    if config.crawl["fetch_collections"] is not False:
-      spider.determine_collection(collection)
-    else:
-      spider.log.record("Skipping determination of new article collection: disabled in configuration file.", 'debug')
     if config.crawl["refresh_stats"] is not False:
       spider.refresh_article_stats(collection, config.refresh_category_cap)
       # HACK: There are way more neuro papers, so we check twice as many in each run
