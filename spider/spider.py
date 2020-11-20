@@ -152,10 +152,11 @@ class Spider(object):
       return
     if "message" not in results.keys() or "events" not in results["message"].keys() or len(results["message"]["events"]) == 0:
       self.log.record("Events not found in response.", "error")
-      if retry:
-        self.log.record("Retrying request: {0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), 'info')
-        time.sleep(6)
-        return self._pull_crossref_data_date(datestring, retry=False)
+      # this retry has never worked
+      # if retry:
+      #   self.log.record("Retrying request: {0}?obj-id.prefix=10.1101&from-occurred-date={1}&until-occurred-date={1}&source=twitter&mailto={2}&rows=10000".format(config.crossref["endpoints"]["events"], datestring, config.crossref["parameters"]["email"]), 'info')
+      #   time.sleep(6)
+      #   return self._pull_crossref_data_date(datestring, retry=False)
       return
 
     tweets = defaultdict(list)
@@ -242,6 +243,10 @@ class Spider(object):
       article = models.Article(entry)
       spider.log.record(f'Evaluating article {article.doi}','debug')
       recorded = article.record(self.connection, self)
+
+    # request next page
+    if meta['count'] + int(meta['cursor']) < meta['total']:
+      self.fetch_published(cursorid+meta['count'], current)
 
   def fetch_published(self, cursorid=0, current=None):
     if config.polite:
