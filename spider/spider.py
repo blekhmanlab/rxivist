@@ -239,14 +239,15 @@ class Spider(object):
 
     for entry in resp['collection']:
       if config.polite:
-        time.sleep(3)
+        time.sleep(1)
       article = models.Article(entry)
       spider.log.record(f'Evaluating article {article.doi}','debug')
       recorded = article.record(self.connection, self)
 
     # request next page
     if meta['count'] + int(meta['cursor']) < meta['total']:
-      self.fetch_published(cursorid+meta['count'], current)
+      spider.log.record('Retrieving next page of results.')
+      self.find_record_new_articles(cursorid+meta['count'], current)
 
   def fetch_published(self, cursorid=0, current=None):
     if config.polite:
@@ -1022,8 +1023,6 @@ def full_run(spider):
       # HACK: There are way more neuro papers, so we check twice as many in each run
       if collection == 'neuroscience':
         spider.refresh_article_stats(collection, config.refresh_category_cap)
-    else:
-      spider.log.record("Skipping refresh of paper download stats: disabled in configuration file.", 'debug')
 
   if config.crawl["refresh_stats"] is not False:
     # Refresh the articles without a collection:
@@ -1220,11 +1219,9 @@ if __name__ == "__main__":
     else:
       config.crawl = {
         "fetch_new": False, # Check for new papers in each collection
-        "fetch_collections": False, # Fill in the collection for new articles
-        "fetch_abstracts": True, # Check for any Rxivist papers missing an abstract and fill it in (Papers don't have an abstract when first crawled)
         "fetch_crossref": False, # Update daily Crossref stats
         "refresh_stats": True, # Look for articles with outdated download info and re-crawl them
-        "fetch_pubstatus": True, # Check for whether a paper has been published during stat refresh
+        "fetch_pubstatus": True, # Check for whether papers have been published
         "fetch_pubdates": True, # Check for publication dates for any papers that have been published
         "fetch_missing_fields": False
       }

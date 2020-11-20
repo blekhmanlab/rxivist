@@ -1,4 +1,5 @@
 import config
+from datetime import datetime as dt
 import re
 
 import psycopg2
@@ -110,7 +111,7 @@ class Article:
     with connection.db.cursor() as cursor:
       if self.doi in ["", None]:
         spider.log.record(f"Won't record a paper without a DOI: {self.url}", "fatal")
-      cursor.execute("SELECT id FROM articles WHERE doi=%s", (self.doi,))
+      cursor.execute("SELECT id, last_crawled FROM articles WHERE doi=%s", (self.doi,))
       response = cursor.fetchone()
 
       if response is not None and len(response) > 0:
@@ -118,8 +119,17 @@ class Article:
         # of the preprint. If we already have a record, but the
         # URL confirms it's version 1, then we know we've seen this
         # specific paper already.
-        if self.version == '1': # TODO: we might have recorded a revision too?
+        if self.version == '1':
           spider.log.record(f"Found article already: {self.title}", "debug")
+          return False
+        # If the revision was posted before the "last crawled" date, we
+        # likewise know it's safe to skip. This could conceivably miss
+        # papers that had two versions posted on the same day, but it
+        # saves enough time (and DB calls) that it's probably not worth
+        # dealing with.
+        posted = dt.strptime(self.posted, "%Y-%m-%d")
+        if response[1] >= posted.date():
+          spider.log.record('Revision already observed. Skipping.')
           return False
 
         # If it's a revision
@@ -155,7 +165,7 @@ class Article:
       self._record_posted_date(spider)
       if stat_table is not None:
         spider.save_article_stats(self.id, stat_table)
-      spider.log.record(f"\n\n\n!!!!\n\nRecorded article {self.title}", 'info')
+      spider.log.record(f"Recorded NEW article {self.title}", 'info')
     return True
 
   def _record_posted_date(self, spider):
