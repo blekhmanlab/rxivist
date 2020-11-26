@@ -89,7 +89,7 @@ def paper_query(q, categories, timeframe, metric, page, page_size, connection):
     """
   # add a WHERE clause if we need one:
   # (all-time twitter stats don't require it)
-  query += " WHERE a.repo<>'medrxiv'"
+  query += " WHERE (a.repo<>'medrxiv' OR a.repo IS NULL)"
   if metric == "downloads" or (metric == "twitter" and timeframe != "alltime") or len(categories) > 0:
     query += " AND "
     if metric == "downloads":
@@ -136,7 +136,9 @@ def paper_query(q, categories, timeframe, metric, page, page_size, connection):
   if page > 0:
     query += f" OFFSET {page * page_size}"
   query += ";"
+
   select += query
+  print(select, params)
   result = connection.read(select, params)
   results = [models.SearchResultArticle(a, connection) for a in result]
   return results, total
