@@ -289,7 +289,7 @@ def summary_stats(connection, category=None):
     SELECT EXTRACT(MONTH FROM posted)::int AS month,
       EXTRACT(YEAR FROM posted)::int AS year, COUNT(id) AS submissions
     FROM prod.articles
-    WHERE posted IS NOT NULL
+    WHERE posted IS NOT NULL AND repo='biorxiv'
     GROUP BY year, month
     ORDER BY year, month;
   """)
@@ -323,7 +323,7 @@ def summary_stats(connection, category=None):
       SELECT EXTRACT(MONTH FROM posted)::int AS month,
         EXTRACT(YEAR FROM posted)::int AS year, COUNT(id) AS submissions
       FROM prod.articles
-      WHERE posted IS NOT NULL
+      WHERE posted IS NOT NULL AND repo='biorxiv'
       AND collection=%s
       GROUP BY year, month
       ORDER BY year, month;
@@ -359,8 +359,10 @@ def summary_stats(connection, category=None):
     maxyear -= 1
 
   data = connection.read("""
-    SELECT month, year, sum(pdf) AS downloads
-    FROM prod.article_traffic
+    SELECT t.month, t.year, sum(t.pdf) AS downloads
+    FROM prod.article_traffic t
+    INNER JOIN prod.articles a ON t.id=a.id
+    WHERE a.repo='biorxiv'
     GROUP BY year, month
     ORDER BY year, month
   """)
@@ -387,7 +389,7 @@ def site_stats(connection):
   """
 
   # Counting up how many of each entity we have
-  resp = connection.read("SELECT COUNT(id) FROM articles;")
+  resp = connection.read("SELECT COUNT(id) FROM articles WHERE repo='biorxiv';")
   if len(resp) != 1 or len(resp[0]) != 1:
     paper_count = 0
   else:
