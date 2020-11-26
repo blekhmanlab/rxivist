@@ -396,6 +396,7 @@ class SearchResultArticle(Article):
     self.collection = sql_entry[5]
     self.posted = sql_entry[6]
     self.doi = sql_entry[7]
+    self.repo = sql_entry[8]
     self.get_authors(connection)
 
     if self.collection is None:
@@ -412,7 +413,8 @@ class SearchResultArticle(Article):
       "category": self.collection,
       "first_posted": self.posted.strftime('%Y-%m-%d') if self.posted is not None else "",
       "abstract": self.abstract,
-      "authors": [x.json() for x in self.authors]
+      "authors": [x.json() for x in self.authors],
+      "repo": self.repo
     }
 
 class SearchResultAuthor(object):

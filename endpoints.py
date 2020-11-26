@@ -10,37 +10,41 @@ import db
 import helpers
 import models
 
-def get_categories(connection):
-  """Fetches a list of all known bioRxiv categories.
+def get_categories(connection,repo=['biorxiv','medrxiv']):
+  """Fetches a list of all known preprint categories.
 
   bioRxiv separates all papers into categories (or "collections"), such
   as "bioinformatics", "genomics", etc. This function lists all the ones
-  we've pulled from the site so far. Rxivist uses the term "categories"
-  instead of "collections" to make this more broadly applicable in case
-  it's one day expanded to index more than just bioRxiv.
+  we've pulled from the site so far.
 
   Arguments:
     - connection: a Connection object with an active database session
 
   Returns:
-    - a list of strings, one for each bioRxiv collection
+    - a list of strings, one for each collection
 
   """
   results = []
-  categories = connection.read("SELECT DISTINCT collection FROM articles WHERE collection IS NOT NULL ORDER BY collection;")
+  categories = connection.read("""
+    SELECT DISTINCT collection
+    FROM articles
+    WHERE collection IS NOT NULL
+    AND repo=ANY(%s)
+    ORDER BY collection;
+  """, (repo,))
   for cat in categories:
     if len(cat) > 0:
       results.append(cat[0])
   return results
 
-def paper_query(q, categories, timeframe, metric, page, page_size, connection):
+def paper_query(q, categories, timeframe, metric, page, page_size, repo, connection):
   """Returns a list of the most downloaded papers that meet a given set of constraints.
 
   Arguments:
     - connection: a database Connection object.
     - q:  A search string to compare against article abstracts,
           titles and author names. (Title matches are weighted more heavily.)
-    - categories: A list of bioRxiv categories the results can be in.
+    - categories: A list of categories the results can be in.
     - timeframe: A description of the range of dates on which to
           base the rankings (i.e. "alltime" or "lastmonth")
     - metric: Which article-level statistic to use when sorting results
@@ -59,14 +63,14 @@ def paper_query(q, categories, timeframe, metric, page, page_size, connection):
     select += "r.downloads"
   elif metric == "twitter":
     select += "SUM(r.count)"
-  select += ", a.id, a.url, a.title, a.abstract, a.collection, a.posted, a.doi"
+  select += ", a.id, a.url, a.title, a.abstract, a.collection, a.posted, a.doi, a.repo"
 
   countselect = "SELECT COUNT(DISTINCT a.id)"
-  params = ()
+  params = (repo,)
 
   query = ""
   if q != "": # if there's a text search specified
-    params = (q,)
+    params = (repo,q)
   query += f' FROM {config.db["schema"]}.articles AS a INNER JOIN {config.db["schema"]}.'
   if metric == "twitter":
     query += "crossref_daily"
@@ -89,7 +93,7 @@ def paper_query(q, categories, timeframe, metric, page, page_size, connection):
     """
   # add a WHERE clause if we need one:
   # (all-time twitter stats don't require it)
-  query += " WHERE (a.repo<>'medrxiv' OR a.repo IS NULL)"
+  query += f" WHERE a.repo=ANY(%s)"
   if metric == "downloads" or (metric == "twitter" and timeframe != "alltime") or len(categories) > 0:
     query += " AND "
     if metric == "downloads":
@@ -104,9 +108,9 @@ def paper_query(q, categories, timeframe, metric, page, page_size, connection):
     if len(categories) > 0:
       query += "collection=ANY(%s)"
       if q != "":
-        params = (q,categories)
+        params = (repo,q,categories)
       else:
-        params = (categories,)
+        params = (repo,categories)
       if metric == "twitter" and timeframe != "alltime":
         query += " AND "
     if metric == "twitter" and timeframe != "alltime":
@@ -147,7 +151,7 @@ def author_rankings(connection, category=""):
 
   Arguments:
     - connection: a database Connection object.
-    - category: (Optionally) a single bioRxiv collection to base download rankings on.
+    - category: (Optionally) a single collection to base download rankings on.
   Returns:
     - A list of Author objects that meet the search criteria.
 
@@ -203,7 +207,7 @@ def paper_details(article_id, connection):
   return result
 
 def paper_downloads(a_id, connection):
-  """Returns time-series data from bioRxiv about how many
+  """Returns time-series data about how many
   times a paper's webpage and PDF have been downloaded.
 
   Arguments:
@@ -223,7 +227,7 @@ def paper_downloads(a_id, connection):
   }
 
 def get_distribution(category, metric, connection):
-  """Returns time-series data from bioRxiv about how many
+  """Returns time-series data about how many
   times a paper's webpage and PDF have been downloaded.
 
   Arguments:
@@ -288,7 +292,7 @@ def summary_stats(connection, category=None):
     SELECT EXTRACT(MONTH FROM posted)::int AS month,
       EXTRACT(YEAR FROM posted)::int AS year, COUNT(id) AS submissions
     FROM prod.articles
-    WHERE posted IS NOT NULL AND repo='biorxiv'
+    WHERE posted IS NOT NULL
     GROUP BY year, month
     ORDER BY year, month;
   """)
@@ -322,7 +326,7 @@ def summary_stats(connection, category=None):
       SELECT EXTRACT(MONTH FROM posted)::int AS month,
         EXTRACT(YEAR FROM posted)::int AS year, COUNT(id) AS submissions
       FROM prod.articles
-      WHERE posted IS NOT NULL AND repo='biorxiv'
+      WHERE posted IS NOT NULL
       AND collection=%s
       GROUP BY year, month
       ORDER BY year, month;
@@ -361,7 +365,6 @@ def summary_stats(connection, category=None):
     SELECT t.month, t.year, sum(t.pdf) AS downloads
     FROM prod.article_traffic t
     INNER JOIN prod.articles a ON t.id=a.id
-    WHERE a.repo='biorxiv'
     GROUP BY year, month
     ORDER BY year, month
   """)
@@ -388,7 +391,7 @@ def site_stats(connection):
   """
 
   # Counting up how many of each entity we have
-  resp = connection.read("SELECT COUNT(id) FROM articles WHERE repo='biorxiv';")
+  resp = connection.read("SELECT COUNT(id) FROM articles;")
   if len(resp) != 1 or len(resp[0]) != 1:
     paper_count = 0
   else:

@@ -51,6 +51,7 @@ def index():
   entity = "papers"
   page = bottle.request.query.page
   page_size = bottle.request.query.page_size
+  repo = bottle.request.query.getall('repo')
   error = ""
 
   default_front = (metric == '' and timeframe == '')
@@ -73,8 +74,15 @@ def index():
       bottle.response.status = 400
       return {"error": error}
 
-  category_list = endpoints.get_categories(connection) # list of all article categories
+  if len(repo) == 0 or (len(repo) == 1 and repo[0] == ""):
+    repo = ['biorxiv']
+  for entry in repo:
+      if entry not in ['biorxiv','medrxiv']:
+        error = f"There was a problem with the submitted query: {entry} is not a recognized preprint repository."
+        bottle.response.status = 400
+        return {"error": error}
 
+  category_list = endpoints.get_categories(connection,repo) # list of all article categories
   # Get rid of a category filter that's just one empty parameter:
   if len(category_filter) == 1 and category_filter[0] == "":
     category_filter = []
@@ -82,7 +90,7 @@ def index():
     # otherwise validate that the categories are valid
     for cat in category_filter:
       if cat not in category_list:
-        error = f"There was a problem with the submitted query: {cat} is not a recognized category."
+        error = f"There was a problem with the submitted query: {cat} is not a recognized category for the specified repositories."
         bottle.response.status = 400
         return {"error": error}
 
@@ -117,7 +125,7 @@ def index():
 
   if error == "": # if nothing's gone wrong yet, fetch results:
     try:
-      results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, connection)
+      results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, repo, connection)
     except Exception as e:
       error = f"There was a problem with the submitted query: {e}"
       bottle.response.status = 500
@@ -127,7 +135,7 @@ def index():
     if totalcount < config.min_daily_twitter:
       timeframe = 'week'
       try:
-        results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, connection)
+        results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, repo, connection)
       except Exception as e:
         error = f"There was a problem with the submitted query: {e}"
         bottle.response.status = 500
@@ -137,7 +145,7 @@ def index():
       metric = 'downloads'
       timeframe = 'lastmonth'
       try:
-        results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, connection)
+        results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, repo, connection)
       except Exception as e:
         error = f"There was a problem with the submitted query: {e}"
         bottle.response.status = 500
