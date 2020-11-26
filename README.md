@@ -1,8 +1,10 @@
 # rxivist API
 
-This application requires Python 3.6 or above. For information about running the web crawler, see [the README in the `spider` directory](https://github.com/blekhmanlab/rxivist/blob/master/spider/README.md).
+The Rxivist project is spread out over three code repositories:
 
-If you're looking for the Rxivist web application, that's in [a separate repository](https://github.com/blekhmanlab/rxivist_web).
+* This one contains code for [the API](https://rxivist.org/docs), which provides programmatic access to the data in the Rxivist database.
+* The [Rxivist web application](https://rxivist.org), which consumes data from the API, is stored in the [rxivist_web](https://github.com/blekhmanlab/rxivist_web) project.
+* The web crawler that indexes bioRxiv and medRxiv preprints is stored in the [biorxiv_spider](https://github.com/blekhmanlab/biorxiv_spider) project.
 
 ## Deployment
 The Rxivist API is designed to be run in a Docker container (though it doesn't have to be). Once Docker is installed on whatever server you plan to use, there are only a few commands to run:
@@ -32,7 +34,7 @@ For local development, you don't need to rebuild a container image every time yo
 ```sh
 git clone https://github.com/blekhmanlab/rxivist.git
 cd rxivist
-docker run -it --rm --name rxapi -p 80:80 -v "$(pwd)":/app --env RX_DBUSER --env RX_DBPASSWORD --env RX_DBHOST python:slim bash
+docker run -it --rm --name rxapi -p 80:80 -v "$(pwd)":/app --env RX_DBUSER --env RX_DBPASSWORD --env RX_DBHOST python:3 bash
 
 # You will now be in a shell within the container:
 cd /app
