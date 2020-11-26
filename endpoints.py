@@ -89,8 +89,9 @@ def paper_query(q, categories, timeframe, metric, page, page_size, connection):
     """
   # add a WHERE clause if we need one:
   # (all-time twitter stats don't require it)
+  query += " WHERE repo<>'medrxiv'"
   if metric == "downloads" or (metric == "twitter" and timeframe != "alltime") or len(categories) > 0:
-    query += " WHERE "
+    query += " AND "
     if metric == "downloads":
       query += "r.downloads > 0"
       if q != "" or len(categories) > 0:
