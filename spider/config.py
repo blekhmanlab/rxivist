@@ -25,6 +25,11 @@ crawl = {
   "fetch_missing_fields": True # Get URLs and dates for papers that are missing them
 }
 
+repos = {
+  'biorxiv': False,
+  'medrxiv': True
+}
+
 perform_ranks = {
   "enabled": True,  # set to False to disable all below
   "alltime": True,

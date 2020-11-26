@@ -42,30 +42,6 @@ import db
 from log import Logger
 import models
 
-
-def determine_page_count(html):
-  # takes a biorxiv results page and
-  # finds the highest page number listed
-  last = html.find(".pager-last")
-  if len(last) > 0:
-    return int(last[0].text)
-  # if there isn't a break in the list of page numbers (i.e. when there are
-  # only a couple pages of results), pager-last won't be there, so just grab
-  # the highest page number:
-  pages = html.find(".pager-item")
-  if len(pages) > 0:
-    return int(pages[-1].text)
-  return 0
-
-def pull_out_articles(html, log):
-  entries = html.find(".highwire-article-citation")
-  articles = []
-  for entry in entries:
-    a = models.Article()
-    a.process_results_entry(entry, log)
-    articles.append(a)
-  return articles
-
 def record_ranks_file(to_record, filename):
   with open(f"{filename}.csv", 'w') as f:
     for entry in to_record:
@@ -106,7 +82,7 @@ class Spider(object):
       self.log.record(f'Saving {len(to_save)} URLS.', 'info')
       cursor.executemany(f"UPDATE {config.db['schema']}.articles SET url=%s WHERE id=%s;", to_save)
 
-  def get_posted_dates(self):
+  def get_posted_dates(self, repo):
     # fills in URLs for papers that are for some reason missing them. Determines URLs
     # by resolving the DOI.
     self.log.record('Fetching dates for papers without them', 'info')
@@ -116,7 +92,7 @@ class Spider(object):
       for x in cursor:
         if x[1] is not None:
           self.log.record(f'Fetching date for {x[0]}.')
-          self.record_article_posted_date(x[0], x[1])
+          self.record_article_posted_date(x[0], x[1], repo)
 
   def _pull_crossref_data_date(self, datestring, retry=True):
     # Datestring should be format YYYY-MM-DD
@@ -197,7 +173,8 @@ class Spider(object):
       cursor.executemany(sql, params)
     self.log.record("Done with crossref.", "debug")
 
-  def find_record_new_articles(self, cursorid=0, current=None):
+  def find_record_new_articles(self, repo, cursorid=0, current=None):
+    self.log.record(f'Starting new article search for {repo}', 'info')
     if config.polite:
       time.sleep(3)
 
@@ -208,7 +185,7 @@ class Spider(object):
     start = (current - timedelta(days=1)).strftime('%Y-%m-%d')
     end = current.strftime('%Y-%m-%d')
     self.log.record(f"Fetching new preprints data from within 1 day of {start} (cursor: {cursorid})", 'debug')
-    url = f'{config.biorxiv["endpoints"]["api"]}/details/biorxiv/{start}/{end}/{cursorid}'
+    url = f'{config.biorxiv["endpoints"]["api"]}/details/{repo}/{start}/{end}/{cursorid}'
     try:
       r = requests.get(url)
     except Exception as e:
@@ -247,7 +224,7 @@ class Spider(object):
     # request next page
     if meta['count'] + int(meta['cursor']) < meta['total']:
       spider.log.record('Retrieving next page of results.')
-      self.find_record_new_articles(cursorid+meta['count'], current)
+      self.find_record_new_articles(repo, cursorid+meta['count'], current)
 
   def fetch_published(self, cursorid=0, current=None):
     if config.polite:
@@ -381,34 +358,6 @@ class Spider(object):
     self.log.record(f"{updated} articles refreshed in {collection}.")
     return updated
 
-  def get_article_abstract(self, url, retry=True):
-    if url is None:
-      self.log.record('No URL supplied. Skipping.', 'warn')
-      return
-    if config.polite:
-      time.sleep(1)
-    try:
-      resp = self.session.get(url)
-    except Exception as e:
-      self.log.record(f"Error fetching abstract: {e}", "warn")
-      if retry:
-        self.log.record("Retrying:")
-        time.sleep(10)
-        return self.get_article_abstract(url, False)
-      else:
-        self.log.record("Giving up on this one for now.", "error")
-        raise ValueError("Encountered exception making HTTP call to fetch paper information.")
-    abstract = resp.html.find('meta[name="DC.Description"]', first=True)
-    if abstract is not None and abstract.attrs['content'] != '':
-      abstract = abstract.attrs['content']
-    else:
-      self.log.record('Primary source of abstract missing. Trying secondary option.','debug')
-      abstract = resp.html.find("#p-2")
-      if len(abstract) < 1 or abstract[0].text == '':
-        raise ValueError("Successfully made HTTP call to fetch paper information, but did not find an abstract.")
-      abstract = abstract[0].text
-    return abstract
-
   def get_article_stats(self, url, retry_count=0):
     try:
       resp = self.session.get(f"{url}.article-metrics")
@@ -452,10 +401,10 @@ class Spider(object):
       stats.append((month, year, abstract, pdf))
     return stats, authors
 
-  def record_article_posted_date(self, article_id, doi, retry_count=0):
+  def record_article_posted_date(self, article_id, doi, repo, retry_count=0):
     self.log.record(f'Filling in date for article {article_id}.','debug')
 
-    url = f'{config.biorxiv["endpoints"]["api"]}/details/biorxiv/{doi}'
+    url = f'{config.biorxiv["endpoints"]["api"]}/details/{repo}/{doi}'
     try:
       r = requests.get(url)
     except Exception as e:
@@ -876,12 +825,6 @@ class Spider(object):
     self.log.record("Fetching today's Crossref data.")
     self._pull_crossref_data_date(current.strftime('%Y-%m-%d'))
 
-  def update_article(self, article_id, abstract):
-    with self.connection.db.cursor() as cursor:
-      cursor.execute(f"UPDATE {config.db['schema']}.articles SET abstract = %s WHERE id = %s;", (abstract, article_id))
-      self.connection.db.commit()
-      self.log.record(f"Recorded abstract for ID {article_id}", "debug")
-
   def calculate_vectors(self):
     self.log.record("Calculating vectors...")
     with self.connection.db.cursor() as cursor:
@@ -1003,13 +946,17 @@ def load_rankings_from_file(batch, log):
 
 def full_run(spider):
   if config.crawl["fetch_missing_fields"] is not False:
-    spider.get_urls()
-    spider.get_posted_dates()
-    spider.refresh_article_stats(get_authors=True) # Fix authorless papers
-    spider.remove_orphan_authors()
+    for repo in ['biorxiv','medrxiv']:
+      if config.repos[repo]:
+        spider.get_urls()
+        spider.get_posted_dates(repo)
+        spider.refresh_article_stats(get_authors=True) # Fix authorless papers
+        spider.remove_orphan_authors()
 
   if config.crawl["fetch_new"] is not False:
-    spider.find_record_new_articles()
+    for repo in ['biorxiv','medrxiv']:
+      if config.repos[repo]:
+        spider.find_record_new_articles(repo)
   else:
     spider.log.record("Skipping search for new articles: disabled in configuration file.", 'debug')
 

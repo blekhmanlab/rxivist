@@ -105,7 +105,12 @@ class Article:
     self.abstract = entry.get('abstract')
     self.version = entry.get('version')
     self.posted = entry.get('date')
-    self.url = f"https://biorxiv.org/content/{self.doi}v{self.version}"
+    self.repo = entry.get('server')
+
+    if self.repo == 'biorxiv':
+      self.url = f"https://biorxiv.org/content/{self.doi}v{self.version}"
+    elif self.repo == 'medrxiv':
+      self.url = f"https://medrxiv.org/content/{self.doi}v{self.version}"
 
   def record(self, connection, spider): # TODO: requiring the whole spider here is code smell of the first order
     with connection.db.cursor() as cursor:
@@ -136,7 +141,8 @@ class Article:
         cursor.execute("UPDATE articles SET title=%s, abstract=%s, title_vector=NULL, abstract_vector=NULL, author_vector=NULL WHERE doi=%s RETURNING id;", (self.title, self.abstract, self.doi))
         self.id = cursor.fetchone()[0]
         stat_table, authors = spider.get_article_stats(self.url)
-        spider._record_authors(self.id, authors, True)
+        if authors is not None:
+          spider._record_authors(self.id, authors, True)
         if stat_table is not None:
           spider.save_article_stats(self.id, stat_table)
         spider.log.record(f"Updated revision for article DOI {self.doi}: {self.title}", "info")
@@ -145,7 +151,7 @@ class Article:
     # If it's brand new:
     with connection.db.cursor() as cursor:
       try:
-        cursor.execute("INSERT INTO articles (title, doi, url, collection, abstract) VALUES (%s, %s, %s, %s, %s) RETURNING id;", (self.title, self.doi, self.url, self.collection, self.abstract))
+        cursor.execute("INSERT INTO articles (title, doi, url, collection, abstract, repo) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;", (self.title, self.doi, self.url, self.collection, self.abstract, self.repo))
       except Exception as e:
         spider.log.record(f"Couldn't record article '{self.title}': {e}", "error")
       self.id = cursor.fetchone()[0]
@@ -177,7 +183,7 @@ class Article:
       spider.log.record('Revision posted; fetching original article date.')
       # if the first time we see an article ISN'T the first version, we should
       # check to get the date from V1.
-      spider.record_article_posted_date(self.id, self.doi)
+      spider.record_article_posted_date(self.id, self.doi, self.repo)
 
   def get_id(self, connection):
     with connection.db.cursor() as cursor:
