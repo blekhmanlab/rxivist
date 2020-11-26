@@ -132,7 +132,7 @@ def index():
       bottle.response.status = 500
       return {"error": error}
   # If there is an unreasonably low number of weekly results, just roll over to downloads instead
-  if default_front and totalcount < min_weekly_twitter:
+  if default_front and totalcount < config.min_weekly_twitter:
     metric = 'downloads'
     timeframe = 'lastmonth'
     try:
