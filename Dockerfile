@@ -15,11 +15,6 @@ LABEL maintainer="rxivist@umn.edu"
 
 LABEL org.label-schema.version = "1.1.0"
 
-#RUN apt-get update
-#RUN apt install -y libpq-dev
-#postgresql-dev gcc python3-dev musl-dev
-
-
 ADD . /app
 WORKDIR /app
 RUN pip install -r requirements.txt

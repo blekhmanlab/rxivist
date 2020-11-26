@@ -115,15 +115,13 @@ def index():
   results = {} # a list of articles for the current page
   totalcount = 0 # how many results there are in total
 
-  if error == "": # if nothing's gone wrong yet, fetch results:
-    try:
-      results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, connection)
-    except Exception as e:
-      error = f"There was a problem with the submitted query: {e}"
-      bottle.response.status = 500
-      return {"error": error}
+  if error != "":
+    error = f"There was a problem with the submitted query: {e}"
+    bottle.response.status = 500
+    return {"error": error}
+
   # If daily twitter stats aren't available go weekly:
-  if default_front and totalcount < config.min_daily_twitter:
+  if error == "" and default_front and totalcount < config.min_daily_twitter:
     timeframe = 'week'
     try:
       results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, connection)
