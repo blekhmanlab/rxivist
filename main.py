@@ -123,7 +123,7 @@ def index():
       bottle.response.status = 500
       return {"error": error}
   # If daily twitter stats aren't available go weekly:
-  if default_front and totalcount < min_daily_twitter:
+  if default_front and totalcount < config.min_daily_twitter:
     timeframe = 'week'
     try:
       results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, connection)
