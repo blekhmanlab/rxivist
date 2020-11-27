@@ -134,7 +134,7 @@ def index(version):
 
   if error == "": # if nothing's gone wrong yet, fetch results:
     try:
-      results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, repo, connection)
+      results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, repo, version, connection)
     except Exception as e:
       error = f"There was a problem with the submitted query: {e}"
       bottle.response.status = 500
@@ -144,7 +144,7 @@ def index(version):
     if totalcount < config.min_daily_twitter:
       timeframe = 'week'
       try:
-        results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, repo, connection)
+        results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, repo, version, connection)
       except Exception as e:
         error = f"There was a problem with the submitted query: {e}"
         bottle.response.status = 500
@@ -154,7 +154,7 @@ def index(version):
       metric = 'downloads'
       timeframe = 'lastmonth'
       try:
-        results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, repo, connection)
+        results, totalcount = endpoints.paper_query(query, category_filter, timeframe, metric, page, page_size, repo, version, connection)
       except Exception as e:
         error = f"There was a problem with the submitted query: {e}"
         bottle.response.status = 500

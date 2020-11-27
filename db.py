@@ -58,8 +58,8 @@ class Connection(object):
       if attempts >= config.db["connection"]["max_attempts"]:
         print("Giving up.")
         raise RuntimeError("Failed to connect to database.")
-      print(f'Connection to DB failed. Retrying in {config.db["connection"]["attempt_pause"]} seconds.')
-      time.sleep(config.db["connection"]["attempt_pause"])
+      print(f'Connection to DB failed. Retrying in {config.db["connection"]["attempt_pause"] * attempts} seconds.')
+      time.sleep(config.db["connection"]["attempt_pause"] * attempts)
       self._attempt_connect(attempts)
 
   def read(self, query, params=None):

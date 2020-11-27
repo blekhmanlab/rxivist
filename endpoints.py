@@ -42,7 +42,7 @@ def get_categories(connection,repo='all'):
       results.append(cat[0])
   return results
 
-def paper_query(q, categories, timeframe, metric, page, page_size, repo, connection):
+def paper_query(q, categories, timeframe, metric, page, page_size, repo, version, connection):
   """Returns a list of the most downloaded papers that meet a given set of constraints.
 
   Arguments:
@@ -87,7 +87,7 @@ def paper_query(q, categories, timeframe, metric, page, page_size, repo, connect
 
   query = ""
   if q != "": # if there's a text search specified
-    params = (repo,q)
+    params = (q,repo)
   query += f' FROM {config.db["schema"]}.articles AS a INNER JOIN {config.db["schema"]}.'
   if metric == "twitter":
     query += "crossref_daily"
@@ -105,9 +105,15 @@ def paper_query(q, categories, timeframe, metric, page, page_size, repo, connect
     query += " AS r ON r.article=a.id"
 
   if q != "":
-    query += """, plainto_tsquery(%s) query,
-    coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'C') || setweight(a.author_vector, 'D')) totalvector
-    """
+    # backwards compatibility for text search
+    if version == 1:
+      query += """, plainto_tsquery(%s) query,
+      coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'C') || setweight(a.author_vector, 'D')) totalvector
+      """
+    else:
+      query += """, websearch_to_tsquery(%s) query,
+      coalesce(setweight(a.title_vector, 'A') || setweight(a.abstract_vector, 'C') || setweight(a.author_vector, 'D')) totalvector
+      """
   # add a WHERE clause if we need one:
   # (all-time twitter stats don't require it)
   query += f" WHERE a.repo=ANY(%s)"
@@ -125,7 +131,7 @@ def paper_query(q, categories, timeframe, metric, page, page_size, repo, connect
     if len(categories) > 0:
       query += "collection=ANY(%s)"
       if q != "":
-        params = (repo,q,categories)
+        params = (q,repo,categories)
       else:
         params = (repo,categories)
       if metric == "twitter" and timeframe != "alltime":
