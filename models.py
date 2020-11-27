@@ -18,7 +18,7 @@ class PaperQueryResponse(object):
   that way users will have a way of finding out if they've bumped against a limit.
 
   """
-  def __init__(self, results, query, timeframe, category_filter, metric, current_page, page_size, totalcount):
+  def __init__(self, results, query, timeframe, category_filter, metric, current_page, page_size, totalcount, repo):
     """The initialization method takes all the required information and stores it in
     memory; nothing except the final page number is calculated here.
 
@@ -35,6 +35,7 @@ class PaperQueryResponse(object):
           which one is currently being returned.
       - page_size: How many results to return at one time.
       - totalcount: How many results there are on all pages combined.
+      - repo: A list of all preprint repositories specified in the request
 
     """
     self.results = results
@@ -46,6 +47,7 @@ class PaperQueryResponse(object):
     self.page_size = page_size
     self.final_page = math.ceil(totalcount / page_size) - 1 # zero-indexed
     self.totalcount = totalcount
+    self.repo = repo
 
   def json(self):
     """Turns the PaperQueryResponse object into a dict that can be more
@@ -59,7 +61,8 @@ class PaperQueryResponse(object):
         "page_size": self.page_size,
         "current_page": self.current_page,
         "final_page": self.final_page,
-        "total_results": self.totalcount
+        "total_results": self.totalcount,
+        "repositories": self.repo
       },
       "results": [r.json() for r in self.results]
     }
@@ -444,7 +447,8 @@ class ArticleDetails(Article):
 
     """
     sql = """
-    SELECT a.url, a.title, a.collection, a.posted, a.doi, a.abstract, p.publication, p.doi
+    SELECT a.url, a.title, a.collection, a.posted, a.doi,
+      a.abstract, p.publication, p.doi, a.repo
       FROM articles a
       LEFT JOIN article_publications AS p ON a.id=p.article
       WHERE a.id=%s;
@@ -465,6 +469,7 @@ class ArticleDetails(Article):
     self.get_authors(connection)
     self.publication = sql_entry[6]
     self.pub_doi = sql_entry[7]
+    self.repo = sql_entry[8]
 
     if self.collection is None:
       self.collection = "unknown"
@@ -477,6 +482,7 @@ class ArticleDetails(Article):
       "id": self.id,
       "doi": self.doi,
       "first_posted": self.posted.strftime('%Y-%m-%d') if self.posted is not None else "",
+      "repo": self.repo,
       "biorxiv_url": self.url,
       "url":  f"{config.host}/v1/papers/{self.id}",
       "title": self.title,

@@ -42,8 +42,8 @@ connection = db.Connection(config.db["host"], config.db["db"], config.db["user"]
 # - ROUTES -
 
 #  paper query endpoint
-@bottle.get('/v1/papers')
-def index():
+@bottle.get('/v<version:int>/papers')
+def index(version):
   query = bottle.request.query.q
   timeframe = bottle.request.query.timeframe
   category_filter = bottle.request.query.getall('category') # multiple params possible
@@ -57,6 +57,11 @@ def index():
   default_front = (metric == '' and timeframe == '')
 
   # Don't accept bad values for fields that we cache on
+  if version > 2 or version < 1:
+    error = f"Unrecognized API version '{version}' specified."
+    bottle.response.status = 400
+    return {"error": error}
+
   if metric not in ["downloads", "twitter"]:
     metric = "twitter"
   if metric == "twitter":
@@ -74,8 +79,13 @@ def index():
       bottle.response.status = 400
       return {"error": error}
 
+  # The v1 API defaults to returning ONLY biorxiv, but v2 returns
+  # everything we have
   if len(repo) == 0 or (len(repo) == 1 and repo[0] == ""):
-    repo = ['biorxiv']
+    if version == 1:
+      repo = ['biorxiv']
+    else:
+      repo = ['biorxiv','medrxiv']
   for entry in repo:
       if entry not in ['biorxiv','medrxiv']:
         error = f"There was a problem with the submitted query: {entry} is not a recognized preprint repository."
@@ -159,7 +169,7 @@ def index():
   if query == "" and page < 3 and page_size == config.default_page_size:
     bottle.response.set_header("Cache-Control", f'max-age={config.cache["simple"]}, stale-while-revalidate=172800')
 
-  resp = models.PaperQueryResponse(results, query, timeframe, category_filter, metric, page, page_size, totalcount)
+  resp = models.PaperQueryResponse(results, query, timeframe, category_filter, metric, page, page_size, totalcount, repo)
   return resp.json()
 
 # paper details
