@@ -283,67 +283,51 @@ def summary_stats(connection, category=None):
   """
   results = {
     'submissions': [],
-    'downloads': [],
-    'submissions_categorical': []
+    'downloads': []
   }
 
   # Submissions:
-  data = connection.read("""
-    SELECT EXTRACT(MONTH FROM posted)::int AS month,
-      EXTRACT(YEAR FROM posted)::int AS year, COUNT(id) AS submissions
-    FROM prod.articles
-    WHERE posted IS NOT NULL
-    GROUP BY year, month
-    ORDER BY year, month;
-  """)
-  for entry in data:
-    results['submissions'].append({
-      'month': entry[0],
-      'year': entry[1],
-      'count': entry[2],
-    })
+  # The reason this is so complicated is because bioRxiv has more
+  # months of submissions, but we want an entry for each month.
 
-  # the reason this is so complicated is because not every category has submissions
-  # in every month, and we want an entry for each month.
-  catlist = get_categories(connection)
   # figure out the most recent month, so we know when to stop:
   data = connection.read(f"SELECT MAX(EXTRACT(YEAR FROM posted)) FROM {config.db['schema']}.articles")
   maxyear = int(data[0][0])
   data = connection.read(f"SELECT MAX(EXTRACT(MONTH FROM posted)) FROM {config.db['schema']}.articles WHERE EXTRACT(YEAR FROM posted) = %s", (maxyear,))
   maxmonth = int(data[0][0])
 
-  for cat in catlist:
-    catdata = {}
+  for repo in ['biorxiv','medrxiv']:
+    repodata = {}
     for year in range(2013, maxyear + 1):
-      catdata[year] = {}
+      repodata[year] = {}
       for month in range(1,13):
         if year == 2013 and month < 11:
           continue # nothing before nov 2013
         if year == maxyear and month > maxmonth:
           break
-        catdata[year][month] = 0
+        repodata[year][month] = 0
     data = connection.read("""
       SELECT EXTRACT(MONTH FROM posted)::int AS month,
         EXTRACT(YEAR FROM posted)::int AS year, COUNT(id) AS submissions
       FROM prod.articles
       WHERE posted IS NOT NULL
-      AND collection=%s
+      AND repo=%s
       GROUP BY year, month
       ORDER BY year, month;
-    """,(cat,))
+    """,(repo,))
     for entry in data:
-      catdata[entry[1]][entry[0]] = entry[2]
+      repodata[entry[1]][entry[0]] = entry[2]
 
     monthdata = []
-    for year, yeardata in catdata.items():
+    for year, yeardata in repodata.items():
       for month, count in yeardata.items():
         monthdata.append({
           'month': month,
           'year': year,
           'count': count,
         })
-    results['submissions_categorical'].append({
-      'label': cat,
+    results['submissions'].append({
+      'label': repo,
       'data': monthdata
     })
 
@@ -361,21 +345,42 @@ def summary_stats(connection, category=None):
     maxmonth += 12 - adjust
     maxyear -= 1
 
-  data = connection.read("""
-    SELECT t.month, t.year, sum(t.pdf) AS downloads
-    FROM prod.article_traffic t
-    INNER JOIN prod.articles a ON t.id=a.id
-    GROUP BY year, month
-    ORDER BY year, month
-  """)
-  for entry in data:
+  for repo in ['biorxiv','medrxiv']:
+    repodata = {}
+    for year in range(2013, maxyear + 1):
+      repodata[year] = {}
+      for month in range(1,13):
+        if year == 2013 and month < 11:
+          continue # nothing before nov 2013
+        if year == maxyear and month > maxmonth:
+          break
+        repodata[year][month] = 0
+    data = connection.read("""
+      SELECT t.month, t.year, sum(t.pdf) AS downloads
+      FROM prod.article_traffic t
+      INNER JOIN prod.articles a ON t.article=a.id
+      WHERE repo=%s
+      GROUP BY year, month
+      ORDER BY year, month
+    """,(repo,))
+    for entry in data:
+      repodata[entry[1]][entry[0]] = entry[2]
+
+    monthdata = []
+    for year, yeardata in repodata.items():
+      for month, count in yeardata.items():
+        monthdata.append({
+          'month': month,
+          'year': year,
+          'count': count,
+        })
+        if year == maxyear and month == maxmonth:
+          break
+
     results['downloads'].append({
-      'month': entry[0],
-      'year': entry[1],
-      'count': entry[2]
+      'label': repo,
+      'data': monthdata
     })
-    if entry[1] == maxyear and entry[0] == maxmonth:
-      break
 
   return results
 
