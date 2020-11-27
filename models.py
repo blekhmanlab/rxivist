@@ -35,7 +35,7 @@ class PaperQueryResponse(object):
           which one is currently being returned.
       - page_size: How many results to return at one time.
       - totalcount: How many results there are on all pages combined.
-      - repo: A list of all preprint repositories specified in the request
+      - repo: Which preprint repository was specified in request
 
     """
     self.results = results
@@ -62,7 +62,7 @@ class PaperQueryResponse(object):
         "current_page": self.current_page,
         "final_page": self.final_page,
         "total_results": self.totalcount,
-        "repositories": self.repo
+        "repository": self.repo
       },
       "results": [r.json() for r in self.results]
     }

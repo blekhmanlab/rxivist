@@ -10,7 +10,7 @@ import db
 import helpers
 import models
 
-def get_categories(connection,repo=['biorxiv','medrxiv']):
+def get_categories(connection,repo='all'):
   """Fetches a list of all known preprint categories.
 
   bioRxiv separates all papers into categories (or "collections"), such
@@ -25,13 +25,18 @@ def get_categories(connection,repo=['biorxiv','medrxiv']):
 
   """
   results = []
-  categories = connection.read("""
+  query = """
     SELECT DISTINCT collection
     FROM articles
     WHERE collection IS NOT NULL
-    AND repo=ANY(%s)
-    ORDER BY collection;
-  """, (repo,))
+  """
+  if repo != 'all':
+    query += " AND repo=%s"
+    params = (repo,)
+  else:
+    params = ()
+  query += " ORDER BY collection"
+  categories = connection.read(query, params)
   for cat in categories:
     if len(cat) > 0:
       results.append(cat[0])
@@ -55,6 +60,18 @@ def paper_query(q, categories, timeframe, metric, page, page_size, repo, connect
           specified metric in descending order.
 
   """
+
+  # HACK: Because there are so many possible combinations for which
+  # parameters need to be passed to the database for this query,
+  # it's much easier to say that every query needs a "repo" parameter
+  # rather than having lots of nested options in which some of them
+  # are performed without any repository clause.
+  if repo == 'all':
+    repo = ['biorxiv','medrxiv']
+  else:
+    repo = [repo]
+
+
   # We build two queries, 'select' and 'countselect': one to get the
   # current page of results, and one to figure out the total number
   # of results

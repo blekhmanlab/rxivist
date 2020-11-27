@@ -51,7 +51,7 @@ def index(version):
   entity = "papers"
   page = bottle.request.query.page
   page_size = bottle.request.query.page_size
-  repo = bottle.request.query.getall('repo')
+  repo = bottle.request.query.repo
   error = ""
 
   default_front = (metric == '' and timeframe == '')
@@ -81,16 +81,15 @@ def index(version):
 
   # The v1 API defaults to returning ONLY biorxiv, but v2 returns
   # everything we have
-  if len(repo) == 0 or (len(repo) == 1 and repo[0] == ""):
+  if repo == "":
     if version == 1:
-      repo = ['biorxiv']
+      repo = 'biorxiv'
     else:
-      repo = ['biorxiv','medrxiv']
-  for entry in repo:
-      if entry not in ['biorxiv','medrxiv']:
-        error = f"There was a problem with the submitted query: {entry} is not a recognized preprint repository."
-        bottle.response.status = 400
-        return {"error": error}
+      repo = 'all'
+  if repo not in ['biorxiv','medrxiv','all']:
+    error = f"There was a problem with the submitted query: {entry} is not a recognized preprint repository."
+    bottle.response.status = 400
+    return {"error": error}
 
   category_list = endpoints.get_categories(connection,repo) # list of all article categories
   # Get rid of a category filter that's just one empty parameter:
