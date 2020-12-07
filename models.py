@@ -205,12 +205,6 @@ class Author:
     """
     articles = connection.read(sql, (self.id,))
     articles = [AuthorArticle(a[0], connection) for a in articles]
-
-    for article in articles:
-      query = "SELECT COUNT(id) FROM articles WHERE collection=%s"
-      collection_count = connection.read(query, (article.collection,))
-      article.ranks.collection.out_of = collection_count[0][0]
-
     return articles
 
   def _find_emails(self, connection):
@@ -243,15 +237,11 @@ class Author:
     ranks = []
     downloadsq = connection.read("SELECT rank, tie, downloads FROM author_ranks WHERE author=%s;", (self.id,))
     if len(downloadsq) == 1:
-      author_count = connection.read("SELECT COUNT(id) FROM authors;")
-      author_count = author_count[0][0]
-      ranks.append(AuthorRankEntry(downloadsq[0][0], author_count, downloadsq[0][1], downloadsq[0][2], "alltime"))
+      ranks.append(AuthorRankEntry(downloadsq[0][0], downloadsq[0][1], downloadsq[0][2], "alltime"))
 
     categoryq = connection.read("SELECT rank, tie, downloads, category FROM author_ranks_category WHERE author = %s;", (self.id,))
     for cat in categoryq:
-      authors_in_category = connection.read("SELECT COUNT(author) FROM author_ranks_category WHERE category=%s", (cat[3],))
-      authors_in_category = authors_in_category[0][0]
-      entry = AuthorRankEntry(cat[0], authors_in_category, cat[1], cat[2], cat[3])
+      entry = AuthorRankEntry(cat[0], cat[1], cat[2], cat[3])
       ranks.append(entry)
 
     return ranks
@@ -281,10 +271,9 @@ class ArticleRankEntry(object):
 class AuthorRankEntry(object):
   """Stores data about an author's rank within a
   single corpus."""
-  def __init__(self, rank=0, out_of=0, tie=False, downloads=0, category=""):
+  def __init__(self, rank=0, tie=False, downloads=0, category=""):
     self.downloads = downloads
     self.rank = rank
-    self.out_of = out_of
     self.tie = tie
     self.category = category
 
@@ -292,7 +281,6 @@ class AuthorRankEntry(object):
     return {
       "downloads": self.downloads,
       "rank": self.rank,
-      "out_of": self.out_of,
       "tie": self.tie,
       "category": self.category
     }
@@ -419,7 +407,7 @@ class SearchResultAuthor(object):
   def __init__(self, id, name, rank, downloads, tie):
     self.id = id
     self.name = name
-    self.rank = AuthorRankEntry(rank, 0, tie, downloads) # we don't need the "out_of" field here, so it's 0
+    self.rank = AuthorRankEntry(rank, tie, downloads)
 
   def json(self):
     return {
