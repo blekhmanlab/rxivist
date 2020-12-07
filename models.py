@@ -113,7 +113,6 @@ class Author:
     """
     self.name, self.institution, self.orcid = self._find_vitals(connection)
     self.articles = self._find_articles(connection)
-    self.emails = self._find_emails(connection)
     self.ranks = self._find_ranks(connection)
     self.has_full_info = True
 
@@ -144,7 +143,6 @@ class Author:
         "name": self.name,
         "institution": self.institution,
         "orcid": self.orcid,
-        "emails": self.emails,
         "articles": [x.json() for x in self.articles],
         "ranks": [x.json() for x in self.ranks]
       }
