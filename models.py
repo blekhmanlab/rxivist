@@ -266,17 +266,15 @@ class DateEntry(object):
 class ArticleRankEntry(object):
   """Stores data about a paper's rank within a
   single corpus."""
-  def __init__(self, rank=0, out_of=0, tie=False, downloads=0):
+  def __init__(self, rank=0, tie=False, downloads=0):
     self.downloads = downloads
     self.rank = rank
-    self.out_of = out_of
     self.tie = tie
 
   def json(self):
     return {
       "downloads": self.downloads,
       "rank": self.rank,
-      "out_of": self.out_of,
       "tie": self.tie
     }
 
@@ -326,15 +324,11 @@ class ArticleRanks(object):
       WHERE articles.id=%s
     """
     sql_entry = connection.read(sql, (article_id,))[0]
-    category_count = connection.read("SELECT COUNT(id) FROM articles WHERE collection=%s", (sql_entry[4],))
-    category_count = category_count[0][0]
-    alltime_count = connection.read("SELECT COUNT(id) FROM articles")
-    alltime_count = alltime_count[0][0]
 
-    self.alltime = ArticleRankEntry(sql_entry[0], alltime_count, False, sql_entry[5])
-    self.ytd = ArticleRankEntry(sql_entry[1], alltime_count, False, sql_entry[6])
-    self.lastmonth = ArticleRankEntry(sql_entry[2], alltime_count, False, sql_entry[7])
-    self.collection = ArticleRankEntry(sql_entry[3], category_count, False, sql_entry[5])
+    self.alltime = ArticleRankEntry(sql_entry[0], False, sql_entry[5])
+    self.ytd = ArticleRankEntry(sql_entry[1], False, sql_entry[6])
+    self.lastmonth = ArticleRankEntry(sql_entry[2], False, sql_entry[7])
+    self.collection = ArticleRankEntry(sql_entry[3], False, sql_entry[5])
 
   def json(self):
     return {
