@@ -387,6 +387,11 @@ def summary_stats(connection, category=None):
       ORDER BY year, month
     """,(repo,))
     for entry in data:
+      # skip results outside the range we want
+      if entry[1] > maxyear:
+        continue
+      if entry[1] == maxyear and entry[0] > maxmonth:
+        continue
       repodata[entry[1]][entry[0]] = entry[2]
 
     monthdata = []
