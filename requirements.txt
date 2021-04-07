@@ -1,4 +1,4 @@
 psycopg2==2.8.6
-bottle==0.12.13
+bottle==0.12.19
 gunicorn==19.9.0
 requests==2.23.0
