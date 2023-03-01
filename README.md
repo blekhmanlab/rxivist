@@ -1,3 +1,13 @@
+**Note, March 2023: The Rxivist project has been discontinued.** This code will remain available indefinitely, but we can't make any assurances about its functionality going forward as dependencies and external data sources change.
+
+.
+
+.
+
+.
+
+.
+
 # rxivist API
 
 The Rxivist project is spread out over three code repositories:
